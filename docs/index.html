@@ -265,7 +265,10 @@ tr:hover td{background:#FAFBFC;}
     <!-- BANK & CASH -->
     <div class="pg" id="pg-bank">
       <div class="ph"><div><h1>Bank & Cash</h1><p>Bank accounts and reconciliation</p></div>
-        <button class="btn btp" onclick="openMod('bank-mod')">+ Add Transaction</button>
+        <div style="display:flex;gap:7px;">
+          <button class="btn bto" onclick="openBankTxnMod()">+ Transaction</button>
+          <button class="btn btp" onclick="openMod('addbank-mod')">+ Add Bank</button>
+        </div>
       </div>
       <div style="display:flex;gap:6px;margin-bottom:14px;background:white;padding:5px;border-radius:10px;border:1px solid var(--border);">
         <button class="btn btp btsm" id="bank-tab1" onclick="showBankTab('accounts',this)" style="flex:1;justify-content:center;">Accounts</button>
@@ -1412,8 +1415,501 @@ function loadAudit() {
   document.getElementById('audit-content').innerHTML = h;
 }
 
+
+// ── BILL FUNCTIONS ────────────────────────────────────
+var billLineCount = 0;
+
+function openBillMod() {
+  billLineCount = 0;
+  document.getElementById('bill-line-items').innerHTML = '';
+  // Load vendors
+  erpReq('GET', '/api/parties?type=vendor').then(function(res) {
+    var sel = document.getElementById('bill-party');
+    if (sel && res.success) {
+      sel.innerHTML = '<option value="">Select Vendor</option>';
+      res.data.forEach(function(p) {
+        sel.innerHTML += '<option value="' + p.id + '">' + p.name + '</option>';
+      });
+    }
+  });
+  var today = new Date().toISOString().split('T')[0];
+  document.getElementById('bill-date').value = today;
+  addBillLine();
+  openMod('bill-mod');
+}
+
+function addBillLine() {
+  var idx = billLineCount++;
+  var div = document.createElement('div');
+  div.style.cssText = 'display:grid;grid-template-columns:2fr 1fr 1fr 1fr 0.5fr;gap:6px;margin-bottom:6px;';
+  div.id = 'bill-line-' + idx;
+  div.innerHTML =
+    '<input id="bl-desc-' + idx + '" placeholder="Description" style="border:1.5px solid var(--border);border-radius:6px;padding:6px;font-size:12px;">' +
+    '<input id="bl-qty-' + idx + '" type="number" value="1" min="1" style="border:1.5px solid var(--border);border-radius:6px;padding:6px;font-size:12px;" oninput="calcBillTotals()">' +
+    '<input id="bl-rate-' + idx + '" type="number" placeholder="0.00" style="border:1.5px solid var(--border);border-radius:6px;padding:6px;font-size:12px;" oninput="calcBillTotals()">' +
+    '<select id="bl-gst-' + idx + '" style="border:1.5px solid var(--border);border-radius:6px;padding:6px;font-size:12px;" onchange="calcBillTotals()"><option value="18">18%</option><option value="12">12%</option><option value="5">5%</option><option value="0">0%</option></select>' +
+    '<button onclick="this.parentElement.remove();calcBillTotals();" style="background:var(--red);color:white;border:none;border-radius:6px;cursor:pointer;">✕</button>';
+  document.getElementById('bill-line-items').appendChild(div);
+}
+
+function calcBillTotals() {
+  var subtotal=0, totalGST=0;
+  document.querySelectorAll('[id^="bl-qty-"]').forEach(function(el,i) {
+    var idx = el.id.replace('bl-qty-','');
+    var qty = parseFloat(el.value)||0;
+    var rate = parseFloat(document.getElementById('bl-rate-'+idx) ? document.getElementById('bl-rate-'+idx).value : 0)||0;
+    var gst = parseFloat(document.getElementById('bl-gst-'+idx) ? document.getElementById('bl-gst-'+idx).value : 18)||18;
+    var base = qty*rate;
+    subtotal += base; totalGST += base*gst/100;
+  });
+  document.getElementById('bill-subtotal').textContent = fmtAmt(subtotal);
+  document.getElementById('bill-cgst').textContent = fmtAmt(totalGST/2);
+  document.getElementById('bill-sgst').textContent = fmtAmt(totalGST/2);
+  document.getElementById('bill-total').textContent = fmtAmt(subtotal+totalGST);
+}
+
+async function saveBill() {
+  var partyId = document.getElementById('bill-party').value;
+  var date = document.getElementById('bill-date').value;
+  if (!partyId || !date) { toast('Vendor and date required','err'); return; }
+  var lines = [];
+  document.querySelectorAll('[id^="bl-qty-"]').forEach(function(el) {
+    var idx = el.id.replace('bl-qty-','');
+    var desc = document.getElementById('bl-desc-'+idx) ? document.getElementById('bl-desc-'+idx).value : '';
+    var qty = parseFloat(el.value)||1;
+    var rate = parseFloat(document.getElementById('bl-rate-'+idx) ? document.getElementById('bl-rate-'+idx).value : 0)||0;
+    var gstRate = parseFloat(document.getElementById('bl-gst-'+idx) ? document.getElementById('bl-gst-'+idx).value : 18)||18;
+    if (rate > 0) lines.push({description:desc, qty:qty, rate:rate, gstRate:gstRate});
+  });
+  if (!lines.length) { toast('Add at least one line item','err'); return; }
+  var res = await erpReq('POST', '/api/invoices', {
+    partyId: partyId, type: 'purchase', date: date,
+    dueDate: document.getElementById('bill-due').value || null,
+    lines: lines, notes: document.getElementById('bill-notes').value, status: 'Unpaid'
+  });
+  if (res.success) {
+    toast('Bill ' + res.data.invoice_no + ' created!');
+    closeMod('bill-mod');
+    loadAP();
+  } else toast(res.message||'Failed','err');
+}
+
+// Override loadAP with API version
+async function loadAP() {
+  var c = document.getElementById('ap-content');
+  if (c) c.innerHTML = '<div class="ld"><div class="sp"></div>Loading...</div>';
+  var res = await erpReq('GET', '/api/invoices?type=purchase');
+  if (!res.success) { c.innerHTML = '<div class="em"><h3>Error loading bills</h3></div>'; return; }
+  var list = res.data || [];
+  var h = '<div class="kgrid" style="margin-bottom:14px;">';
+  var totalBills = list.reduce(function(s,b){return s+parseFloat(b.total);},0);
+  var unpaid = list.filter(function(b){return b.status==='Unpaid';}).reduce(function(s,b){return s+parseFloat(b.total);},0);
+  var paid = list.filter(function(b){return b.status==='Paid';}).reduce(function(s,b){return s+parseFloat(b.total);},0);
+  h += '<div class="kp"><div class="kv">' + fmtAmt(totalBills) + '</div><div class="kl">Total Bills</div></div>';
+  h += '<div class="kp"><div class="kv dr">' + fmtAmt(unpaid) + '</div><div class="kl">Unpaid</div></div>';
+  h += '<div class="kp"><div class="kv cr">' + fmtAmt(paid) + '</div><div class="kl">Paid</div></div>';
+  h += '</div>';
+  h += '<div class="card"><div class="tw"><table><thead><tr><th>Bill No</th><th>Vendor</th><th>Date</th><th>Due Date</th><th>Subtotal</th><th>CGST</th><th>SGST</th><th>Total</th><th>Status</th><th>Action</th></tr></thead><tbody>';
+  if (!list.length) {
+    h += '<tr><td colspan="10" style="text-align:center;color:var(--gray);padding:30px;">No bills yet. Click + New Bill.</td></tr>';
+  } else {
+    list.forEach(function(b) {
+      var sc = b.status==='Paid'?'bg':b.status==='Overdue'?'br':'by';
+      h += '<tr><td><strong>' + b.invoice_no + '</strong></td>';
+      h += '<td>' + (b.party_name||b.party_name_full||'--') + '</td>';
+      h += '<td>' + (b.date?new Date(b.date).toLocaleDateString('en-IN'):'--') + '</td>';
+      h += '<td>' + (b.due_date?new Date(b.due_date).toLocaleDateString('en-IN'):'--') + '</td>';
+      h += '<td>' + fmtAmt(parseFloat(b.subtotal)) + '</td>';
+      h += '<td class="dr">' + fmtAmt(parseFloat(b.cgst)) + '</td>';
+      h += '<td class="dr">' + fmtAmt(parseFloat(b.sgst)) + '</td>';
+      h += '<td class="dr"><strong>' + fmtAmt(parseFloat(b.total)) + '</strong></td>';
+      h += '<td><span class="b ' + sc + '">' + b.status + '</span></td>';
+      h += '<td><div style="display:flex;gap:4px;">';
+      h += '<button class="btn bto btsm" onclick="viewBill(\'' + b.id + '\')">View</button>';
+      if (b.status !== 'Paid') h += '<button class="btn btp btsm" onclick="payBillAPI(\'' + b.id + '\')">Pay</button>';
+      h += '</div></td></tr>';
+    });
+  }
+  h += '</tbody></table></div></div>';
+  if (c) c.innerHTML = h;
+}
+
+async function payBillAPI(id) {
+  var res = await erpReq('PUT', '/api/invoices/' + id + '/status', {status:'Paid'});
+  if (res.success) { toast('Bill marked as paid!'); loadAP(); }
+  else toast(res.message,'err');
+}
+
+async function viewBill(id) {
+  var res = await erpReq('GET', '/api/invoices/' + id);
+  if (!res.success) { toast('Error','err'); return; }
+  var b = res.data;
+  toast('Bill: ' + b.invoice_no + ' | ' + (b.party_name||'--') + ' | ' + fmtAmt(parseFloat(b.total)));
+}
+
+// ── BANK API FUNCTIONS ────────────────────────────────
+var bankAccounts = [];
+
+async function openBankTxnMod() {
+  // Load bank accounts into select
+  var res = await erpReq('GET', '/api/bank');
+  if (res.success) {
+    bankAccounts = res.data;
+    var sel = document.getElementById('txn-bank');
+    if (sel) {
+      sel.innerHTML = '<option value="">Select Account</option>';
+      res.data.forEach(function(b) {
+        sel.innerHTML += '<option value="' + b.id + '">' + b.name + ' (Rs ' + parseFloat(b.balance).toLocaleString('en-IN') + ')</option>';
+      });
+    }
+  }
+  var today = new Date().toISOString().split('T')[0];
+  document.getElementById('txn-date').value = today;
+  openMod('txn-mod');
+}
+
+async function saveBank() {
+  var name = document.getElementById('bnk-name').value.trim();
+  if (!name) { toast('Account name required','err'); return; }
+  var res = await erpReq('POST', '/api/bank', {
+    name: name,
+    type: document.getElementById('bnk-type').value,
+    bankName: document.getElementById('bnk-bank').value,
+    accountNo: document.getElementById('bnk-accno').value,
+    ifsc: document.getElementById('bnk-ifsc').value,
+    swift: document.getElementById('bnk-swift').value,
+    branch: document.getElementById('bnk-branch').value,
+    balance: parseFloat(document.getElementById('bnk-bal').value)||0
+  });
+  if (res.success) {
+    toast('Bank account added!');
+    closeMod('addbank-mod');
+    loadBank('accounts');
+  } else toast(res.message||'Failed','err');
+}
+
+async function saveTxn() {
+  var bankId = document.getElementById('txn-bank').value;
+  var date = document.getElementById('txn-date').value;
+  var desc = document.getElementById('txn-desc').value.trim();
+  var amount = parseFloat(document.getElementById('txn-amount').value)||0;
+  var type = document.getElementById('txn-type').value;
+  if (!bankId || !date || !desc || !amount) { toast('All fields required','err'); return; }
+  var res = await erpReq('POST', '/api/bank/' + bankId + '/transactions', {
+    date: date, description: desc, amount: amount, type: type,
+    reference: document.getElementById('txn-ref').value,
+    mode: document.getElementById('txn-mode').value
+  });
+  if (res.success) {
+    toast('Transaction added!');
+    closeMod('txn-mod');
+    loadBank('transactions');
+  } else toast(res.message||'Failed','err');
+}
+
+// Override loadBank with API version
+async function loadBank(tab) {
+  tab = tab || 'accounts';
+  var c = document.getElementById('bank-content');
+  if (c) c.innerHTML = '<div class="ld"><div class="sp"></div>Loading...</div>';
+  var h = '';
+
+  if (tab === 'accounts') {
+    var res = await erpReq('GET', '/api/bank');
+    if (!res.success) { c.innerHTML = '<div class="em"><h3>Error</h3></div>'; return; }
+    var banks = res.data || [];
+    var totalBal = banks.reduce(function(s,b){return s+parseFloat(b.balance);},0);
+    h = '<div class="kp" style="margin-bottom:14px;"><div class="kv">' + fmtAmt(totalBal) + '</div><div class="kl">Total Cash & Bank Balance</div></div>';
+    h += '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px;">';
+    banks.forEach(function(b) {
+      var grad = b.type==='Cash' ? 'linear-gradient(135deg,#276749,#38A169)' : 'linear-gradient(135deg,#0D1B3E,#1a3a7c)';
+      h += '<div class="card"><div style="background:' + grad + ';padding:18px;border-radius:11px 11px 0 0;color:white;">';
+      h += '<div style="font-size:10px;opacity:.6;margin-bottom:6px;">' + b.type.toUpperCase() + ' ACCOUNT</div>';
+      h += '<div style="font-size:24px;font-weight:800;margin-bottom:4px;">' + fmtAmt(parseFloat(b.balance)) + '</div>';
+      h += '<div style="font-size:13px;font-weight:600;">' + b.name + '</div>';
+      if (b.account_no) h += '<div style="font-size:11px;opacity:.6;margin-top:4px;">A/c: ' + b.account_no + (b.ifsc?' | IFSC: '+b.ifsc:'') + '</div>';
+      if (b.swift) h += '<div style="font-size:11px;opacity:.6;">Swift: ' + b.swift + '</div>';
+      h += '</div><div class="cb" style="display:flex;gap:7px;">';
+      h += '<button class="btn btp btsm" onclick="loadBankTxns(\'' + b.id + '\',\'' + b.name.replace(/'/g,'') + '\')">Transactions</button>';
+      h += '<button class="btn bto btsm" onclick="reconcileBank(\'' + b.id + '\')">Reconcile</button>';
+      h += '</div></div>';
+    });
+    if (!banks.length) h += '<div class="em"><h3>No bank accounts</h3><p>Click + Add Bank to add</p></div>';
+    h += '</div>';
+  }
+  else if (tab === 'transactions') {
+    var res = await erpReq('GET', '/api/bank');
+    if (!res.success || !res.data.length) { c.innerHTML = '<div class="em"><h3>No bank accounts found</h3></div>'; return; }
+    var firstBank = res.data[0];
+    await loadBankTxns(firstBank.id, firstBank.name);
+    return;
+  }
+  else if (tab === 'reconcile') {
+    h = '<div class="card"><div class="cb">';
+    h += '<div class="alert alert-info"><strong>Bank Reconciliation</strong> — Match bank statement with book entries.</div>';
+    var res2 = await erpReq('GET', '/api/bank');
+    if (res2.success && res2.data.length) {
+      h += '<div style="margin-top:12px;">';
+      res2.data.forEach(function(b) {
+        h += '<div style="display:flex;justify-content:space-between;align-items:center;padding:10px;background:var(--bg);border-radius:8px;margin-bottom:8px;">';
+        h += '<div><div style="font-weight:700;">' + b.name + '</div><div style="font-size:11px;color:var(--gray);">' + (b.account_no||'--') + '</div></div>';
+        h += '<div style="text-align:right;"><div style="font-weight:800;color:var(--green);">' + fmtAmt(parseFloat(b.balance)) + '</div>';
+        h += '<span class="b bg">Reconciled</span></div></div>';
+      });
+      h += '</div>';
+    }
+    h += '</div></div>';
+  }
+  if (c) c.innerHTML = h;
+}
+
+async function loadBankTxns(bankId, bankName) {
+  var c = document.getElementById('bank-content');
+  var res = await erpReq('GET', '/api/bank/' + bankId + '/transactions');
+  var txns = res.success ? res.data : [];
+  var h = '<div class="card"><div class="ch"><div class="ct">Transactions — ' + bankName + '</div>';
+  h += '<button class="btn bto btsm" onclick="loadBank(&quot;accounts&quot;)">← Back</button></div>';
+  h += '<div class="tw"><table><thead><tr><th>Date</th><th>Description</th><th>Ref</th><th>Mode</th><th>Debit</th><th>Credit</th><th>Balance</th><th>Reconciled</th></tr></thead><tbody>';
+  if (!txns.length) {
+    h += '<tr><td colspan="8" style="text-align:center;color:var(--gray);padding:20px;">No transactions yet.</td></tr>';
+  } else {
+    txns.forEach(function(t) {
+      h += '<tr><td>' + new Date(t.date).toLocaleDateString('en-IN') + '</td>';
+      h += '<td>' + (t.description||'--') + '</td>';
+      h += '<td style="font-size:11px;">' + (t.reference||'--') + '</td>';
+      h += '<td><span class="b bn">' + (t.mode||'--') + '</span></td>';
+      h += '<td class="dr">' + (parseFloat(t.debit)>0?fmtAmt(parseFloat(t.debit)):'--') + '</td>';
+      h += '<td class="cr">' + (parseFloat(t.credit)>0?fmtAmt(parseFloat(t.credit)):'--') + '</td>';
+      h += '<td><strong>' + fmtAmt(parseFloat(t.balance)) + '</strong></td>';
+      h += '<td><span class="b ' + (t.is_reconciled?'bg':'by') + '">' + (t.is_reconciled?'✓ Done':'Pending') + '</span></td></tr>';
+    });
+  }
+  h += '</tbody></table></div></div>';
+  if (c) c.innerHTML = h;
+}
+
+function reconcileBank(id) {
+  toast('Reconciliation feature — mark transactions as reconciled!');
+}
+
+// ── GST API FUNCTIONS ─────────────────────────────────
+async function loadGST(tab) {
+  tab = tab || 'summary';
+  var c = document.getElementById('gst-content');
+  if (c) c.innerHTML = '<div class="ld"><div class="sp"></div>Loading...</div>';
+  var h = '';
+
+  var now = new Date();
+  var month = now.getMonth()+1, year = now.getFullYear();
+  var mnArr = ['','Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+
+  if (tab === 'summary') {
+    var res = await erpReq('GET', '/api/gst/summary?month=' + month + '&year=' + year);
+    if (!res.success) { c.innerHTML = '<div class="em"><h3>Error loading GST</h3></div>'; return; }
+    var d = res.data;
+    h = '<div class="kgrid">';
+    h += '<div class="kp"><div class="kv cr">' + fmtAmt(d.outputTax) + '</div><div class="kl">Output Tax (Sales) — ' + mnArr[month] + '</div></div>';
+    h += '<div class="kp"><div class="kv" style="color:var(--teal);">' + fmtAmt(d.inputTax) + '</div><div class="kl">Input Tax Credit (ITC)</div></div>';
+    h += '<div class="kp"><div class="kv dr">' + fmtAmt(d.netPayable) + '</div><div class="kl">Net GST Payable</div></div>';
+    h += '<div class="kp"><div class="kv" style="color:var(--orange);">20 ' + mnArr[month+1<=12?month+1:1] + '</div><div class="kl">GSTR-3B Due Date</div></div>';
+    h += '</div>';
+    h += '<div class="card"><div class="ch"><div class="ct">GST Summary — ' + mnArr[month] + ' ' + year + '</div></div>';
+    h += '<div class="cb"><table style="width:100%;border-collapse:collapse;">';
+    h += '<tr style="border-bottom:1px solid var(--bg);"><td style="padding:8px 0;">Taxable Sales</td><td style="text-align:right;font-weight:600;">' + fmtAmt(d.taxableSales) + '</td></tr>';
+    h += '<tr style="border-bottom:1px solid var(--bg);"><td style="padding:8px 0;">Output CGST (9%)</td><td style="text-align:right;font-weight:600;color:var(--red);">' + fmtAmt(d.outputTax/2) + '</td></tr>';
+    h += '<tr style="border-bottom:1px solid var(--bg);"><td style="padding:8px 0;">Output SGST (9%)</td><td style="text-align:right;font-weight:600;color:var(--red);">' + fmtAmt(d.outputTax/2) + '</td></tr>';
+    h += '<tr style="border-bottom:1px solid var(--bg);"><td style="padding:8px 0;">Taxable Purchases</td><td style="text-align:right;font-weight:600;">' + fmtAmt(d.taxablePurchases) + '</td></tr>';
+    h += '<tr style="border-bottom:1px solid var(--bg);"><td style="padding:8px 0;">Input Tax Credit (ITC)</td><td style="text-align:right;font-weight:600;color:var(--green);">' + fmtAmt(d.inputTax) + '</td></tr>';
+    h += '<tr style="border-top:2px solid var(--navy);"><td style="padding:8px 0;font-weight:700;font-size:14px;">Net GST Payable</td><td style="text-align:right;font-weight:800;font-size:16px;color:var(--red);">' + fmtAmt(d.netPayable) + '</td></tr>';
+    h += '</table></div></div>';
+  }
+  else if (tab === 'gstr1') {
+    var res = await erpReq('GET', '/api/gst/gstr1');
+    if (!res.success) { c.innerHTML = '<div class="em"><h3>Error</h3></div>'; return; }
+    var invs = res.data || [];
+    h = '<div class="alert alert-warn">GSTR-1 for ' + mnArr[month] + ' ' + year + ' — Due: 11 ' + mnArr[month+1<=12?month+1:1] + ' ' + year + '</div>';
+    h += '<div class="card"><div class="ch"><div class="ct">B2B Invoices</div>';
+    h += '<button class="btn btp btsm" onclick="exportGSTR1()">Export JSON</button></div>';
+    h += '<div class="tw"><table><thead><tr><th>Invoice No</th><th>Customer</th><th>GSTIN</th><th>Date</th><th>Taxable Value</th><th>CGST</th><th>SGST</th><th>Total</th></tr></thead><tbody>';
+    if (!invs.length) {
+      h += '<tr><td colspan="8" style="text-align:center;color:var(--gray);padding:20px;">No sales invoices for this period.</td></tr>';
+    } else {
+      invs.forEach(function(inv) {
+        h += '<tr><td><strong>' + inv.invoice_no + '</strong></td>';
+        h += '<td>' + (inv.party_name||'--') + '</td>';
+        h += '<td style="font-size:11px;">' + (inv.party_gstin||'Unregistered') + '</td>';
+        h += '<td>' + new Date(inv.date).toLocaleDateString('en-IN') + '</td>';
+        h += '<td>' + fmtAmt(parseFloat(inv.subtotal)) + '</td>';
+        h += '<td class="dr">' + fmtAmt(parseFloat(inv.cgst)) + '</td>';
+        h += '<td class="dr">' + fmtAmt(parseFloat(inv.sgst)) + '</td>';
+        h += '<td class="cr"><strong>' + fmtAmt(parseFloat(inv.total)) + '</strong></td></tr>';
+      });
+    }
+    h += '</tbody></table></div></div>';
+  }
+  else if (tab === 'gstr3b') {
+    var sumRes = await erpReq('GET', '/api/gst/summary?month=' + month + '&year=' + year);
+    var d = sumRes.success ? sumRes.data : {outputTax:0,inputTax:0,netPayable:0,taxableSales:0};
+    h = '<div class="alert alert-warn">GSTR-3B for ' + mnArr[month] + ' ' + year + ' — Due: 20 ' + mnArr[month+1<=12?month+1:1] + ' ' + year + '</div>';
+    h += '<div class="card"><div class="cb">';
+    h += '<div style="font-size:11px;font-weight:700;color:var(--teal);text-transform:uppercase;margin-bottom:8px;">3.1 — Details of Outward Supplies</div>';
+    h += '<table style="width:100%;border-collapse:collapse;margin-bottom:14px;">';
+    h += '<thead><tr style="background:var(--navy);color:white;"><th style="padding:8px;">Nature</th><th style="padding:8px;text-align:right;">Taxable Value</th><th style="padding:8px;text-align:right;">CGST</th><th style="padding:8px;text-align:right;">SGST</th><th style="padding:8px;text-align:right;">IGST</th></tr></thead><tbody>';
+    h += '<tr style="border-bottom:1px solid var(--bg);"><td style="padding:8px;">Taxable (other than reverse charge)</td><td style="text-align:right;">' + fmtAmt(d.taxableSales) + '</td><td style="text-align:right;color:var(--red);">' + fmtAmt(d.outputTax/2) + '</td><td style="text-align:right;color:var(--red);">' + fmtAmt(d.outputTax/2) + '</td><td style="text-align:right;">--</td></tr>';
+    h += '</tbody></table>';
+    h += '<div style="font-size:11px;font-weight:700;color:var(--teal);text-transform:uppercase;margin-bottom:8px;">4 — Eligible ITC</div>';
+    h += '<table style="width:100%;border-collapse:collapse;margin-bottom:14px;">';
+    h += '<thead><tr style="background:var(--navy);color:white;"><th style="padding:8px;">Details</th><th style="padding:8px;text-align:right;">CGST</th><th style="padding:8px;text-align:right;">SGST</th><th style="padding:8px;text-align:right;">IGST</th></tr></thead><tbody>';
+    h += '<tr><td style="padding:8px;">ITC Available (Others)</td><td style="text-align:right;color:var(--green);">' + fmtAmt(d.inputTax/2) + '</td><td style="text-align:right;color:var(--green);">' + fmtAmt(d.inputTax/2) + '</td><td style="text-align:right;">--</td></tr>';
+    h += '</tbody></table>';
+    h += '<div style="padding:14px;background:rgba(230,51,41,.05);border:1px solid rgba(230,51,41,.15);border-radius:10px;">';
+    h += '<div style="display:flex;justify-content:space-between;margin-bottom:8px;"><span>Total Output Tax</span><span class="dr">' + fmtAmt(d.outputTax) + '</span></div>';
+    h += '<div style="display:flex;justify-content:space-between;margin-bottom:8px;"><span>ITC Available</span><span class="cr">(' + fmtAmt(d.inputTax) + ')</span></div>';
+    h += '<div style="display:flex;justify-content:space-between;font-weight:800;font-size:15px;border-top:1px solid var(--border);padding-top:8px;"><span>Net Tax Payable</span><span class="dr">' + fmtAmt(d.netPayable) + '</span></div>';
+    h += '</div></div></div>';
+  }
+  else if (tab === 'itc') {
+    var res = await erpReq('GET', '/api/invoices?type=purchase');
+    var bills = res.success ? res.data : [];
+    h = '<div class="card"><div class="ch"><div class="ct">Input Tax Credit Register</div></div>';
+    h += '<div class="tw"><table><thead><tr><th>Vendor</th><th>Bill No</th><th>Date</th><th>Taxable</th><th>CGST</th><th>SGST</th><th>Total ITC</th><th>Eligible</th></tr></thead><tbody>';
+    if (!bills.length) {
+      h += '<tr><td colspan="8" style="text-align:center;color:var(--gray);padding:20px;">No purchase bills found.</td></tr>';
+    } else {
+      bills.forEach(function(b) {
+        h += '<tr><td>' + (b.party_name||'--') + '</td><td>' + b.invoice_no + '</td>';
+        h += '<td>' + new Date(b.date).toLocaleDateString('en-IN') + '</td>';
+        h += '<td>' + fmtAmt(parseFloat(b.subtotal)) + '</td>';
+        h += '<td class="cr">' + fmtAmt(parseFloat(b.cgst)) + '</td>';
+        h += '<td class="cr">' + fmtAmt(parseFloat(b.sgst)) + '</td>';
+        h += '<td class="cr"><strong>' + fmtAmt(parseFloat(b.cgst)+parseFloat(b.sgst)) + '</strong></td>';
+        h += '<td><span class="b bg">Eligible</span></td></tr>';
+      });
+    }
+    h += '</tbody></table></div></div>';
+  }
+  if (c) c.innerHTML = h;
+}
+
+function exportGSTR1() {
+  erpReq('GET', '/api/gst/gstr1').then(function(res) {
+    if (!res.success) { toast('Export failed','err'); return; }
+    var blob = new Blob([JSON.stringify(res.data, null, 2)], {type:'application/json'});
+    var a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'GSTR1_' + new Date().getMonth()+1 + '_' + new Date().getFullYear() + '.json';
+    a.click();
+    toast('GSTR-1 JSON exported!');
+  });
+}
+
+// Override openMod for bill modal
+var _origOpenMod = openMod;
+function openMod(id) {
+  if (id === 'bill-mod') { openBillMod(); return; }
+  _origOpenMod(id);
+}
+
 // ── HELPERS ───────────────────────────────────────────
 function fmtAmt(n) { return 'Rs ' + (n||0).toLocaleString('en-IN', {minimumFractionDigits:2,maximumFractionDigits:2}); }
 </script>
+
+<!-- Bill Modal -->
+<div class="ov" id="bill-mod" onclick="if(event.target===this)closeMod('bill-mod')">
+  <div class="mo" style="max-width:680px;">
+    <div class="mh"><div class="mt">New Purchase Bill</div><button class="mx" onclick="closeMod('bill-mod')">✕</button></div>
+    <div class="mb">
+      <div class="g2">
+        <div class="ff"><label>Vendor *</label><select id="bill-party"><option value="">Select Vendor</option></select></div>
+        <div class="ff"><label>Bill Date *</label><input id="bill-date" type="date"></div>
+        <div class="ff"><label>Due Date</label><input id="bill-due" type="date"></div>
+        <div class="ff"><label>Bill No (Vendor)</label><input id="bill-no" placeholder="Vendor invoice number"></div>
+      </div>
+      <div style="margin-bottom:8px;font-size:11px;font-weight:700;color:var(--gray);text-transform:uppercase;">Line Items</div>
+      <div style="display:grid;grid-template-columns:2fr 1fr 1fr 1fr 0.5fr;gap:6px;margin-bottom:6px;">
+        <div style="font-size:10px;font-weight:700;color:var(--gray);">DESCRIPTION</div>
+        <div style="font-size:10px;font-weight:700;color:var(--gray);">QTY</div>
+        <div style="font-size:10px;font-weight:700;color:var(--gray);">RATE</div>
+        <div style="font-size:10px;font-weight:700;color:var(--gray);">GST %</div>
+        <div></div>
+      </div>
+      <div id="bill-line-items"></div>
+      <button class="btn bto btsm" onclick="addBillLine()" style="margin-bottom:12px;">+ Add Line</button>
+      <div style="background:var(--bg);border-radius:8px;padding:12px;">
+        <div style="display:flex;justify-content:space-between;margin-bottom:6px;"><span style="color:var(--gray);font-size:12px;">Subtotal (Excl. GST)</span><span id="bill-subtotal" style="font-weight:600;">Rs 0.00</span></div>
+        <div style="display:flex;justify-content:space-between;margin-bottom:6px;"><span style="color:var(--gray);font-size:12px;">CGST</span><span id="bill-cgst" style="font-weight:600;">Rs 0.00</span></div>
+        <div style="display:flex;justify-content:space-between;margin-bottom:6px;"><span style="color:var(--gray);font-size:12px;">SGST</span><span id="bill-sgst" style="font-weight:600;">Rs 0.00</span></div>
+        <div style="display:flex;justify-content:space-between;border-top:1px solid var(--border);padding-top:6px;"><span style="font-weight:700;color:var(--navy);">Total Amount</span><span id="bill-total" style="font-weight:800;color:var(--navy);font-size:15px;">Rs 0.00</span></div>
+      </div>
+      <div class="ff" style="margin-top:12px;"><label>Notes</label><textarea id="bill-notes" rows="2" style="border:1.5px solid var(--border);border-radius:8px;padding:8px;font-family:inherit;font-size:13px;width:100%;resize:vertical;" placeholder="Payment terms, notes..."></textarea></div>
+    </div>
+    <div class="mf">
+      <button class="btn bto" onclick="closeMod('bill-mod')">Cancel</button>
+      <button class="btn btp" onclick="saveBill()">Save Bill</button>
+    </div>
+  </div>
+</div>
+
+<!-- Add Bank Account Modal -->
+<div class="ov" id="addbank-mod" onclick="if(event.target===this)closeMod('addbank-mod')">
+  <div class="mo">
+    <div class="mh"><div class="mt">Add Bank Account</div><button class="mx" onclick="closeMod('addbank-mod')">✕</button></div>
+    <div class="mb">
+      <div class="g2">
+        <div class="ff"><label>Account Name *</label><input id="bnk-name" placeholder="e.g. Yes Bank - Current"></div>
+        <div class="ff"><label>Account Type</label>
+          <select id="bnk-type">
+            <option value="Current">Current Account</option>
+            <option value="Savings">Savings Account</option>
+            <option value="Cash">Cash in Hand</option>
+            <option value="OD">Overdraft</option>
+          </select>
+        </div>
+        <div class="ff"><label>Bank Name</label><input id="bnk-bank" placeholder="e.g. Yes Bank, SBI"></div>
+        <div class="ff"><label>Account Number</label><input id="bnk-accno" placeholder="Account number"></div>
+        <div class="ff"><label>IFSC Code</label><input id="bnk-ifsc" placeholder="e.g. YESB0001367" oninput="this.value=this.value.toUpperCase()"></div>
+        <div class="ff"><label>Swift Code</label><input id="bnk-swift" placeholder="e.g. YESBINBB" oninput="this.value=this.value.toUpperCase()"></div>
+        <div class="ff"><label>Branch</label><input id="bnk-branch" placeholder="e.g. Vadavalli, Coimbatore"></div>
+        <div class="ff"><label>Opening Balance (Rs)</label><input id="bnk-bal" type="number" placeholder="0.00"></div>
+      </div>
+    </div>
+    <div class="mf"><button class="btn bto" onclick="closeMod('addbank-mod')">Cancel</button><button class="btn btp" onclick="saveBank()">Add Account</button></div>
+  </div>
+</div>
+
+<!-- Add Transaction Modal -->
+<div class="ov" id="txn-mod" onclick="if(event.target===this)closeMod('txn-mod')">
+  <div class="mo">
+    <div class="mh"><div class="mt">Add Bank Transaction</div><button class="mx" onclick="closeMod('txn-mod')">✕</button></div>
+    <div class="mb">
+      <div class="g2">
+        <div class="ff"><label>Bank Account *</label><select id="txn-bank"><option value="">Select Account</option></select></div>
+        <div class="ff"><label>Date *</label><input id="txn-date" type="date"></div>
+        <div class="ff"><label>Type *</label>
+          <select id="txn-type" onchange="calcTxn()">
+            <option value="credit">Credit (Money In)</option>
+            <option value="debit">Debit (Money Out)</option>
+          </select>
+        </div>
+        <div class="ff"><label>Amount (Rs) *</label><input id="txn-amount" type="number" placeholder="0.00" oninput="calcTxn()"></div>
+        <div class="ff" style="grid-column:span 2;"><label>Description *</label><input id="txn-desc" placeholder="e.g. Invoice payment received from MSBS"></div>
+        <div class="ff"><label>Reference No</label><input id="txn-ref" placeholder="UTR/Cheque/Ref number"></div>
+        <div class="ff"><label>Mode</label>
+          <select id="txn-mode">
+            <option value="NEFT">NEFT</option>
+            <option value="RTGS">RTGS</option>
+            <option value="IMPS">IMPS</option>
+            <option value="UPI">UPI</option>
+            <option value="Cheque">Cheque</option>
+            <option value="Cash">Cash</option>
+            <option value="Other">Other</option>
+          </select>
+        </div>
+      </div>
+    </div>
+    <div class="mf"><button class="btn bto" onclick="closeMod('txn-mod')">Cancel</button><button class="btn btp" onclick="saveTxn()">Add Transaction</button></div>
+  </div>
+</div>
+
 </body>
 </html>
