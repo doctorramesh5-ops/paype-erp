@@ -113,7 +113,29 @@ tr:hover td{background:#FAFBFC;}
 </style>
 </head>
 <body>
-<div class="app">
+
+<div id="login-screen" style="position:fixed;inset:0;background:linear-gradient(135deg,#0D1B3E,#1a3a7c);display:flex;align-items:center;justify-content:center;z-index:999;">
+  <div style="background:white;border-radius:20px;padding:36px;width:92%;max-width:400px;box-shadow:0 20px 60px rgba(0,0,0,.3);">
+    <div style="text-align:center;margin-bottom:24px;">
+      <div style="font-family:Syne,sans-serif;font-size:32px;font-weight:800;color:#0D1B3E;">Pay<span style="color:#00C2A8;">Pe</span></div>
+      <div style="font-size:12px;color:#718096;letter-spacing:1px;margin-top:2px;">BUSINESS ERP</div>
+      <div style="font-size:11px;color:#00C2A8;margin-top:4px;">Accounting Module</div>
+    </div>
+    <div style="margin-bottom:14px;">
+      <label style="font-size:11px;font-weight:700;color:#718096;text-transform:uppercase;">Email</label>
+      <input id="login-email" type="email" value="admin@paype.co.in" style="width:100%;border:1.5px solid #E2E8F0;border-radius:8px;padding:10px 12px;font-size:13px;margin-top:5px;font-family:inherit;outline:none;">
+    </div>
+    <div style="margin-bottom:20px;">
+      <label style="font-size:11px;font-weight:700;color:#718096;text-transform:uppercase;">Password</label>
+      <input id="login-pass" type="password" value="Admin@PayPe2026" style="width:100%;border:1.5px solid #E2E8F0;border-radius:8px;padding:10px 12px;font-size:13px;margin-top:5px;font-family:inherit;outline:none;">
+    </div>
+    <button onclick="doLogin()" style="width:100%;background:#0D1B3E;color:white;border:none;border-radius:10px;padding:12px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;">Login to ERP</button>
+    <div id="login-err" style="color:#E63329;font-size:12px;text-align:center;margin-top:10px;display:none;"></div>
+    <div style="text-align:center;margin-top:16px;font-size:11px;color:#718096;">PayPe Technologies Pvt. Ltd. | FY 2026-27</div>
+  </div>
+</div>
+
+<div class="app" id="erp-app" style="display:none;">
 
 <!-- SIDEBAR -->
 <div class="sb" id="sb">
@@ -509,7 +531,7 @@ tr:hover td{background:#FAFBFC;}
 
 <script>
 // ── CONFIG ────────────────────────────────────────────
-var API = 'https://hrapi.paype.co.in';
+var API = 'https://erpapi.paype.co.in';
 var FY = '2026-27';
 var COMPANY = 'PayPe Technologies Pvt. Ltd.';
 var GSTIN = '33AAMCP7960K1ZU';
@@ -524,6 +546,81 @@ var lineItems = [];
 var jeLines = [];
 
 // ── INIT ──────────────────────────────────────────────
+
+// ── AUTH ──────────────────────────────────────────────
+var ERP_TOKEN = localStorage.getItem('erp_token');
+var ERP_USER = JSON.parse(localStorage.getItem('erp_user') || 'null');
+
+async function doLogin() {
+  var email = document.getElementById('login-email').value.trim();
+  var pass  = document.getElementById('login-pass').value.trim();
+  var err   = document.getElementById('login-err');
+  if (!email || !pass) { err.textContent = 'Enter email and password'; err.style.display='block'; return; }
+  var btn = event.target;
+  btn.textContent = 'Logging in...'; btn.disabled = true;
+  try {
+    var res = await fetch(API + '/api/auth/login', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({email, password: pass})
+    });
+    var data = await res.json();
+    if (data.success) {
+      ERP_TOKEN = data.token;
+      ERP_USER = data.user;
+      localStorage.setItem('erp_token', ERP_TOKEN);
+      localStorage.setItem('erp_user', JSON.stringify(ERP_USER));
+      document.getElementById('login-screen').style.display = 'none';
+      document.getElementById('erp-app').style.display = 'flex';
+      document.getElementById('tb-title').textContent = 'Dashboard';
+      document.querySelector('.tb-company').textContent = ERP_USER.company + ' | FY ' + ERP_USER.fy;
+      loadDash();
+    } else {
+      err.textContent = data.message || 'Login failed';
+      err.style.display = 'block';
+    }
+  } catch(e) {
+    err.textContent = 'Connection error: ' + e.message;
+    err.style.display = 'block';
+  }
+  btn.textContent = 'Login to ERP'; btn.disabled = false;
+}
+
+// Allow Enter key to login
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Enter' && document.getElementById('login-screen').style.display !== 'none') doLogin();
+});
+
+// Check existing token
+if (ERP_TOKEN && ERP_USER) {
+  document.getElementById('login-screen').style.display = 'none';
+  document.getElementById('erp-app').style.display = 'flex';
+  document.querySelector('.tb-company').textContent = ERP_USER.company + ' | FY ' + (ERP_USER.fy||'2026-27');
+}
+
+// Update req function to use ERP token
+async function erpReq(method, url, body) {
+  var opts = {
+    method: method,
+    headers: {'Content-Type':'application/json', 'Authorization':'Bearer ' + ERP_TOKEN}
+  };
+  if (body) opts.body = JSON.stringify(body);
+  var res = await fetch(API + url, opts);
+  if (res.status === 401) {
+    localStorage.removeItem('erp_token');
+    localStorage.removeItem('erp_user');
+    location.reload();
+    return {success:false};
+  }
+  return res.json();
+}
+
+function doLogout() {
+  localStorage.removeItem('erp_token');
+  localStorage.removeItem('erp_user');
+  location.reload();
+}
+
 document.addEventListener('DOMContentLoaded', function() {
   // Set today's date in modals
   var today = new Date().toISOString().split('T')[0];
