@@ -1,4 +1,41 @@
 const express = require('express');
+
+// ── RATE LIMITING ─────────────────────────────────
+const rateMap = new Map();
+function rateLimit(maxReq, windowMs) {
+  return function(req, res, next) {
+    const ip = req.headers['x-forwarded-for'] || req.socket.remoteAddress || 'unknown';
+    const key = ip + ':' + req.path;
+    const now = Date.now();
+    const windowStart = now - windowMs;
+    if (!rateMap.has(key)) rateMap.set(key, []);
+    const requests = rateMap.get(key).filter(function(t) { return t > windowStart; });
+    requests.push(now);
+    rateMap.set(key, requests);
+    if (requests.length > maxReq) {
+      return res.status(429).json({ success: false, message: 'Too many requests. Please try again later.' });
+    }
+    next();
+  };
+}
+
+// ── SECURITY MIDDLEWARE ───────────────────────────
+function securityHeaders(req, res, next) {
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('X-Frame-Options', 'DENY');
+  res.setHeader('X-XSS-Protection', '1; mode=block');
+  res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
+  next();
+}
+
+// ── INPUT SANITIZER ───────────────────────────────
+function sanitize(str) {
+  if (typeof str !== 'string') return str;
+  return str.replace(/<script[^>]*>.*?<\/script>/gi, '')
+            .replace(/<[^>]+>/g, '')
+            .trim()
+            .slice(0, 1000);
+}
 const cors = require('cors');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
