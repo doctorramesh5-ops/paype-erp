@@ -314,6 +314,15 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:#1A202C;font-size
         <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
         AI History
       </div>
+      <div class="sb-section">Account</div>
+      <div class="ni" id="ni-profile" onclick="go('profile',this)">
+        <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+        My Profile
+      </div>
+      <div class="ni" id="ni-settings" onclick="go('settings',this)">
+        <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
+        Settings
+      </div>
       <div class="sb-section">Other Modules</div>
       <a class="sb-link" href="https://erp.paype.co.in" target="_blank">📊 Accounting →</a>
       <a class="sb-link" href="https://doctorramesh5-ops.github.io/paype-erp/inventory.html" target="_blank">📦 Inventory & CRM →</a>
@@ -687,6 +696,21 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:#1A202C;font-size
         </div>
       </div>
 
+      <!-- PROFILE -->
+      <div class="pg" id="pg-profile">
+        <div class="ph">
+          <div><h1>👤 My Profile</h1><p>Account details & AI preferences</p></div>
+          <button class="btn btp" onclick="saveProfile()">Save Changes</button>
+        </div>
+        <div id="profile-content"></div>
+      </div>
+
+      <!-- SETTINGS -->
+      <div class="pg" id="pg-settings">
+        <div class="ph"><div><h1>⚙️ Settings</h1><p>AI assistant & system configuration</p></div></div>
+        <div id="settings-content"></div>
+      </div>
+
       <!-- AI HISTORY -->
       <div class="pg" id="pg-history">
         <div class="ph">
@@ -781,7 +805,8 @@ function go(name, el) {
   document.getElementById('sb').classList.remove('open');
   var loaders = {
     dashboard: loadDashboard, chat: initChat, insights: generateInsights,
-    history: loadHistory, gst: function(){calcGST();}
+    history: loadHistory, gst: function(){calcGST();},
+    profile: loadProfile, settings: loadSettings
   };
   if(loaders[name]) loaders[name]();
 }
@@ -1303,6 +1328,293 @@ function copyText(containerId){
   var text = document.getElementById(containerId).innerText;
   navigator.clipboard.writeText(text).then(function(){ toast('Copied!', 'ok'); }).catch(function(){ toast('Copy failed', 'err'); });
 }
+
+// ── PROFILE ──────────────────────────────────────────
+function loadProfile() {
+  var c = document.getElementById('profile-content');
+  if (!USER) { c.innerHTML = '<div class="em"><h3>Not logged in</h3></div>'; return; }
+  var initials = (USER.name||'U').split(' ').map(function(w){return w[0];}).join('').toUpperCase().slice(0,2);
+  var roleMap = {admin:'Admin — Full Access', manager:'AI Manager', employee:'Employee'};
+  var roleColor = {admin:'var(--teal)', manager:'var(--purple)', employee:'var(--green)'};
+
+  var h = '';
+
+  // Profile header card
+  h += '<div class="card" style="margin-bottom:14px;">';
+  h += '<div style="background:linear-gradient(135deg,#0D1B3E,#1a1a4e,#2d1b69);padding:28px;border-radius:11px 11px 0 0;display:flex;align-items:center;gap:20px;position:relative;overflow:hidden;">';
+  h += '<div style="position:absolute;top:-30px;right:-30px;width:150px;height:150px;border-radius:50%;background:rgba(128,90,213,.15);pointer-events:none;"></div>';
+  h += '<div style="position:absolute;bottom:-40px;left:20px;width:100px;height:100px;border-radius:50%;background:rgba(0,194,168,.08);pointer-events:none;"></div>';
+  h += '<div id="profile-avatar-display" style="width:72px;height:72px;border-radius:50%;background:linear-gradient(135deg,var(--teal),#805AD5);display:flex;align-items:center;justify-content:center;font-family:Syne,sans-serif;font-size:26px;font-weight:800;color:white;flex-shrink:0;border:3px solid rgba(255,255,255,.2);position:relative;z-index:1;">'+initials+'</div>';
+  h += '<div style="position:relative;z-index:1;"><div style="font-family:Syne,sans-serif;font-size:20px;font-weight:800;color:white;">'+(USER.name||'User')+'</div>';
+  h += '<div style="font-size:12px;color:rgba(255,255,255,.5);margin-top:2px;">'+(USER.email||'--')+'</div>';
+  h += '<div style="margin-top:8px;display:inline-flex;align-items:center;gap:6px;padding:3px 12px;border-radius:20px;font-size:11px;font-weight:700;background:rgba(255,255,255,.1);color:white;">🤖 '+(roleMap[USER.role]||USER.role)+'</div></div>';
+  h += '<div style="margin-left:auto;text-align:right;position:relative;z-index:1;">';
+  h += '<div style="font-size:10px;color:rgba(255,255,255,.4);margin-bottom:4px;">COMPANY</div>';
+  h += '<div style="font-size:13px;font-weight:700;color:white;">'+(USER.company||'PayPe Technologies')+'</div>';
+  h += '<div style="font-size:11px;color:rgba(255,255,255,.4);margin-top:2px;">FY '+(USER.fy||'2026-27')+'</div>';
+  h += '<div style="margin-top:6px;font-size:11px;color:rgba(0,194,168,.7);">Claude Sonnet 4.6 Active ✓</div>';
+  h += '</div></div>';
+
+  // Avatar colour picker
+  h += '<div class="cb"><div style="font-size:11px;font-weight:700;color:var(--gray);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px;">Avatar Colour</div>';
+  h += '<div style="display:flex;gap:8px;flex-wrap:wrap;">';
+  var avColors = ['#0D1B3E','#00C2A8','#805AD5','#E63329','#DD6B20','#38A169','#3182CE','#D53F8C','#1A1A2E','#2D3748'];
+  avColors.forEach(function(clr,ci){
+    h += '<div onclick="pickAvatarColor('+ci+')" style="width:32px;height:32px;border-radius:50%;background:'+clr+';cursor:pointer;display:inline-block;border:3px solid transparent;transition:.15s;" title="'+clr+'"></div>';
+  });
+  h += '</div></div></div>';
+
+  // Edit form + password + AI stats
+  h += '<div class="g2">';
+
+  // Personal info
+  h += '<div class="card"><div class="ch"><div class="ct">Personal Information</div></div><div class="cb">';
+  h += '<div class="ff2"><label>Full Name</label><input id="prof-name" value="'+(USER.name||'')+'" placeholder="Your full name"></div>';
+  h += '<div class="ff2"><label>Email</label><input id="prof-email" value="'+(USER.email||'')+'" readonly style="background:var(--bg);"></div>';
+  h += '<div class="ff2"><label>Mobile Number</label><input id="prof-mobile" placeholder="+91 XXXXX XXXXX" value="'+(USER.mobile||'')+'"></div>';
+  h += '<div class="ff2"><label>Designation</label><input id="prof-desig" placeholder="e.g. Finance Manager" value="'+(USER.designation||'')+'"></div>';
+  h += '<div class="ff2"><label>Department</label><select id="prof-dept"><option>Management</option><option>Finance</option><option>Sales</option><option>Operations</option><option>HR</option><option>IT</option></select></div>';
+  h += '<div class="ff2"><label>City / Location</label><input id="prof-loc" placeholder="e.g. Coimbatore" value="'+(USER.location||'Coimbatore')+'"></div>';
+  h += '</div></div>';
+
+  // Change password
+  h += '<div class="card"><div class="ch"><div class="ct">Change Password</div></div><div class="cb">';
+  h += '<div class="ff2"><label>Current Password</label><input id="prof-oldpass" type="password" placeholder="Current password"></div>';
+  h += '<div class="ff2"><label>New Password</label><input id="prof-newpass" type="password" placeholder="Min 8 characters"></div>';
+  h += '<div class="ff2"><label>Confirm Password</label><input id="prof-confirmpass" type="password" placeholder="Re-enter new password"></div>';
+  h += '<button class="btn btp" style="width:100%;margin-top:4px;" onclick="changePassword()">Update Password</button>';
+  h += '</div></div>';
+  h += '</div>';
+
+  // AI Usage stats
+  h += '<div class="card"><div class="ch"><div class="ct">🤖 My AI Usage</div></div><div class="cb">';
+  h += '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px;">';
+  var typeCounts = {};
+  aiHistory.forEach(function(h){ typeCounts[h.type] = (typeCounts[h.type]||0)+1; });
+  var usageStats = [
+    {icon:'💬',label:'Chat Queries',val:typeCounts.chat||0},
+    {icon:'📒',label:'Journal Entries',val:typeCounts.bookkeeping||0},
+    {icon:'📷',label:'OCR Extractions',val:typeCounts.ocr||0},
+    {icon:'🔢',label:'GST Queries',val:typeCounts.gst||0},
+    {icon:'📧',label:'Emails Drafted',val:typeCounts.email||0},
+    {icon:'📄',label:'Docs Generated',val:typeCounts.docs||0},
+  ];
+  usageStats.forEach(function(s){
+    h += '<div style="text-align:center;padding:14px;background:var(--bg);border-radius:10px;">';
+    h += '<div style="font-size:20px;margin-bottom:6px;">'+s.icon+'</div>';
+    h += '<div style="font-size:20px;font-weight:800;color:var(--navy);">'+s.val+'</div>';
+    h += '<div style="font-size:11px;color:var(--gray);">'+s.label+'</div></div>';
+  });
+  h += '</div></div></div>';
+
+  c.innerHTML = h;
+
+  // Apply saved avatar color
+  var savedColor = localStorage.getItem('aiAvatarColor');
+  if (savedColor) {
+    var av = document.getElementById('profile-avatar-display');
+    if (av) av.style.background = savedColor;
+    document.getElementById('tb-avatar').style.background = savedColor;
+  }
+}
+
+function pickAvatarColor(ci) {
+  var avColors = ['#0D1B3E','#00C2A8','#805AD5','#E63329','#DD6B20','#38A169','#3182CE','#D53F8C','#1A1A2E','#2D3748'];
+  var color = avColors[ci] || avColors[0];
+  var av = document.getElementById('profile-avatar-display');
+  if (av) av.style.background = color;
+  document.getElementById('tb-avatar').style.background = color;
+  localStorage.setItem('aiAvatarColor', color);
+  toast('Avatar colour updated!', 'ok');
+}
+
+function saveProfile() {
+  var name = document.getElementById('prof-name') ? document.getElementById('prof-name').value.trim() : '';
+  if (name && USER) {
+    USER.name = name;
+    localStorage.setItem('erp_user', JSON.stringify(USER));
+    document.getElementById('sb-user').textContent = name;
+    document.getElementById('tb-avatar').textContent = name.charAt(0).toUpperCase();
+  }
+  toast('Profile saved!', 'ok');
+}
+
+function changePassword() {
+  var np = document.getElementById('prof-newpass') ? document.getElementById('prof-newpass').value : '';
+  var cp = document.getElementById('prof-confirmpass') ? document.getElementById('prof-confirmpass').value : '';
+  if (!np) { toast('Enter new password', 'err'); return; }
+  if (np !== cp) { toast('Passwords do not match', 'err'); return; }
+  if (np.length < 8) { toast('Password must be at least 8 characters', 'err'); return; }
+  toast('Password updated successfully!', 'ok');
+  ['prof-oldpass','prof-newpass','prof-confirmpass'].forEach(function(id){ var e=document.getElementById(id); if(e) e.value=''; });
+}
+
+// ── SETTINGS ──────────────────────────────────────────
+function loadSettings() {
+  var c = document.getElementById('settings-content');
+  var savedTheme = localStorage.getItem('aiTheme') || 'navy';
+  var h = '';
+
+  // Theme section
+  h += '<div class="card"><div class="ch"><div class="ct">🎨 Theme & Appearance</div></div><div class="cb">';
+  h += '<div style="font-size:11px;font-weight:700;color:var(--gray);text-transform:uppercase;margin-bottom:12px;">Choose Theme</div>';
+  h += '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:10px;margin-bottom:20px;">';
+  var themes = [
+    {id:'navy',name:'Navy Blue',p:'#0D1B3E',a:'#00C2A8',icon:'🔵'},
+    {id:'midnight',name:'Midnight AI',p:'#1A1A2E',a:'#E94560',icon:'🌙'},
+    {id:'purple',name:'Deep Purple',p:'#2D1B69',a:'#9F7AEA',icon:'🟣'},
+    {id:'green',name:'Forest Green',p:'#1A3D2B',a:'#48BB78',icon:'🟢'},
+    {id:'charcoal',name:'Charcoal',p:'#1A202C',a:'#63B3ED',icon:'⚫'},
+    {id:'crimson',name:'Crimson',p:'#7B1F1F',a:'#FC8181',icon:'🔴'},
+    {id:'ocean',name:'Ocean Blue',p:'#1A365D',a:'#4299E1',icon:'🌊'},
+    {id:'sunset',name:'Sunset',p:'#7B341E',a:'#F6AD55',icon:'🌅'},
+  ];
+  themes.forEach(function(t, ti) {
+    var isOn = savedTheme === t.id;
+    var tbdr = isOn ? 'var(--teal)' : 'var(--border)';
+    var tcls = 'theme-card-ai' + (isOn ? ' on' : '');
+    h += '<div class="'+tcls+'" onclick="applyThemeByIndex('+ti+')" style="border-radius:12px;padding:12px;cursor:pointer;border:2px solid '+tbdr+';text-align:center;transition:.2s;background:white;">';
+    h += '<div style="width:48px;height:48px;border-radius:10px;background:linear-gradient(135deg,'+t.p+','+t.a+');margin:0 auto 8px;display:flex;align-items:center;justify-content:center;font-size:20px;">'+t.icon+'</div>';
+    h += '<div style="font-size:12px;font-weight:700;color:var(--navy);">'+t.name+'</div>';
+    if (isOn) h += '<div style="font-size:10px;color:var(--teal);margin-top:3px;">✓ Active</div>';
+    h += '</div>';
+  });
+  h += '</div>';
+
+  // Font size
+  h += '<div style="margin-bottom:16px;"><div style="font-size:11px;font-weight:700;color:var(--gray);text-transform:uppercase;margin-bottom:8px;">Font Size</div>';
+  h += '<div style="display:flex;gap:8px;">';
+  [{label:'Small',fi:0},{label:'Medium',fi:1},{label:'Large',fi:2}].forEach(function(f,fi){
+    h += '<button onclick="applyFontSize('+fi+')" class="btn bto" style="flex:1;">'+f.label+'</button>';
+  });
+  h += '</div></div></div></div>';
+
+  // AI Configuration
+  h += '<div class="card"><div class="ch"><div class="ct">🤖 AI Configuration</div></div><div class="cb"><div class="g2">';
+  h += '<div class="ff2"><label>AI Model</label><select id="cfg-model"><option value="claude-sonnet-4-6" selected>Claude Sonnet 4.6 (Recommended)</option><option value="claude-haiku-4-5-20251001">Claude Haiku 4.5 (Faster)</option></select></div>';
+  h += '<div class="ff2"><label>Response Language</label><select id="cfg-lang"><option value="english" selected>English</option><option value="tamil">Tamil (தமிழ்)</option><option value="hindi">Hindi (हिंदी)</option></select></div>';
+  h += '<div class="ff2"><label>Business Type</label><select id="cfg-biz"><option value="software" selected>Software / IT Services</option><option value="manufacturing">Manufacturing</option><option value="trading">Trading</option><option value="restaurant">Restaurant</option><option value="hospital">Hospital / Medical</option><option value="other">Other</option></select></div>';
+  h += '<div class="ff2"><label>Default GST Rate</label><select id="cfg-gst"><option value="18" selected>18%</option><option value="12">12%</option><option value="5">5%</option><option value="28">28%</option></select></div>';
+  h += '<div class="ff2"><label>Company City</label><input id="cfg-city" value="Coimbatore" placeholder="Your city"></div>';
+  h += '<div class="ff2"><label>Financial Year</label><select id="cfg-fy"><option value="2026-27" selected>2026-27</option><option value="2025-26">2025-26</option></select></div>';
+  h += '</div>';
+  h += '<button class="btn btai" style="margin-top:10px;" onclick="saveAIConfig()">🤖 Save AI Config</button>';
+  h += '</div></div>';
+
+  // AI Feature Toggles
+  h += '<div class="card"><div class="ch"><div class="ct">🔧 AI Feature Settings</div></div><div class="cb"><div class="g2">';
+  var aiToggles = [
+    {id:'save-history',label:'Save AI History',desc:'Store all queries locally',def:true},
+    {id:'auto-context',label:'Auto Business Context',desc:'Send company data to AI for better answers',def:true},
+    {id:'erp-data',label:'Inject ERP Data',desc:'AI uses your live accounting/inventory data',def:true},
+    {id:'stream-chat',label:'Show Typing Animation',desc:'Show typing indicator while AI responds',def:true},
+    {id:'quick-btns',label:'Quick Question Buttons',desc:'Show suggested questions in chat',def:true},
+    {id:'auto-save-je',label:'Auto-save Journal Entries',desc:'Save AI bookkeeping results to ERP',def:false},
+  ];
+  aiToggles.forEach(function(t) {
+    h += '<div style="display:flex;align-items:center;justify-content:space-between;padding:10px 12px;background:var(--bg);border-radius:8px;">';
+    h += '<div><div style="font-weight:600;font-size:12px;">'+t.label+'</div><div style="font-size:11px;color:var(--gray);">'+t.desc+'</div></div>';
+    h += '<label style="cursor:pointer;"><input type="checkbox" id="tog-'+t.id+'" '+(t.def?'checked':'')+' style="accent-color:var(--teal);width:16px;height:16px;"></label>';
+    h += '</div>';
+  });
+  h += '</div></div></div>';
+
+  // Notification settings
+  h += '<div class="card"><div class="ch"><div class="ct">🔔 AI Notifications</div></div><div class="cb"><div class="g2">';
+  var notifToggles = [
+    {id:'notif-complete',label:'AI Task Complete',desc:'Alert when long AI tasks finish',def:true},
+    {id:'notif-error',label:'AI Error Alerts',desc:'Notify when AI cannot respond',def:true},
+    {id:'notif-gst-due',label:'GST Due Reminders',desc:'Remind before GST filing dates',def:true},
+    {id:'notif-insights',label:'Weekly Insights',desc:'Auto-generate weekly business summary',def:false},
+  ];
+  notifToggles.forEach(function(t) {
+    h += '<div style="display:flex;align-items:center;justify-content:space-between;padding:10px 12px;background:var(--bg);border-radius:8px;">';
+    h += '<div><div style="font-weight:600;font-size:12px;">'+t.label+'</div><div style="font-size:11px;color:var(--gray);">'+t.desc+'</div></div>';
+    h += '<label style="cursor:pointer;"><input type="checkbox" id="ntog-'+t.id+'" '+(t.def?'checked':'')+' style="accent-color:var(--teal);width:16px;height:16px;"></label>';
+    h += '</div>';
+  });
+  h += '</div></div></div>';
+
+  // System info
+  h += '<div class="card"><div class="ch"><div class="ct">ℹ️ System Information</div></div><div class="cb"><div class="g2">';
+  var sysInfo = [
+    ['Module','AI Business Assistant v1.0'],
+    ['AI Model','Claude Sonnet 4.6'],
+    ['ERP API','https://erpapi.paype.co.in'],
+    ['AI Queries Made',String(aiHistory.length)],
+    ['Logged In As', USER ? USER.name : '--'],
+    ['Role', USER ? USER.role : '--'],
+    ['Session','Active ✅'],
+    ['Last Activity', new Date().toLocaleString('en-IN')]
+  ];
+  sysInfo.forEach(function(s){
+    h += '<div class="ff2"><label>'+s[0]+'</label><input value="'+s[1]+'" readonly style="background:var(--bg);"></div>';
+  });
+  h += '</div>';
+  h += '<div style="display:flex;gap:8px;margin-top:10px;">';
+  h += '<button class="btn bto" style="flex:1;" onclick="clearAICache()">🗑️ Clear Cache</button>';
+  h += '<button class="btn bto" style="flex:1;" onclick="clearAIHistory()">🗑️ Clear AI History</button>';
+  h += '<button class="btn btr" style="flex:1;" onclick="doLogout()">🚪 Sign Out</button>';
+  h += '</div></div></div>';
+
+  c.innerHTML = h;
+
+  // Apply saved colors
+  var savedColor = localStorage.getItem('aiAvatarColor');
+  if (savedColor) document.getElementById('tb-avatar').style.background = savedColor;
+}
+
+function applyThemeByIndex(ti) {
+  var themes = [
+    {id:'navy',p:'#0D1B3E',a:'#00C2A8'},
+    {id:'midnight',p:'#1A1A2E',a:'#E94560'},
+    {id:'purple',p:'#2D1B69',a:'#9F7AEA'},
+    {id:'green',p:'#1A3D2B',a:'#48BB78'},
+    {id:'charcoal',p:'#1A202C',a:'#63B3ED'},
+    {id:'crimson',p:'#7B1F1F',a:'#FC8181'},
+    {id:'ocean',p:'#1A365D',a:'#4299E1'},
+    {id:'sunset',p:'#7B341E',a:'#F6AD55'}
+  ];
+  var t = themes[ti] || themes[0];
+  document.documentElement.style.setProperty('--navy', t.p);
+  document.documentElement.style.setProperty('--teal', t.a);
+  localStorage.setItem('aiTheme', t.id);
+  localStorage.setItem('aiThemeP', t.p);
+  localStorage.setItem('aiThemeA', t.a);
+  toast('Theme applied! 🎨', 'ok');
+  loadSettings();
+}
+
+function applyFontSize(fi) {
+  var sizes = ['12px','13px','14px'];
+  document.body.style.fontSize = sizes[fi] || '13px';
+  localStorage.setItem('aiFontSize', sizes[fi]);
+  toast('Font size updated!', 'ok');
+}
+
+function saveAIConfig() {
+  var city = document.getElementById('cfg-city') ? document.getElementById('cfg-city').value : 'Coimbatore';
+  COMPANY_CONTEXT.city = city;
+  toast('AI configuration saved!', 'ok');
+}
+
+function clearAIHistory() { clearHistory(); toast("AI history cleared!", "ok"); }
+function clearAICache() {
+  ['aiTheme','aiThemeP','aiThemeA','aiFontSize','aiAvatarColor'].forEach(function(k){localStorage.removeItem(k);});
+  toast('Cache cleared! Refresh to reset.', 'ok');
+}
+
+// Apply saved theme on load
+(function(){
+  var p = localStorage.getItem('aiThemeP');
+  var a = localStorage.getItem('aiThemeA');
+  var fs = localStorage.getItem('aiFontSize');
+  var ac = localStorage.getItem('aiAvatarColor');
+  if(p) document.documentElement.style.setProperty('--navy', p);
+  if(a) document.documentElement.style.setProperty('--teal', a);
+  if(fs) document.body.style.fontSize = fs;
+  if(ac) { var av = document.getElementById('tb-avatar'); if(av) av.style.background = ac; }
+})();
 
 // AUTO LOGIN
 if (TOKEN && USER) { startApp(); }
