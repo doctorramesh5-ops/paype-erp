@@ -716,9 +716,9 @@ function goHRMS() { window.open('https://hr.paype.co.in', '_blank'); }
 
 // ── MODAL ─────────────────────────────────────────────
 function openMod(id) {
-  // Special handlers
-  if (id === 'bill-mod') { openBillMod(); return; }
-  if (id === 'txn-mod') { openBankTxnMod(); return; }
+  // Special handlers - use setTimeout to ensure functions are loaded
+  if (id === 'bill-mod') { setTimeout(function(){ openBillMod(); }, 10); return; }
+  if (id === 'txn-mod') { setTimeout(function(){ openBankTxnMod(); }, 10); return; }
 
   var el = document.getElementById(id);
   if (!el) { console.error('Modal not found:', id); return; }
