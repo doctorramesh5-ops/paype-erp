@@ -470,8 +470,8 @@ async function doLogin() {
     var res=await fetch(API+'/api/auth/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email,password:pass})});
     var data=await res.json();
     if (data.success){
-      TOKEN=data.token||data.data?.token||data.data?.accessToken;
-      USER=data.user||data.data?.user;
+      TOKEN=data.token||(data.data&&data.data.token)||(data.data&&data.data.accessToken);
+      USER=data.user||(data.data&&data.data.user);
       localStorage.setItem('erp_token',TOKEN);
       localStorage.setItem('erp_user',JSON.stringify(USER));
       startApp();
@@ -483,10 +483,10 @@ async function doLogin() {
 function startApp(){
   document.getElementById('login-page').style.display='none';
   document.getElementById('erp-app').classList.add('on');
-  document.getElementById('sb-user').textContent=USER?.name||'User';
-  document.getElementById('tb-avatar').textContent=(USER?.name||'U').charAt(0).toUpperCase();
-  document.getElementById('tb-company').textContent=USER?.company||'PayPe Technologies';
-  document.getElementById('sb-role').textContent={admin:'Admin',manager:'Manager',employee:'Employee'}[USER?.role]||USER?.role;
+  document.getElementById('sb-user').textContent=(USER&&USER.name)||'User';
+  document.getElementById('tb-avatar').textContent=((USER&&USER.name)||'U').charAt(0).toUpperCase();
+  document.getElementById('tb-company').textContent=(USER&&USER.company)||'PayPe Technologies';
+  document.getElementById('sb-role').textContent={admin:'Admin',manager:'Manager',employee:'Employee'}[(USER&&USER.role)]||(USER&&USER.role)||'User';
   document.getElementById('dash-date').textContent=new Date().toLocaleDateString('en-IN',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
   document.getElementById('grn-date').value=document.getElementById('pay-date').value=new Date().toISOString().split('T')[0];
   loadDashboard();
@@ -539,7 +539,7 @@ async function loadDashboard(){
           <div style="font-size:11px;color:var(--gray);">${a.vendor_name||'Vendor'} · ${a.requested_by_name||''}</div></div>
           <div style="display:flex;align-items:center;gap:6px;">
             <span style="font-size:13px;font-weight:700;">Rs ${fmt(a.amount||0)}</span>
-            ${USER?.role==='admin'||USER?.role==='manager'?`<button class="btn btg btsm" onclick="approvePA('${a.id}','Approved')">✓</button><button class="btn btr btsm" onclick="approvePA('${a.id}','Rejected')">✕</button>`:'<span class="b by">Pending</span>'}
+            ${(USER&&USER.role)==='admin'||(USER&&USER.role)==='manager'?`<button class="btn btg btsm" onclick="approvePA('${a.id}','Approved')">✓</button><button class="btn btr btsm" onclick="approvePA('${a.id}','Rejected')">✕</button>`:'<span class="b by">Pending</span>'}
           </div>
         </div>`}).join(''):'<div class="em" style="padding:20px;">✅ No pending approvals</div>'}</div></div>`;
   } catch(e){}
@@ -711,7 +711,7 @@ async function loadApprovals(){
     var items=d.data||[];
     if(!items.length){tbody.innerHTML='<tr><td colspan="7" class="em">No approval requests</td></tr>';return;}
     tbody.innerHTML=items.map(function(a){
-      var canApprove=USER?.role==='admin'||USER?.role==='manager';
+      var canApprove=(USER&&USER.role)==='admin'||(USER&&USER.role)==='manager';
       var actions=canApprove&&a.status==='Pending'
         ?`<button class="btn btg btsm" onclick="approvePA('${a.id}','Approved')">✅ Approve</button> <button class="btn btr btsm" onclick="approvePA('${a.id}','Rejected')">❌ Reject</button>`
         :`<span class="b ${a.status==='Approved'?'bg':a.status==='Rejected'?'br':'by'}">${a.status}</span>`;
@@ -830,7 +830,7 @@ addRFQLine();
 // ── PROCUREMENT PROFILE ───────────────────
 function loadProcProfile() {
   var c = document.getElementById('proc-profile-content');
-  var initials = (USER?.name||'R').split(' ').map(function(w){return w[0];}).join('').toUpperCase().slice(0,2);
+  var initials = ((USER&&USER.name)||'R').split(' ').map(function(w){return w[0];}).join('').toUpperCase().slice(0,2);
   var roleMap = {admin:'Admin — Full Access',manager:'Procurement Manager',employee:'Employee'};
   var h = '';
 
@@ -839,9 +839,9 @@ function loadProcProfile() {
   h += '<div style="background:linear-gradient(135deg,#0D1B3E,#2a1a00);padding:24px;border-radius:11px 11px 0 0;display:flex;align-items:center;gap:18px;position:relative;overflow:hidden;">';
   h += '<div style="position:absolute;top:-20px;right:-20px;width:140px;height:140px;border-radius:50%;background:rgba(221,107,32,.12);pointer-events:none;"></div>';
   h += '<div id="proc-avatar-disp" style="width:68px;height:68px;border-radius:50%;background:linear-gradient(135deg,var(--orange),#b45309);display:flex;align-items:center;justify-content:center;font-family:Syne,sans-serif;font-size:24px;font-weight:800;color:white;flex-shrink:0;border:3px solid rgba(255,255,255,.2);position:relative;z-index:1;">'+initials+'</div>';
-  h += '<div style="position:relative;z-index:1;"><div style="font-family:Syne,sans-serif;font-size:18px;font-weight:800;color:white;">'+(USER?.name||'User')+'</div>';
-  h += '<div style="font-size:12px;color:rgba(255,255,255,.5);margin-top:2px;">'+(USER?.email||'')+'</div>';
-  h += '<div style="margin-top:6px;display:inline-flex;align-items:center;gap:6px;padding:3px 12px;border-radius:20px;font-size:11px;font-weight:700;background:rgba(255,255,255,.1);color:white;">🛒 '+(roleMap[USER?.role]||USER?.role)+'</div></div></div>';
+  h += '<div style="position:relative;z-index:1;"><div style="font-family:Syne,sans-serif;font-size:18px;font-weight:800;color:white;">'+((USER&&USER.name)||'User')+'</div>';
+  h += '<div style="font-size:12px;color:rgba(255,255,255,.5);margin-top:2px;">'+((USER&&USER.email)||'')+'</div>';
+  h += '<div style="margin-top:6px;display:inline-flex;align-items:center;gap:6px;padding:3px 12px;border-radius:20px;font-size:11px;font-weight:700;background:rgba(255,255,255,.1);color:white;">🛒 '+(roleMap[(USER&&USER.role)]||(USER&&USER.role))+'</div></div></div>';
   // Avatar colours
   h += '<div class="cb"><div style="font-size:11px;font-weight:700;color:var(--gray);text-transform:uppercase;margin-bottom:8px;">Avatar Colour</div><div style="display:flex;gap:8px;flex-wrap:wrap;">';
   ['#0D1B3E','#DD6B20','#00C2A8','#805AD5','#E63329','#38A169','#3182CE','#D53F8C'].forEach(function(clr,i){
@@ -852,7 +852,7 @@ function loadProcProfile() {
   // Form + password
   h += '<div class="g2">';
   h += '<div class="card"><div class="ch"><div class="ct">Personal Information</div></div><div class="cb">';
-  var fields=[['proc-p-name','Full Name','text',USER?.name||''],['proc-p-email','Email','email',USER?.email||''],['proc-p-mobile','Mobile','text',''],['proc-p-desig','Designation','text','Purchase Manager']];
+  var fields=[['proc-p-name','Full Name','text',(USER&&USER.name)||''],['proc-p-email','Email','email',(USER&&USER.email)||''],['proc-p-mobile','Mobile','text',''],['proc-p-desig','Designation','text','Purchase Manager']];
   fields.forEach(function(f){
     h += '<div class="ff2"><label>'+f[1]+'</label><input id="'+f[0]+'" type="'+f[2]+'" value="'+f[3]+'" '+(f[0]==='proc-p-email'?'readonly style="background:var(--bg);"':'')+' placeholder="'+f[1]+'"></div>';
   });
@@ -945,7 +945,7 @@ function loadProcSettings(){
 
   // System Info
   h += '<div class="card"><div class="ch"><div class="ct">ℹ️ System Info</div></div><div class="cb"><div class="g2">';
-  [['Module','Procurement v1.0'],['API','erpapi.paype.co.in'],['User',USER?.name||''],['Role',USER?.role||''],['Session','Active ✅'],['Date',new Date().toLocaleDateString('en-IN')]].forEach(function(i){
+  [['Module','Procurement v1.0'],['API','erpapi.paype.co.in'],['User',(USER&&USER.name)||''],['Role',(USER&&USER.role)||''],['Session','Active ✅'],['Date',new Date().toLocaleDateString('en-IN')]].forEach(function(i){
     h += '<div class="ff2"><label>'+i[0]+'</label><input value="'+i[1]+'" readonly style="background:var(--bg);"></div>';
   });
   h += '</div><div style="display:flex;gap:8px;margin-top:10px;">';
