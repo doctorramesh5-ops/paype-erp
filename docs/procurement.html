@@ -925,7 +925,7 @@ function loadProcSettings(){
   h += '<div class="ff2"><label>PO Approval Threshold</label><input type="number" value="50000" id="cfg-thresh" placeholder="Amount above which approval needed"></div>';
   h += '<div class="ff2"><label>Default Currency</label><select><option selected>INR (₹)</option><option>USD ($)</option></select></div>';
   h += '<div class="ff2"><label>Default GRN Quality</label><select><option selected>Accepted</option><option>Pending Inspection</option></select></div>';
-  h += '</div><button onclick="toast('Config saved!','ok')" class="btn btor" style="margin-top:8px;">Save Configuration</button>';
+  h += '</div><buttonprocSaveConfig()" class="btn btor" style="margin-top:8px;">Save Configuration</button>';
   h += '</div></div>';
 
   // Feature Toggles
@@ -975,6 +975,7 @@ function applyProcTheme(ti){
   loadProcSettings();
 }
 
+function procSaveConfig(){toast("Configuration saved!","ok");}
 function procClearCache(){localStorage.removeItem("procTheme");localStorage.removeItem("procThemeP");localStorage.removeItem("procThemeA");localStorage.removeItem("procAvatarColor");toast("Cache cleared!","ok");}
 
 // Apply saved theme
