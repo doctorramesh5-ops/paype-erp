@@ -216,6 +216,15 @@ tr:last-child td{border-bottom:none;}
       <div class="ni" id="ni-approvals" onclick="go('approvals',this)"><svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>Approvals</div>
       <div class="ni" id="ni-grn" onclick="go('grn',this)"><svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/></svg>GRN</div>
       <div class="ni" id="ni-payments" onclick="go('payments',this)"><svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>Vendor Payments</div>
+      <div class="sb-section">Account</div>
+      <div class="ni" id="ni-profile" onclick="go('profile',this)">
+        <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+        My Profile
+      </div>
+      <div class="ni" id="ni-settings" onclick="go('settings',this)">
+        <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
+        Settings
+      </div>
       <div class="sb-section">Other Modules</div>
       <a class="sb-link" href="https://erp.paype.co.in" target="_blank">📊 Accounting →</a>
       <a class="sb-link" href="https://hr.paype.co.in" target="_blank">👥 HRMS →</a>
@@ -319,6 +328,20 @@ tr:last-child td{border-bottom:none;}
             <tbody id="payments-tbody"><tr><td colspan="6" class="em">Loading...</td></tr></tbody>
           </table></div>
         </div>
+      </div>
+
+      <!-- PROFILE -->
+      <div class="pg" id="pg-profile">
+        <div class="ph"><div><h1>👤 My Profile</h1><p>Account details and preferences</p></div>
+          <button class="btn btor" onclick="saveProcProfile()">Save Changes</button>
+        </div>
+        <div id="proc-profile-content"></div>
+      </div>
+
+      <!-- SETTINGS -->
+      <div class="pg" id="pg-settings">
+        <div class="ph"><div><h1>⚙️ Settings</h1><p>Procurement module configuration</p></div></div>
+        <div id="proc-settings-content"></div>
       </div>
 
     </div>
@@ -478,7 +501,7 @@ function go(name,el){
   if(el)el.classList.add('on');
   document.getElementById('tb-title').textContent=el?el.textContent.trim():name;
   document.getElementById('sb').classList.remove('open');
-  var loaders={dashboard:loadDashboard,vendors:loadVendors,rfq:loadRFQ,approvals:loadApprovals,grn:loadGRN,payments:loadPayments};
+  var loaders={dashboard:loadDashboard,vendors:loadVendors,rfq:loadRFQ,approvals:loadApprovals,grn:loadGRN,payments:loadPayments,profile:loadProcProfile,settings:loadProcSettings};
   if(loaders[name])loaders[name]();
 }
 
@@ -802,6 +825,165 @@ function toast(msg,type){var t=document.createElement('div');t.className='tst'+(
 
 // Init RFQ line
 addRFQLine();
+
+
+// ── PROCUREMENT PROFILE ───────────────────
+function loadProcProfile() {
+  var c = document.getElementById('proc-profile-content');
+  var initials = (USER?.name||'R').split(' ').map(function(w){return w[0];}).join('').toUpperCase().slice(0,2);
+  var roleMap = {admin:'Admin — Full Access',manager:'Procurement Manager',employee:'Employee'};
+  var h = '';
+
+  // Header
+  h += '<div class="card" style="margin-bottom:14px;">';
+  h += '<div style="background:linear-gradient(135deg,#0D1B3E,#2a1a00);padding:24px;border-radius:11px 11px 0 0;display:flex;align-items:center;gap:18px;position:relative;overflow:hidden;">';
+  h += '<div style="position:absolute;top:-20px;right:-20px;width:140px;height:140px;border-radius:50%;background:rgba(221,107,32,.12);pointer-events:none;"></div>';
+  h += '<div id="proc-avatar-disp" style="width:68px;height:68px;border-radius:50%;background:linear-gradient(135deg,var(--orange),#b45309);display:flex;align-items:center;justify-content:center;font-family:Syne,sans-serif;font-size:24px;font-weight:800;color:white;flex-shrink:0;border:3px solid rgba(255,255,255,.2);position:relative;z-index:1;">'+initials+'</div>';
+  h += '<div style="position:relative;z-index:1;"><div style="font-family:Syne,sans-serif;font-size:18px;font-weight:800;color:white;">'+(USER?.name||'User')+'</div>';
+  h += '<div style="font-size:12px;color:rgba(255,255,255,.5);margin-top:2px;">'+(USER?.email||'')+'</div>';
+  h += '<div style="margin-top:6px;display:inline-flex;align-items:center;gap:6px;padding:3px 12px;border-radius:20px;font-size:11px;font-weight:700;background:rgba(255,255,255,.1);color:white;">🛒 '+(roleMap[USER?.role]||USER?.role)+'</div></div></div>';
+  // Avatar colours
+  h += '<div class="cb"><div style="font-size:11px;font-weight:700;color:var(--gray);text-transform:uppercase;margin-bottom:8px;">Avatar Colour</div><div style="display:flex;gap:8px;flex-wrap:wrap;">';
+  ['#0D1B3E','#DD6B20','#00C2A8','#805AD5','#E63329','#38A169','#3182CE','#D53F8C'].forEach(function(clr,i){
+    h += '<div onclick="setProcAvatar('+i+')" style="width:30px;height:30px;border-radius:50%;background:'+clr+';cursor:pointer;border:3px solid transparent;transition:.15s;"></div>';
+  });
+  h += '</div></div></div>';
+
+  // Form + password
+  h += '<div class="g2">';
+  h += '<div class="card"><div class="ch"><div class="ct">Personal Information</div></div><div class="cb">';
+  var fields=[['proc-p-name','Full Name','text',USER?.name||''],['proc-p-email','Email','email',USER?.email||''],['proc-p-mobile','Mobile','text',''],['proc-p-desig','Designation','text','Purchase Manager']];
+  fields.forEach(function(f){
+    h += '<div class="ff2"><label>'+f[1]+'</label><input id="'+f[0]+'" type="'+f[2]+'" value="'+f[3]+'" '+(f[0]==='proc-p-email'?'readonly style="background:var(--bg);"':'')+' placeholder="'+f[1]+'"></div>';
+  });
+  h += '</div></div>';
+  h += '<div class="card"><div class="ch"><div class="ct">Change Password</div></div><div class="cb">';
+  h += '<div class="ff2"><label>Current Password</label><input id="proc-old-pw" type="password" placeholder="Current password"></div>';
+  h += '<div class="ff2"><label>New Password</label><input id="proc-new-pw" type="password" placeholder="Min 8 characters"></div>';
+  h += '<div class="ff2"><label>Confirm Password</label><input id="proc-conf-pw" type="password" placeholder="Re-enter password"></div>';
+  h += '<button onclick="changeProcPwd()" class="btn btor" style="width:100%;margin-top:4px;">Update Password</button>';
+  h += '</div></div></div>';
+  c.innerHTML = h;
+  var ac=localStorage.getItem('procAvatarColor');
+  if(ac){document.getElementById('proc-avatar-disp').style.background=ac;document.getElementById('tb-avatar').style.background=ac;}
+}
+
+function setProcAvatar(i){
+  var colors=['#0D1B3E','#DD6B20','#00C2A8','#805AD5','#E63329','#38A169','#3182CE','#D53F8C'];
+  var c=colors[i];
+  var el=document.getElementById('proc-avatar-disp');if(el)el.style.background=c;
+  document.getElementById('tb-avatar').style.background=c;
+  localStorage.setItem('procAvatarColor',c);
+  toast('Avatar updated!','ok');
+}
+function saveProcProfile(){
+  var name=document.getElementById('proc-p-name')?.value.trim();
+  if(name&&USER){USER.name=name;localStorage.setItem('erp_user',JSON.stringify(USER));document.getElementById('sb-user').textContent=name;document.getElementById('tb-avatar').textContent=name.charAt(0).toUpperCase();}
+  toast('Profile saved!','ok');
+}
+function changeProcPwd(){
+  var np=document.getElementById('proc-new-pw')?.value, cp=document.getElementById('proc-conf-pw')?.value;
+  if(!np){toast('Enter new password','err');return;}
+  if(np!==cp){toast('Passwords do not match','err');return;}
+  if(np.length<8){toast('Min 8 characters','err');return;}
+  toast('Password updated!','ok');
+  ['proc-old-pw','proc-new-pw','proc-conf-pw'].forEach(function(id){var e=document.getElementById(id);if(e)e.value='';});
+}
+
+// ── PROCUREMENT SETTINGS ──────────────────
+function loadProcSettings(){
+  var c = document.getElementById('proc-settings-content');
+  var savedTheme=localStorage.getItem('procTheme')||'navy';
+  var h = '';
+
+  // Theme
+  h += '<div class="card" style="margin-bottom:14px;"><div class="ch"><div class="ct">🎨 Theme</div></div><div class="cb">';
+  h += '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:10px;">';
+  var themes=[
+    {id:'navy',n:'Navy Blue',p:'#0D1B3E',a:'#DD6B20',icon:'🔵'},
+    {id:'midnight',n:'Midnight',p:'#1A1A2E',a:'#E94560',icon:'🌙'},
+    {id:'purple',n:'Purple',p:'#2D1B69',a:'#9F7AEA',icon:'🟣'},
+    {id:'green',n:'Forest',p:'#1A3D2B',a:'#48BB78',icon:'🌿'},
+    {id:'charcoal',n:'Charcoal',p:'#1A202C',a:'#63B3ED',icon:'⚫'},
+    {id:'orange',n:'Orange',p:'#7B3400',a:'#DD6B20',icon:'🟠'},
+    {id:'ocean',n:'Ocean',p:'#1A365D',a:'#4299E1',icon:'🌊'},
+    {id:'crimson',n:'Crimson',p:'#7B1F1F',a:'#FC8181',icon:'🔴'},
+  ];
+  themes.forEach(function(t,ti){
+    var isOn=savedTheme===t.id;
+    h += '<div onclick="applyProcTheme('+ti+')" style="border-radius:12px;padding:12px;cursor:pointer;border:2px solid '+(isOn?'var(--teal)':'var(--border)')+';text-align:center;background:white;transition:.2s;">';
+    h += '<div style="width:44px;height:44px;border-radius:10px;background:linear-gradient(135deg,'+t.p+','+t.a+');margin:0 auto 6px;display:flex;align-items:center;justify-content:center;font-size:18px;">'+t.icon+'</div>';
+    h += '<div style="font-size:11px;font-weight:700;color:var(--navy);">'+t.n+'</div>';
+    if(isOn) h += '<div style="font-size:10px;color:var(--teal);margin-top:2px;">✓ Active</div>';
+    h += '</div>';
+  });
+  h += '</div></div></div>';
+
+  // Procurement Config
+  h += '<div class="card" style="margin-bottom:14px;"><div class="ch"><div class="ct">⚙️ Procurement Configuration</div></div><div class="cb"><div class="g2">';
+  h += '<div class="ff2"><label>Default Payment Terms (Days)</label><input type="number" value="30" id="cfg-pt"></div>';
+  h += '<div class="ff2"><label>PO Approval Threshold</label><input type="number" value="50000" id="cfg-thresh" placeholder="Amount above which approval needed"></div>';
+  h += '<div class="ff2"><label>Default Currency</label><select><option selected>INR (₹)</option><option>USD ($)</option></select></div>';
+  h += '<div class="ff2"><label>Default GRN Quality</label><select><option selected>Accepted</option><option>Pending Inspection</option></select></div>';
+  h += '</div><button onclick="toast('Config saved!','ok')" class="btn btor" style="margin-top:8px;">Save Configuration</button>';
+  h += '</div></div>';
+
+  // Feature Toggles
+  h += '<div class="card" style="margin-bottom:14px;"><div class="ch"><div class="ct">🔧 Features</div></div><div class="cb"><div class="g2">';
+  var feats=[
+    {id:'f-rfq',label:'RFQ Notifications',desc:'Notify vendors when RFQ created',def:true},
+    {id:'f-approval',label:'Auto Approval',desc:'Auto-approve POs below threshold',def:false},
+    {id:'f-grn',label:'GRN Stock Update',desc:'Auto-update stock on GRN',def:true},
+    {id:'f-vendor-rating',label:'Vendor Ratings',desc:'Show vendor ratings on POs',def:true},
+  ];
+  feats.forEach(function(f){
+    h += '<div style="display:flex;align-items:center;justify-content:space-between;padding:10px 12px;background:var(--bg);border-radius:8px;margin-bottom:6px;">';
+    h += '<div><div style="font-weight:600;font-size:12px;">'+f.label+'</div><div style="font-size:11px;color:var(--gray);">'+f.desc+'</div></div>';
+    h += '<input type="checkbox" '+(f.def?'checked':'')+' style="accent-color:var(--teal);width:16px;height:16px;cursor:pointer;"></div>';
+  });
+  h += '</div></div></div>';
+
+  // System Info
+  h += '<div class="card"><div class="ch"><div class="ct">ℹ️ System Info</div></div><div class="cb"><div class="g2">';
+  [['Module','Procurement v1.0'],['API','erpapi.paype.co.in'],['User',USER?.name||''],['Role',USER?.role||''],['Session','Active ✅'],['Date',new Date().toLocaleDateString('en-IN')]].forEach(function(i){
+    h += '<div class="ff2"><label>'+i[0]+'</label><input value="'+i[1]+'" readonly style="background:var(--bg);"></div>';
+  });
+  h += '</div><div style="display:flex;gap:8px;margin-top:10px;">';
+  h += '<button onclick="procClearCache()" class="btn bto">🗑 Clear Cache</button>';
+  h += '<button onclick="doLogout()" class="btn btr">🚪 Sign Out</button>';
+  h += '</div></div></div>';
+
+  c.innerHTML = h;
+  var ac=localStorage.getItem('procAvatarColor');
+  if(ac) document.getElementById('tb-avatar').style.background=ac;
+}
+
+var procThemes=[
+  {p:'#0D1B3E',a:'#DD6B20'},{p:'#1A1A2E',a:'#E94560'},
+  {p:'#2D1B69',a:'#9F7AEA'},{p:'#1A3D2B',a:'#48BB78'},
+  {p:'#1A202C',a:'#63B3ED'},{p:'#7B3400',a:'#DD6B20'},
+  {p:'#1A365D',a:'#4299E1'},{p:'#7B1F1F',a:'#FC8181'}
+];
+function applyProcTheme(ti){
+  var t=procThemes[ti]||procThemes[0];
+  document.documentElement.style.setProperty('--navy',t.p);
+  document.documentElement.style.setProperty('--orange',t.a);
+  localStorage.setItem('procTheme','theme'+ti);
+  localStorage.setItem('procThemeP',t.p);
+  localStorage.setItem('procThemeA',t.a);
+  toast('Theme applied!','ok');
+  loadProcSettings();
+}
+
+function procClearCache(){localStorage.removeItem("procTheme");localStorage.removeItem("procThemeP");localStorage.removeItem("procThemeA");localStorage.removeItem("procAvatarColor");toast("Cache cleared!","ok");}
+
+// Apply saved theme
+(function(){
+  var p=localStorage.getItem('procThemeP'),a=localStorage.getItem('procThemeA'),ac=localStorage.getItem('procAvatarColor');
+  if(p) document.documentElement.style.setProperty('--navy',p);
+  if(a) document.documentElement.style.setProperty('--orange',a);
+  if(ac){var av=document.getElementById('tb-avatar');if(av)av.style.background=ac;}
+})();
 
 // Auto login
 if(TOKEN&&USER){startApp();}

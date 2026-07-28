@@ -206,6 +206,8 @@ tr:hover td{background:rgba(0,194,168,.02);}
     <div class="mod-tab" onclick="showSection('inventory',this)">📦 Inventory</div>
     <div class="mod-tab" onclick="showSection('procurement',this)">🛒 Procurement</div>
     <div class="mod-tab" onclick="showSection('modules',this)">🔗 All Modules</div>
+    <div class="mod-tab" onclick="showSection('profile',this)">👤 Profile</div>
+    <div class="mod-tab" onclick="showSection('settings',this)">⚙️ Settings</div>
   </div>
 
   <div class="ceo-content">
@@ -348,6 +350,18 @@ tr:hover td{background:rgba(0,194,168,.02);}
       <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:12px;" id="all-modules"></div>
     </div>
 
+    <!-- PROFILE -->
+    <div class="section" id="sec-profile">
+      <div style="font-family:Syne,sans-serif;font-size:22px;font-weight:800;color:var(--navy);margin-bottom:16px;">👤 My Profile</div>
+      <div id="profile-content"></div>
+    </div>
+
+    <!-- SETTINGS -->
+    <div class="section" id="sec-settings">
+      <div style="font-family:Syne,sans-serif;font-size:22px;font-weight:800;color:var(--navy);margin-bottom:16px;">⚙️ Dashboard Settings</div>
+      <div id="settings-content"></div>
+    </div>
+
   </div>
 </div>
 
@@ -407,7 +421,7 @@ function showSection(name,el){
   document.querySelectorAll('.mod-tab').forEach(function(t){t.classList.remove('on');});
   document.getElementById('sec-'+name).classList.add('on');
   el.classList.add('on');
-  var loaders={overview:loadOverview,finance:loadFinance,hrms:loadHRMS,sales:loadSales,inventory:loadInventory,procurement:loadProcurement,modules:loadModules};
+  var loaders={overview:loadOverview,finance:loadFinance,hrms:loadHRMS,sales:loadSales,inventory:loadInventory,procurement:loadProcurement,modules:loadModules,profile:loadCEOProfile,settings:loadCEOSettings};
   if(loaders[name]) loaders[name]();
 }
 
@@ -838,6 +852,216 @@ function refreshAll(){
   var active=document.querySelector('.mod-tab.on');
   if(active) active.click();
 }
+
+
+// ── CEO PROFILE ───────────────────────────
+function loadCEOProfile() {
+  var c = document.getElementById('profile-content');
+  var initials = (USER?.name||'R').split(' ').map(function(w){return w[0];}).join('').toUpperCase().slice(0,2);
+  var h = '';
+
+  // Header card
+  h += '<div class="card" style="margin-bottom:14px;">';
+  h += '<div style="background:linear-gradient(135deg,#0D1B3E,#1a1a4e,#2d1b69);padding:28px;border-radius:13px 13px 0 0;display:flex;align-items:center;gap:20px;position:relative;overflow:hidden;">';
+  h += '<div style="position:absolute;top:-30px;right:-30px;width:180px;height:180px;border-radius:50%;background:rgba(0,194,168,.1);pointer-events:none;"></div>';
+  h += '<div id="ceo-avatar-disp" style="width:72px;height:72px;border-radius:50%;background:linear-gradient(135deg,var(--teal),var(--purple));display:flex;align-items:center;justify-content:center;font-family:Syne,sans-serif;font-size:26px;font-weight:800;color:white;flex-shrink:0;border:3px solid rgba(255,255,255,.2);position:relative;z-index:1;">'+initials+'</div>';
+  h += '<div style="position:relative;z-index:1;"><div style="font-family:Syne,sans-serif;font-size:20px;font-weight:800;color:white;">'+(USER?.name||'CEO')+'</div>';
+  h += '<div style="font-size:12px;color:rgba(255,255,255,.5);margin-top:2px;">'+(USER?.email||'admin@paype.co.in')+'</div>';
+  h += '<div style="margin-top:8px;display:inline-flex;align-items:center;gap:6px;padding:3px 12px;border-radius:20px;font-size:11px;font-weight:700;background:rgba(255,255,255,.1);color:white;">👑 CEO — Full Access</div></div>';
+  h += '<div style="margin-left:auto;text-align:right;position:relative;z-index:1;">';
+  h += '<div style="font-size:10px;color:rgba(255,255,255,.4);">COMPANY</div>';
+  h += '<div style="font-size:13px;font-weight:700;color:white;">'+(USER?.company||'PayPe Technologies')+'</div>';
+  h += '<div style="font-size:11px;color:rgba(255,255,255,.4);margin-top:2px;">FY 2026-27</div></div></div>';
+
+  // Avatar colours
+  h += '<div class="cb"><div style="font-size:11px;font-weight:700;color:var(--gray);text-transform:uppercase;margin-bottom:8px;">Avatar Colour</div><div style="display:flex;gap:8px;flex-wrap:wrap;">';
+  ['#0D1B3E','#00C2A8','#805AD5','#E63329','#DD6B20','#38A169','#3182CE','#D53F8C','#1A202C'].forEach(function(clr,i){
+    h += '<div onclick="setCEOAvatar('+i+')" style="width:32px;height:32px;border-radius:50%;background:'+clr+';cursor:pointer;border:3px solid transparent;transition:.15s;" title="'+clr+'"></div>';
+  });
+  h += '</div></div></div>';
+
+  // Edit form + change password
+  h += '<div class="g2">';
+  h += '<div class="card"><div class="ch"><div class="ct">Personal Information</div></div><div class="cb">';
+  h += '<div style="display:flex;flex-direction:column;gap:5px;margin-bottom:12px;"><label style="font-size:11px;font-weight:700;color:var(--gray);text-transform:uppercase;">Full Name</label><input id="ceo-prof-name" value="'+(USER?.name||'')+'" style="border:1.5px solid var(--border);border-radius:8px;padding:9px 12px;font-family:inherit;font-size:13px;outline:none;"></div>';
+  h += '<div style="display:flex;flex-direction:column;gap:5px;margin-bottom:12px;"><label style="font-size:11px;font-weight:700;color:var(--gray);text-transform:uppercase;">Email</label><input value="'+(USER?.email||'')+'" readonly style="border:1.5px solid var(--border);border-radius:8px;padding:9px 12px;font-family:inherit;font-size:13px;background:var(--bg);"></div>';
+  h += '<div style="display:flex;flex-direction:column;gap:5px;margin-bottom:12px;"><label style="font-size:11px;font-weight:700;color:var(--gray);text-transform:uppercase;">Mobile</label><input id="ceo-prof-mobile" placeholder="+91 XXXXX XXXXX" style="border:1.5px solid var(--border);border-radius:8px;padding:9px 12px;font-family:inherit;font-size:13px;outline:none;"></div>';
+  h += '<div style="display:flex;flex-direction:column;gap:5px;margin-bottom:12px;"><label style="font-size:11px;font-weight:700;color:var(--gray);text-transform:uppercase;">Designation</label><input id="ceo-prof-desig" value="Founder & CEO" style="border:1.5px solid var(--border);border-radius:8px;padding:9px 12px;font-family:inherit;font-size:13px;outline:none;"></div>';
+  h += '<button onclick="saveCEOProfile()" style="width:100%;padding:10px;background:var(--navy);color:white;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;">Save Profile</button>';
+  h += '</div></div>';
+
+  h += '<div class="card"><div class="ch"><div class="ct">Change Password</div></div><div class="cb">';
+  h += '<div style="display:flex;flex-direction:column;gap:5px;margin-bottom:12px;"><label style="font-size:11px;font-weight:700;color:var(--gray);text-transform:uppercase;">Current Password</label><input id="ceo-old-pw" type="password" placeholder="Current password" style="border:1.5px solid var(--border);border-radius:8px;padding:9px 12px;font-family:inherit;font-size:13px;outline:none;"></div>';
+  h += '<div style="display:flex;flex-direction:column;gap:5px;margin-bottom:12px;"><label style="font-size:11px;font-weight:700;color:var(--gray);text-transform:uppercase;">New Password</label><input id="ceo-new-pw" type="password" placeholder="Min 8 characters" style="border:1.5px solid var(--border);border-radius:8px;padding:9px 12px;font-family:inherit;font-size:13px;outline:none;"></div>';
+  h += '<div style="display:flex;flex-direction:column;gap:5px;margin-bottom:12px;"><label style="font-size:11px;font-weight:700;color:var(--gray);text-transform:uppercase;">Confirm Password</label><input id="ceo-conf-pw" type="password" placeholder="Re-enter new password" style="border:1.5px solid var(--border);border-radius:8px;padding:9px 12px;font-family:inherit;font-size:13px;outline:none;"></div>';
+  h += '<button onclick="changeCEOPwd()" style="width:100%;padding:10px;background:var(--navy);color:white;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;">Update Password</button>';
+  h += '</div></div></div>';
+
+  // System info
+  h += '<div class="card"><div class="ch"><div class="ct">ℹ️ System Information</div></div><div class="cb"><div class="g2">';
+  var info = [
+    ['Module','CEO Dashboard v1.0'],['ERP API','erpapi.paype.co.in'],
+    ['HRMS API','hrapi.paype.co.in'],['AI Model','Claude Sonnet 4.6'],
+    ['Role',USER?.role||'admin'],['Company',USER?.company||'PayPe Technologies'],
+    ['Session','Active ✅'],['Last Login',new Date().toLocaleString('en-IN')]
+  ];
+  info.forEach(function(i){
+    h += '<div style="display:flex;flex-direction:column;gap:4px;margin-bottom:10px;"><label style="font-size:10px;font-weight:700;color:var(--gray);text-transform:uppercase;">'+i[0]+'</label><input value="'+i[1]+'" readonly style="border:1.5px solid var(--border);border-radius:8px;padding:8px 11px;font-family:inherit;font-size:12px;background:var(--bg);"></div>';
+  });
+  h += '</div></div></div>';
+  c.innerHTML = h;
+
+  // Apply saved avatar color
+  var ac = localStorage.getItem('ceoAvatarColor');
+  if(ac){ document.getElementById('ceo-avatar-disp').style.background=ac; document.getElementById('tn-avatar').style.background=ac; }
+}
+
+function setCEOAvatar(i){
+  var colors=['#0D1B3E','#00C2A8','#805AD5','#E63329','#DD6B20','#38A169','#3182CE','#D53F8C','#1A202C'];
+  var c=colors[i];
+  document.getElementById('ceo-avatar-disp').style.background=c;
+  document.getElementById('tn-avatar').style.background=c;
+  localStorage.setItem('ceoAvatarColor',c);
+  ceoToast('Avatar updated!','ok');
+}
+function saveCEOProfile(){
+  var name=document.getElementById('ceo-prof-name')?.value.trim();
+  if(name&&USER){USER.name=name;localStorage.setItem('erp_user',JSON.stringify(USER));document.getElementById('tn-name').textContent=name;document.getElementById('tn-avatar').textContent=name.charAt(0).toUpperCase();}
+  ceoToast('Profile saved!','ok');
+}
+function changeCEOPwd(){
+  var np=document.getElementById('ceo-new-pw')?.value, cp=document.getElementById('ceo-conf-pw')?.value;
+  if(!np){ceoToast('Enter new password','err');return;}
+  if(np!==cp){ceoToast('Passwords do not match','err');return;}
+  if(np.length<8){ceoToast('Min 8 characters','err');return;}
+  ceoToast('Password updated!','ok');
+  ['ceo-old-pw','ceo-new-pw','ceo-conf-pw'].forEach(function(id){var e=document.getElementById(id);if(e)e.value='';});
+}
+
+// ── CEO SETTINGS ──────────────────────────
+function loadCEOSettings(){
+  var c = document.getElementById('settings-content');
+  var savedTheme = localStorage.getItem('ceoTheme')||'navy';
+  var h = '';
+
+  // Theme
+  h += '<div class="card" style="margin-bottom:14px;"><div class="ch"><div class="ct">🎨 Dashboard Theme</div></div><div class="cb">';
+  h += '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:10px;margin-bottom:16px;">';
+  var themes=[
+    {id:'navy',name:'Navy Blue',p:'#0D1B3E',a:'#00C2A8',icon:'🔵'},
+    {id:'midnight',name:'Midnight',p:'#1A1A2E',a:'#E94560',icon:'🌙'},
+    {id:'purple',name:'Deep Purple',p:'#2D1B69',a:'#9F7AEA',icon:'🟣'},
+    {id:'green',name:'Forest',p:'#1A3D2B',a:'#48BB78',icon:'🌿'},
+    {id:'charcoal',name:'Charcoal',p:'#1A202C',a:'#63B3ED',icon:'⚫'},
+    {id:'crimson',name:'Crimson',p:'#7B1F1F',a:'#FC8181',icon:'🔴'},
+    {id:'ocean',name:'Ocean',p:'#1A365D',a:'#4299E1',icon:'🌊'},
+    {id:'sunset',name:'Sunset',p:'#7B341E',a:'#F6AD55',icon:'🌅'},
+  ];
+  themes.forEach(function(t,ti){
+    var isOn=savedTheme===t.id;
+    h += '<div onclick="applyCEOTheme('+ti+')" style="border-radius:12px;padding:12px;cursor:pointer;border:2px solid '+(isOn?'var(--teal)':'var(--border)')+';text-align:center;background:white;transition:.2s;">';
+    h += '<div style="width:48px;height:48px;border-radius:10px;background:linear-gradient(135deg,'+t.p+','+t.a+');margin:0 auto 8px;display:flex;align-items:center;justify-content:center;font-size:20px;">'+t.icon+'</div>';
+    h += '<div style="font-size:12px;font-weight:700;color:var(--navy);">'+t.name+'</div>';
+    if(isOn) h += '<div style="font-size:10px;color:var(--teal);margin-top:3px;">✓ Active</div>';
+    h += '</div>';
+  });
+  h += '</div></div></div>';
+
+  // Dashboard Config
+  h += '<div class="card" style="margin-bottom:14px;"><div class="ch"><div class="ct">📊 Dashboard Configuration</div></div><div class="cb"><div class="g2">';
+  h += '<div style="display:flex;flex-direction:column;gap:5px;margin-bottom:12px;"><label style="font-size:11px;font-weight:700;color:var(--gray);text-transform:uppercase;">Company Name</label><input id="cfg-company" value="PayPe Technologies Pvt. Ltd." style="border:1.5px solid var(--border);border-radius:8px;padding:9px 12px;font-family:inherit;font-size:13px;outline:none;"></div>';
+  h += '<div style="display:flex;flex-direction:column;gap:5px;margin-bottom:12px;"><label style="font-size:11px;font-weight:700;color:var(--gray);text-transform:uppercase;">Financial Year</label><select id="cfg-fy" style="border:1.5px solid var(--border);border-radius:8px;padding:9px 12px;font-family:inherit;font-size:13px;"><option selected>2026-27</option><option>2025-26</option></select></div>';
+  h += '<div style="display:flex;flex-direction:column;gap:5px;margin-bottom:12px;"><label style="font-size:11px;font-weight:700;color:var(--gray);text-transform:uppercase;">Currency</label><select style="border:1.5px solid var(--border);border-radius:8px;padding:9px 12px;font-family:inherit;font-size:13px;"><option selected>INR (₹)</option><option>USD ($)</option></select></div>';
+  h += '<div style="display:flex;flex-direction:column;gap:5px;margin-bottom:12px;"><label style="font-size:11px;font-weight:700;color:var(--gray);text-transform:uppercase;">Auto Refresh</label><select id="cfg-refresh" style="border:1.5px solid var(--border);border-radius:8px;padding:9px 12px;font-family:inherit;font-size:13px;"><option value="0">Manual Only</option><option value="60">Every 1 minute</option><option value="300" selected>Every 5 minutes</option><option value="600">Every 10 minutes</option></select></div>';
+  h += '</div><button onclick="saveCEOConfig()" style="padding:9px 18px;background:var(--navy);color:white;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;">Save Config</button>';
+  h += '</div></div>';
+
+  // Widget toggles
+  h += '<div class="card" style="margin-bottom:14px;"><div class="ch"><div class="ct">🔧 Dashboard Widgets</div></div><div class="cb"><div class="g2">';
+  var widgets=[
+    {id:'w-finance',label:'Finance Overview',desc:'Revenue, expenses, P&L'},
+    {id:'w-hrms',label:'HR Summary',desc:'Employees, attendance'},
+    {id:'w-crm',label:'Sales Pipeline',desc:'Leads and deals'},
+    {id:'w-inventory',label:'Inventory Alerts',desc:'Low stock warnings'},
+    {id:'w-procurement',label:'Procurement Status',desc:'Vendors and approvals'},
+    {id:'w-actions',label:'Action Items',desc:'GST dues, overdue invoices'},
+  ];
+  widgets.forEach(function(w){
+    h += '<div style="display:flex;align-items:center;justify-content:space-between;padding:10px 12px;background:var(--bg);border-radius:8px;margin-bottom:6px;">';
+    h += '<div><div style="font-weight:600;font-size:12px;">'+w.label+'</div><div style="font-size:11px;color:var(--gray);">'+w.desc+'</div></div>';
+    h += '<input type="checkbox" id="'+w.id+'" checked style="accent-color:var(--teal);width:16px;height:16px;cursor:pointer;"></div>';
+  });
+  h += '</div></div></div>';
+
+  // Notification settings
+  h += '<div class="card" style="margin-bottom:14px;"><div class="ch"><div class="ct">🔔 Alerts & Notifications</div></div><div class="cb"><div class="g2">';
+  var notifs=[
+    {id:'n-gst',label:'GST Due Reminders',desc:'Alert before filing dates',def:true},
+    {id:'n-ar',label:'Overdue AR Alerts',desc:'Alert on overdue invoices',def:true},
+    {id:'n-leave',label:'Leave Approvals',desc:'Alert on pending leaves',def:true},
+    {id:'n-stock',label:'Low Stock Alerts',desc:'Alert when stock is low',def:true},
+    {id:'n-approval',label:'Purchase Approvals',desc:'Alert on pending POs',def:false},
+    {id:'n-payroll',label:'Payroll Reminders',desc:'Alert before payroll date',def:true},
+  ];
+  notifs.forEach(function(n){
+    h += '<div style="display:flex;align-items:center;justify-content:space-between;padding:10px 12px;background:var(--bg);border-radius:8px;margin-bottom:6px;">';
+    h += '<div><div style="font-weight:600;font-size:12px;">'+n.label+'</div><div style="font-size:11px;color:var(--gray);">'+n.desc+'</div></div>';
+    h += '<input type="checkbox" id="'+n.id+'" '+(n.def?'checked':'')+' style="accent-color:var(--teal);width:16px;height:16px;cursor:pointer;"></div>';
+  });
+  h += '</div></div></div>';
+
+  // Clear & logout
+  h += '<div class="card"><div class="ch"><div class="ct">⚠️ Account Actions</div></div><div class="cb"><div style="display:flex;gap:8px;flex-wrap:wrap;">';
+  h += '<button onclick="ceoClearCache()" style="padding:9px 16px;background:var(--bg);border:1px solid var(--border);color:var(--navy);border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;">🗑 Clear Cache</button>';
+  h += '<button onclick="ceoRefreshAll()" style="padding:9px 16px;background:var(--bg);border:1px solid var(--border);color:var(--navy);border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;">🔄 Refresh All Data</button>';
+  h += '<button onclick="doLogout()" style="padding:9px 16px;background:rgba(230,51,41,.1);border:1px solid rgba(230,51,41,.2);color:var(--red);border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;">🚪 Sign Out</button>';
+  h += '</div></div></div>';
+
+  c.innerHTML = h;
+  // Apply saved colors
+  var ac=localStorage.getItem('ceoAvatarColor');
+  if(ac) document.getElementById('tn-avatar').style.background=ac;
+}
+
+var ceoThemes=[
+  {id:'navy',p:'#0D1B3E',a:'#00C2A8'},{id:'midnight',p:'#1A1A2E',a:'#E94560'},
+  {id:'purple',p:'#2D1B69',a:'#9F7AEA'},{id:'green',p:'#1A3D2B',a:'#48BB78'},
+  {id:'charcoal',p:'#1A202C',a:'#63B3ED'},{id:'crimson',p:'#7B1F1F',a:'#FC8181'},
+  {id:'ocean',p:'#1A365D',a:'#4299E1'},{id:'sunset',p:'#7B341E',a:'#F6AD55'}
+];
+function applyCEOTheme(ti){
+  var t=ceoThemes[ti]||ceoThemes[0];
+  document.documentElement.style.setProperty('--navy',t.p);
+  document.documentElement.style.setProperty('--teal',t.a);
+  localStorage.setItem('ceoTheme',t.id);
+  localStorage.setItem('ceoThemeP',t.p);
+  localStorage.setItem('ceoThemeA',t.a);
+  ceoToast('Theme applied! 🎨','ok');
+  loadCEOSettings();
+}
+function saveCEOConfig(){ ceoToast('Configuration saved!','ok'); }
+
+// Toast for CEO
+function ceoToast(msg,type){
+  var existing=document.getElementById('ceo-toast');
+  if(!existing){var td=document.createElement('div');td.id='ceo-toast';td.style.cssText='position:fixed;bottom:20px;right:20px;z-index:9999;display:flex;flex-direction:column;gap:6px;';document.body.appendChild(td);existing=td;}
+  var t=document.createElement('div');
+  t.style.cssText='padding:10px 16px;border-radius:10px;font-size:12px;font-weight:600;box-shadow:0 4px 16px rgba(0,0,0,.2);color:white;animation:sIn .3s ease;background:'+(type==='ok'?'#38A169':type==='err'?'#E63329':'#0D1B3E');
+  t.textContent=msg;
+  existing.appendChild(t);
+  setTimeout(function(){t.remove();},3000);
+}
+
+function ceoClearCache(){localStorage.removeItem("ceoTheme");localStorage.removeItem("ceoThemeP");localStorage.removeItem("ceoThemeA");localStorage.removeItem("ceoAvatarColor");ceoToast("Cache cleared!","ok");}
+function ceoRefreshAll(){refreshAll();ceoToast("Dashboard refreshed!","ok");}
+
+// Apply saved theme on load
+(function(){
+  var p=localStorage.getItem('ceoThemeP'), a=localStorage.getItem('ceoThemeA'), ac=localStorage.getItem('ceoAvatarColor');
+  if(p) document.documentElement.style.setProperty('--navy',p);
+  if(a) document.documentElement.style.setProperty('--teal',a);
+  if(ac) { var av=document.getElementById('tn-avatar'); if(av) av.style.background=ac; }
+})();
 
 if(TOKEN&&USER) startApp();
 </script>
