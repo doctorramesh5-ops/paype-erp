@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>PayPe ERP — Inventory & CRM</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Syne:wght@700;800&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/quagga/0.12.1/quagga.min.js"></script>
 <style>
 *{margin:0;padding:0;box-sizing:border-box;}
 :root{--navy:#0D1B3E;--teal:#00C2A8;--red:#E63329;--bg:#F0F4F8;--border:#E2E8F0;--gray:#718096;--green:#38A169;--orange:#DD6B20;--purple:#805AD5;--yellow:#D69E2E;}
@@ -53,7 +54,10 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:#1A202C;font-size
 .sb-brand span{color:var(--teal);}
 .sb-module{font-size:9px;color:var(--teal);font-weight:700;letter-spacing:1px;margin-top:2px;}
 .sb-user{font-size:10px;color:rgba(255,255,255,.4);margin-top:3px;}
-.sb-role{display:inline-block;font-size:9px;font-weight:700;padding:2px 7px;border-radius:20px;margin-top:3px;background:rgba(0,194,168,.2);color:var(--teal);}
+.sb-role{display:inline-block;font-size:9px;font-weight:700;padding:2px 7px;border-radius:20px;margin-top:3px;}
+.sb-role.admin{background:rgba(0,194,168,.2);color:var(--teal);}
+.sb-role.manager{background:rgba(128,90,213,.2);color:#B794F4;}
+.sb-role.employee{background:rgba(56,161,105,.2);color:#68D391;}
 .sb-nav{padding:8px 10px;flex:1;}
 .sb-section{font-size:9px;font-weight:700;color:rgba(255,255,255,.25);text-transform:uppercase;letter-spacing:1px;padding:10px 4px 4px;}
 .ni{display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:8px;cursor:pointer;color:rgba(255,255,255,.55);font-size:12px;font-weight:500;transition:.15s;margin-bottom:1px;}
@@ -154,6 +158,27 @@ tr:hover td{background:#FAFBFC;}
 /* STOCK BADGE */
 .stock-low{color:var(--red);font-weight:700;}
 .stock-ok{color:var(--green);font-weight:600;}
+/* BARCODE SCANNER */
+.scanner-wrap{position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:500;display:none;align-items:center;justify-content:center;flex-direction:column;}
+.scanner-wrap.on{display:flex;}
+.scanner-box{width:340px;position:relative;border-radius:16px;overflow:hidden;background:black;}
+.scanner-box video{width:100%;display:block;}
+.scanner-line{position:absolute;top:50%;left:10%;width:80%;height:2px;background:var(--teal);box-shadow:0 0 8px var(--teal);animation:scanline 2s ease-in-out infinite;}
+@keyframes scanline{0%,100%{top:20%}50%{top:80%}}
+.scanner-corners{position:absolute;inset:0;pointer-events:none;}
+.scanner-corners::before,.scanner-corners::after{content:'';position:absolute;width:40px;height:40px;border-color:var(--teal);border-style:solid;}
+.scanner-corners::before{top:10px;left:10px;border-width:3px 0 0 3px;}
+.scanner-corners::after{bottom:10px;right:10px;border-width:0 3px 3px 0;}
+.scanner-result{margin-top:14px;padding:12px 24px;background:white;border-radius:10px;font-size:14px;font-weight:700;color:var(--navy);text-align:center;min-width:280px;}
+.scanner-close{margin-top:12px;padding:10px 28px;background:var(--red);color:white;border:none;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;}
+/* MANUAL BARCODE */
+.barcode-input-wrap{display:flex;gap:6px;align-items:flex-end;}
+.barcode-input-wrap input{flex:1;}
+.barcode-scan-btn{padding:8px 12px;background:var(--navy);color:white;border:none;border-radius:8px;cursor:pointer;font-size:16px;flex-shrink:0;}
+.barcode-scan-btn:hover{background:var(--teal);}
+.biz-type{padding:5px 10px;border-radius:20px;border:1.5px solid var(--border);background:white;cursor:pointer;font-size:11px;font-weight:600;color:var(--gray);font-family:inherit;transition:.15s;}
+.biz-type:hover{border-color:var(--teal);color:var(--teal);}
+.biz-type.on{background:var(--navy);color:white;border-color:var(--navy);}
 @media(max-width:900px){.login-left{display:none;}.login-right{width:100%;}.g2,.g3,.g4{grid-template-columns:1fr;}.sb{position:fixed;left:-230px;z-index:150;height:100vh;transition:.3s;}.sb.open{left:0;}}
 </style>
 </head>
@@ -187,13 +212,23 @@ tr:hover td{background:#FAFBFC;}
       <button class="mod-tab on" onclick="setMod('inventory',this)">📦 Inventory</button>
       <button class="mod-tab" onclick="setMod('crm',this)">🎯 CRM</button>
     </div>
+    <div style="margin-bottom:16px;">
+      <div style="font-size:11px;font-weight:700;color:var(--gray);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;">Login As</div>
+      <div style="display:flex;gap:5px;">
+        <button onclick="setQuickLogin('admin')" style="flex:1;padding:6px;font-size:10px;font-weight:700;border-radius:7px;border:1.5px solid var(--border);background:var(--bg);cursor:pointer;font-family:inherit;">Admin</button>
+        <button onclick="setQuickLogin('manager')" style="flex:1;padding:6px;font-size:10px;font-weight:700;border-radius:7px;border:1.5px solid var(--border);background:var(--bg);cursor:pointer;font-family:inherit;">Manager</button>
+        <button onclick="setQuickLogin('employee')" style="flex:1;padding:6px;font-size:10px;font-weight:700;border-radius:7px;border:1.5px solid var(--border);background:var(--bg);cursor:pointer;font-family:inherit;">Employee</button>
+      </div>
+    </div>
     <div class="ff"><label>Email Address</label><input id="l-email" type="email" value="admin@paype.co.in" placeholder="admin@paype.co.in"></div>
     <div class="ff"><label>Password</label><div class="pass-wrap"><input id="l-pass" type="password" value="Admin@PayPe2026"><button class="pass-eye" onclick="togglePass()">👁</button></div></div>
     <button class="login-btn" id="l-btn" onclick="doLogin()">Sign In</button>
     <div class="login-err" id="l-err"></div>
     <div class="login-footer">
-      <div>admin@paype.co.in / Admin@PayPe2026</div>
-      <div style="margin-top:4px;font-size:10px;">© 2026 PayPe Technologies Pvt. Ltd.</div>
+      <div style="margin-bottom:4px;"><strong>Admin:</strong> Full control</div>
+      <div style="margin-bottom:4px;"><strong>Manager:</strong> Add/Edit products, orders, leads</div>
+      <div style="margin-bottom:4px;"><strong>Employee:</strong> View only</div>
+      <div style="margin-top:6px;font-size:10px;color:rgba(0,0,0,.3);">© 2026 PayPe Technologies Pvt. Ltd.</div>
     </div>
   </div>
 </div>
@@ -246,7 +281,7 @@ tr:hover td{background:#FAFBFC;}
       <!-- INVENTORY DASHBOARD -->
       <div class="pg on" id="pg-inv-dash">
         <div class="ph"><div><h1>📦 Inventory Dashboard</h1><p id="inv-dash-sub">Stock overview — FY 2026-27</p></div>
-          <div style="display:flex;gap:7px;"><button class="btn bto" onclick="go('stock',document.getElementById('ni-stock'))">Stock Movements</button><button class="btn btp" onclick="openModal('product')">+ Add Product</button></div>
+          <div style="display:flex;gap:7px;"><button class="btn bto" onclick="go('stock',document.getElementById('ni-stock'))">Stock Movements</button><button class="btn btp mgr-only" onclick="openModal('product')">+ Add Product</button></div>
         </div>
         <div id="inv-dash-content"><div class="ld"><div class="sp"></div>Loading...</div></div>
       </div>
@@ -254,7 +289,7 @@ tr:hover td{background:#FAFBFC;}
       <!-- PRODUCTS -->
       <div class="pg" id="pg-products">
         <div class="ph"><div><h1>📦 Products</h1><p>Product master & inventory</p></div>
-          <div style="display:flex;gap:7px;"><button class="btn bto" onclick="openModal('stock-movement')">+ Stock In/Out</button><button class="btn btp" onclick="openModal('product')">+ Add Product</button></div>
+          <div style="display:flex;gap:7px;"><button class="btn bto mgr-only" onclick="openModal('stock-movement')">+ Stock In/Out</button><button class="btn btp mgr-only" onclick="openModal('product')">+ Add Product</button></div>
         </div>
         <div class="tab-row"><button class="tab-btn on" onclick="loadProducts('all',this)">All Products</button><button class="tab-btn" onclick="loadProducts('low',this)">⚠ Low Stock</button><button class="tab-btn" onclick="loadProducts('software',this)">Software</button><button class="tab-btn" onclick="loadProducts('hardware',this)">Hardware</button></div>
         <div id="products-content"><div class="ld"><div class="sp"></div>Loading...</div></div>
@@ -263,7 +298,7 @@ tr:hover td{background:#FAFBFC;}
       <!-- WAREHOUSES -->
       <div class="pg" id="pg-warehouses">
         <div class="ph"><div><h1>🏭 Warehouses & Stock</h1><p>Manage storage locations</p></div>
-          <button class="btn btp" onclick="openModal('warehouse')">+ Add Warehouse</button>
+          <button class="btn btp admin-only" onclick="openModal('warehouse')">+ Add Warehouse</button>
         </div>
         <div id="warehouses-content"><div class="ld"><div class="sp"></div>Loading...</div></div>
       </div>
@@ -271,7 +306,7 @@ tr:hover td{background:#FAFBFC;}
       <!-- PURCHASE ORDERS -->
       <div class="pg" id="pg-po">
         <div class="ph"><div><h1>🛒 Purchase Orders</h1><p>Vendor purchase orders</p></div>
-          <button class="btn btp" onclick="openModal('po')">+ New PO</button>
+          <button class="btn btp mgr-only" onclick="openModal('po')">+ New PO</button>
         </div>
         <div class="tab-row"><button class="tab-btn on" onclick="loadPO('all',this)">All</button><button class="tab-btn" onclick="loadPO('Draft',this)">Draft</button><button class="tab-btn" onclick="loadPO('Approved',this)">Approved</button><button class="tab-btn" onclick="loadPO('Received',this)">Received</button></div>
         <div id="po-content"><div class="ld"><div class="sp"></div>Loading...</div></div>
@@ -280,7 +315,7 @@ tr:hover td{background:#FAFBFC;}
       <!-- SALES ORDERS -->
       <div class="pg" id="pg-so">
         <div class="ph"><div><h1>📋 Sales Orders</h1><p>Customer sales orders</p></div>
-          <button class="btn btp" onclick="openModal('so')">+ New SO</button>
+          <button class="btn btp mgr-only" onclick="openModal('so')">+ New SO</button>
         </div>
         <div class="tab-row"><button class="tab-btn on" onclick="loadSO('all',this)">All</button><button class="tab-btn" onclick="loadSO('Draft',this)">Draft</button><button class="tab-btn" onclick="loadSO('Confirmed',this)">Confirmed</button><button class="tab-btn" onclick="loadSO('Delivered',this)">Delivered</button></div>
         <div id="so-content"><div class="ld"><div class="sp"></div>Loading...</div></div>
@@ -289,7 +324,7 @@ tr:hover td{background:#FAFBFC;}
       <!-- STOCK MOVEMENTS -->
       <div class="pg" id="pg-stock">
         <div class="ph"><div><h1>🔄 Stock Movements</h1><p>All stock in/out transactions</p></div>
-          <button class="btn btp" onclick="openModal('stock-movement')">+ Stock Movement</button>
+          <button class="btn btp mgr-only" onclick="openModal('stock-movement')">+ Stock Movement</button>
         </div>
         <div id="stock-content"><div class="ld"><div class="sp"></div>Loading...</div></div>
       </div>
@@ -297,7 +332,7 @@ tr:hover td{background:#FAFBFC;}
       <!-- CRM DASHBOARD -->
       <div class="pg" id="pg-crm-dash">
         <div class="ph"><div><h1>🎯 CRM Dashboard</h1><p id="crm-dash-sub">Sales pipeline overview</p></div>
-          <div style="display:flex;gap:7px;"><button class="btn bto" onclick="go('pipeline',document.getElementById('ni-pipeline'))">Pipeline</button><button class="btn btp" onclick="openModal('lead')">+ New Lead</button></div>
+          <div style="display:flex;gap:7px;"><button class="btn bto" onclick="go('pipeline',document.getElementById('ni-pipeline'))">Pipeline</button><button class="btn btp mgr-only" onclick="openModal('lead')">+ New Lead</button></div>
         </div>
         <div id="crm-dash-content"><div class="ld"><div class="sp"></div>Loading...</div></div>
       </div>
@@ -305,7 +340,7 @@ tr:hover td{background:#FAFBFC;}
       <!-- LEADS -->
       <div class="pg" id="pg-leads">
         <div class="ph"><div><h1>👥 Leads</h1><p>Manage potential customers</p></div>
-          <button class="btn btp" onclick="openModal('lead')">+ New Lead</button>
+          <button class="btn btp mgr-only" onclick="openModal('lead')">+ New Lead</button>
         </div>
         <div class="tab-row"><button class="tab-btn on" onclick="loadLeads('all',this)">All</button><button class="tab-btn" onclick="loadLeads('New',this)">New</button><button class="tab-btn" onclick="loadLeads('Contacted',this)">Contacted</button><button class="tab-btn" onclick="loadLeads('Qualified',this)">Qualified</button><button class="tab-btn" onclick="loadLeads('Proposal',this)">Proposal</button></div>
         <div id="leads-content"><div class="ld"><div class="sp"></div>Loading...</div></div>
@@ -314,7 +349,7 @@ tr:hover td{background:#FAFBFC;}
       <!-- PIPELINE -->
       <div class="pg" id="pg-pipeline">
         <div class="ph"><div><h1>📊 Sales Pipeline</h1><p>Opportunities kanban board</p></div>
-          <button class="btn btp" onclick="openModal('opportunity')">+ New Opportunity</button>
+          <button class="btn btp mgr-only" onclick="openModal('opportunity')">+ New Opportunity</button>
         </div>
         <div id="pipeline-content"><div class="ld"><div class="sp"></div>Loading...</div></div>
       </div>
@@ -322,7 +357,7 @@ tr:hover td{background:#FAFBFC;}
       <!-- QUOTATIONS -->
       <div class="pg" id="pg-quotations">
         <div class="ph"><div><h1>📄 Quotations</h1><p>Sales quotations & proposals</p></div>
-          <button class="btn btp" onclick="openModal('quotation')">+ New Quotation</button>
+          <button class="btn btp mgr-only" onclick="openModal('quotation')">+ New Quotation</button>
         </div>
         <div class="tab-row"><button class="tab-btn on" onclick="loadQuotations('all',this)">All</button><button class="tab-btn" onclick="loadQuotations('Draft',this)">Draft</button><button class="tab-btn" onclick="loadQuotations('Sent',this)">Sent</button><button class="tab-btn" onclick="loadQuotations('Accepted',this)">Accepted</button></div>
         <div id="quotations-content"><div class="ld"><div class="sp"></div>Loading...</div></div>
@@ -331,7 +366,7 @@ tr:hover td{background:#FAFBFC;}
       <!-- TASKS -->
       <div class="pg" id="pg-tasks">
         <div class="ph"><div><h1>✅ Tasks & Follow-ups</h1><p>CRM tasks and reminders</p></div>
-          <button class="btn btp" onclick="openModal('task')">+ New Task</button>
+          <button class="btn btp mgr-only" onclick="openModal('task')">+ New Task</button>
         </div>
         <div class="tab-row"><button class="tab-btn on" onclick="loadTasks('all',this)">All</button><button class="tab-btn" onclick="loadTasks('Open',this)">Open</button><button class="tab-btn" onclick="loadTasks('In Progress',this)">In Progress</button><button class="tab-btn" onclick="loadTasks('Done',this)">Done</button></div>
         <div id="tasks-content"><div class="ld"><div class="sp"></div>Loading...</div></div>
@@ -346,18 +381,45 @@ tr:hover td{background:#FAFBFC;}
 <!-- PRODUCT MODAL -->
 <div class="ov" id="mod-product" onclick="if(event.target===this)cm('product')">
   <div class="mo"><div class="mh"><div class="mt">Add Product</div><button class="mx" onclick="cm('product')">✕</button></div>
-  <div class="mb"><div class="g2">
+  <div class="mb">
+  <!-- Business Type -->
+  <div style="display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap;">
+    <button class="biz-type on" onclick="setBizType('general',this)">🏢 General</button>
+    <button class="biz-type" onclick="setBizType('restaurant',this)">🍽️ Restaurant</button>
+    <button class="biz-type" onclick="setBizType('hotel',this)">🏨 Hotel</button>
+    <button class="biz-type" onclick="setBizType('grocery',this)">🛒 Grocery</button>
+    <button class="biz-type" onclick="setBizType('pharmacy',this)">💊 Pharmacy</button>
+    <button class="biz-type" onclick="setBizType('textile',this)">👗 Textile</button>
+    <button class="biz-type" onclick="setBizType('manufacturing',this)">🏭 Manufacturing</button>
+  </div>
+  <div class="g2">
     <div class="ff2"><label>Product Name *</label><input id="prd-name" placeholder="e.g. Dell Laptop"></div>
     <div class="ff2"><label>SKU / Item Code</label><input id="prd-sku" placeholder="e.g. LAP-001"></div>
     <div class="ff2"><label>HSN Code</label><input id="prd-hsn" placeholder="e.g. 84713090"></div>
     <div class="ff2"><label>Category</label><select id="prd-cat"><option value="Software">Software</option><option value="Hardware">Hardware</option><option value="Furniture">Furniture</option><option value="Stationery">Stationery</option><option value="Electronics">Electronics</option><option value="Other">Other</option></select></div>
     <div class="ff2"><label>Unit</label><select id="prd-unit"><option value="Nos">Nos</option><option value="License">License</option><option value="Kg">Kg</option><option value="Litre">Litre</option><option value="Meter">Meter</option><option value="Box">Box</option><option value="Packet">Packet</option><option value="Set">Set</option></select></div>
-    <div class="ff2"><label>Barcode / QR</label><input id="prd-barcode" placeholder="Barcode number"></div>
+    <div class="ff2"><label>Barcode / QR</label>
+      <div class="barcode-input-wrap">
+        <input id="prd-barcode" placeholder="Scan or enter barcode">
+        <button class="barcode-scan-btn" onclick="openScanner('prd-barcode')" title="Scan Barcode">📷</button>
+      </div>
+    </div>
+    <div class="ff2"><label>Assigned To</label>
+      <select id="prd-assigned">
+        <option value="">Unassigned</option>
+      </select>
+    </div>
     <div class="ff2"><label>Sale Price (Rs) *</label><input id="prd-sale" type="number" placeholder="0.00"></div>
     <div class="ff2"><label>Cost Price (Rs)</label><input id="prd-cost" type="number" placeholder="0.00"></div>
     <div class="ff2"><label>Opening Stock</label><input id="prd-stock" type="number" placeholder="0"></div>
     <div class="ff2"><label>Reorder Level</label><input id="prd-reorder" type="number" placeholder="10"></div>
     <div class="ff2" style="grid-column:span 2;"><label>Description</label><textarea id="prd-desc" rows="2"></textarea></div>
+  </div>
+  <!-- BUSINESS TYPE EXTRA FIELDS -->
+  <div id="extra-fields" style="display:none;margin-top:12px;padding-top:12px;border-top:1px solid var(--border);">
+    <div style="font-size:11px;font-weight:700;color:var(--teal);text-transform:uppercase;margin-bottom:10px;" id="extra-fields-title">Additional Fields</div>
+    <div class="g2" id="extra-fields-content"></div>
+  </div>
   </div></div>
   <div class="mf"><button class="btn bto" onclick="cm('product')">Cancel</button><button class="btn btp" onclick="submitProduct()">Add Product</button></div></div>
 </div>
@@ -392,7 +454,13 @@ tr:hover td{background:#FAFBFC;}
     <div class="ff2"><label>Date *</label><input id="sm-date" type="date"></div>
     <div class="ff2"><label>Quantity *</label><input id="sm-qty" type="number" placeholder="0" min="0.01"></div>
     <div class="ff2"><label>Rate (Rs)</label><input id="sm-rate" type="number" placeholder="0.00"></div>
-    <div class="ff2" style="grid-column:span 2;"><label>Reference / Notes</label><input id="sm-ref" placeholder="PO number, note..."></div>
+    <div class="ff2"><label>Reference / Notes</label><input id="sm-ref" placeholder="PO number, note..."></div>
+    <div class="ff2"><label>Scan Barcode</label>
+      <div class="barcode-input-wrap">
+        <input id="sm-barcode" placeholder="Scan product barcode" readonly>
+        <button class="barcode-scan-btn" onclick="openScanner('sm-barcode','sm-product')" title="Scan to select product">📷</button>
+      </div>
+    </div>
   </div></div>
   <div class="mf"><button class="btn bto" onclick="cm('stock-movement')">Cancel</button><button class="btn btp" onclick="submitStockMovement()">Record Movement</button></div></div>
 </div>
@@ -515,6 +583,26 @@ tr:hover td{background:#FAFBFC;}
   <div class="mf"><button class="btn bto" onclick="cm('task')">Cancel</button><button class="btn btp" onclick="submitTask()">Add Task</button></div></div>
 </div>
 
+<!-- BARCODE SCANNER OVERLAY -->
+<div class="scanner-wrap" id="scanner-wrap">
+  <div style="text-align:center;margin-bottom:16px;">
+    <div style="font-family:Syne,sans-serif;font-size:20px;font-weight:800;color:white;">📷 Barcode Scanner</div>
+    <div style="font-size:12px;color:rgba(255,255,255,.5);margin-top:4px;">Point camera at barcode or QR code</div>
+  </div>
+  <div class="scanner-box" id="scanner-box">
+    <div id="scanner-video-container"></div>
+    <div class="scanner-line"></div>
+    <div class="scanner-corners"></div>
+  </div>
+  <div class="scanner-result" id="scanner-result">
+    <span id="scanner-status">📷 Initialising camera...</span>
+  </div>
+  <div style="display:flex;gap:10px;margin-top:12px;">
+    <button class="scanner-close" onclick="closeScanner()">✕ Close</button>
+    <button style="padding:10px 20px;background:var(--teal);color:white;border:none;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;" onclick="manualBarcodeEntry()">⌨️ Enter Manually</button>
+  </div>
+</div>
+
 <script>
 var API='https://erpapi.paype.co.in';
 var TOKEN=localStorage.getItem('erp_token');
@@ -524,6 +612,12 @@ var products=[], warehouses=[], parties=[], leads=[];
 var orderLineIdx=0;
 
 // LOGIN
+function setQuickLogin(role){
+  var map={admin:'admin@paype.co.in',manager:'accounts@paype.co.in',employee:'employee@paype.co.in'};
+  var passMap={admin:'Admin@PayPe2026',manager:'Manager@PayPe2026',employee:'Employee@PayPe2026'};
+  document.getElementById('l-email').value=map[role]||'';
+  document.getElementById('l-pass').value=passMap[role]||'';
+}
 function setMod(mod,el){
   document.querySelectorAll('.mod-tab').forEach(function(t){t.classList.remove('on');});
   el.classList.add('on');
@@ -559,7 +653,17 @@ async function startApp(){
   document.getElementById('sb-user').textContent=USER.name||'User';
   document.getElementById('tb-avatar').textContent=(USER.name||'U').charAt(0).toUpperCase();
   document.getElementById('tb-company').textContent=(USER.company||'PayPe')+' | FY '+(USER.fy||'2026-27');
-  document.getElementById('sb-role').textContent={admin:'Admin',manager:'Manager',employee:'Employee'}[USER.role]||USER.role;
+  var roleEl = document.getElementById('sb-role');
+  var roleMap = {admin:'Admin',manager:'Inv & CRM Manager',employee:'Employee'};
+  roleEl.textContent = roleMap[USER.role] || USER.role;
+  roleEl.className = 'sb-role ' + (USER.role||'employee');
+  // Role-based access
+  if(USER.role === 'employee') {
+    document.querySelectorAll('.mgr-only').forEach(function(el){el.style.display='none';});
+    document.querySelectorAll('.admin-only').forEach(function(el){el.style.display='none';});
+  } else if(USER.role === 'manager') {
+    document.querySelectorAll('.admin-only').forEach(function(el){el.style.display='none';});
+  }
   var h=new Date().getHours();
   var g=h<12?'Good Morning':h<17?'Good Afternoon':'Good Evening';
   document.getElementById('inv-dash-sub').textContent=g+', '+(USER.name||'').split(' ')[0]+'!';
@@ -615,6 +719,13 @@ function openModal(type){
   if(type==='product'){
     ['prd-name','prd-sku','prd-hsn','prd-barcode','prd-desc'].forEach(function(id){var e=document.getElementById(id);if(e)e.value='';});
     ['prd-sale','prd-cost','prd-stock','prd-reorder'].forEach(function(id){var e=document.getElementById(id);if(e)e.value='';});
+    // Reset business type
+    document.querySelectorAll('.biz-type').forEach(function(b){b.classList.remove('on');});
+    var firstBiz=document.querySelector('.biz-type');if(firstBiz)firstBiz.classList.add('on');
+    currentBizType='general';
+    document.getElementById('extra-fields').style.display='none';
+    // Load users for assigned-to
+    loadERPUsers();
   }
   else if(type==='warehouse'){
     ['wh-name','wh-loc','wh-mgr'].forEach(function(id){var e=document.getElementById(id);if(e)e.value='';});
@@ -709,10 +820,115 @@ function calcOrderLines(prefix){
 }
 
 // SUBMIT FUNCTIONS
+// BUSINESS TYPE CUSTOMISATION
+var currentBizType = 'general';
+function setBizType(type, el) {
+  document.querySelectorAll('.biz-type').forEach(function(b){b.classList.remove('on');});
+  el.classList.add('on');
+  currentBizType = type;
+  var extraDiv = document.getElementById('extra-fields');
+  var extraContent = document.getElementById('extra-fields-content');
+  var extraTitle = document.getElementById('extra-fields-title');
+  var fields = {
+    restaurant: {
+      title: '🍽️ Restaurant Fields',
+      fields: [
+        {id:'prd-recipe', label:'Recipe / Ingredients', placeholder:'Main ingredients...'},
+        {id:'prd-portion', label:'Portion Size', placeholder:'e.g. 250g, 1 plate'},
+        {id:'prd-cuisine', label:'Cuisine Type', placeholder:'e.g. South Indian, Chinese'},
+        {id:'prd-calories', label:'Calories (kcal)', placeholder:'e.g. 350', type:'number'},
+        {id:'prd-prep', label:'Prep Time (mins)', placeholder:'e.g. 15', type:'number'},
+        {id:'prd-veg', label:'Food Type', isSelect:true, options:['Vegetarian','Non-Vegetarian','Vegan','Egg']}
+      ]
+    },
+    hotel: {
+      title: '🏨 Hotel Fields',
+      fields: [
+        {id:'prd-roomtype', label:'Room / Item Type', placeholder:'e.g. Deluxe Room, Linen'},
+        {id:'prd-floor', label:'Floor / Location', placeholder:'e.g. Floor 2, Block A'},
+        {id:'prd-capacity', label:'Capacity / Size', placeholder:'e.g. 2 Adults, 10x12 ft'},
+        {id:'prd-amenities', label:'Amenities / Features', placeholder:'AC, WiFi, TV...'},
+        {id:'prd-tariff', label:'Tariff per Night (Rs)', placeholder:'0.00', type:'number'},
+        {id:'prd-housekeeping', label:'Housekeeping Frequency', isSelect:true, options:['Daily','Twice Daily','Every 2 Days','Weekly']}
+      ]
+    },
+    grocery: {
+      title: '🛒 Grocery Fields',
+      fields: [
+        {id:'prd-brand', label:'Brand Name', placeholder:'e.g. Tata, Amul'},
+        {id:'prd-weight', label:'Weight / Volume', placeholder:'e.g. 500g, 1L, 2kg'},
+        {id:'prd-expiry', label:'Shelf Life (days)', placeholder:'e.g. 180', type:'number'},
+        {id:'prd-batch', label:'Batch Number', placeholder:'e.g. BT2026001'},
+        {id:'prd-mrp', label:'MRP (Rs)', placeholder:'0.00', type:'number'},
+        {id:'prd-storage', label:'Storage Condition', isSelect:true, options:['Ambient','Refrigerated','Frozen','Cool & Dry']}
+      ]
+    },
+    pharmacy: {
+      title: '💊 Pharmacy Fields',
+      fields: [
+        {id:'prd-generic', label:'Generic Name', placeholder:'e.g. Paracetamol 500mg'},
+        {id:'prd-manufacturer', label:'Manufacturer', placeholder:'e.g. Cipla, Sun Pharma'},
+        {id:'prd-batch', label:'Batch Number', placeholder:'e.g. BT2026001'},
+        {id:'prd-expiry-date', label:'Expiry Date', type:'date'},
+        {id:'prd-schedule', label:'Schedule', isSelect:true, options:['OTC','Schedule H','Schedule H1','Schedule X','Schedule G']},
+        {id:'prd-dosage', label:'Dosage Form', isSelect:true, options:['Tablet','Capsule','Syrup','Injection','Ointment','Drops','Inhaler']}
+      ]
+    },
+    textile: {
+      title: '👗 Textile / Tailor Fields',
+      fields: [
+        {id:'prd-fabric', label:'Fabric Type', placeholder:'e.g. Cotton, Silk, Polyester'},
+        {id:'prd-color', label:'Colour', placeholder:'e.g. Red, Navy Blue'},
+        {id:'prd-width', label:'Width (inches)', placeholder:'e.g. 44, 60', type:'number'},
+        {id:'prd-gsm', label:'GSM / Weight', placeholder:'e.g. 150 GSM', type:'number'},
+        {id:'prd-pattern', label:'Pattern / Design', placeholder:'e.g. Stripes, Plain, Checks'},
+        {id:'prd-care', label:'Care Instructions', placeholder:'Machine wash, Dry clean...'}
+      ]
+    },
+    manufacturing: {
+      title: '🏭 Manufacturing Fields',
+      fields: [
+        {id:'prd-type', label:'Item Type', isSelect:true, options:['Raw Material','Work In Progress','Finished Goods','Consumable','Spare Part']},
+        {id:'prd-bom', label:'Bill of Materials (BOM)', placeholder:'Components used...'},
+        {id:'prd-lead-time', label:'Lead Time (days)', placeholder:'e.g. 7', type:'number'},
+        {id:'prd-machine', label:'Machine / Process', placeholder:'e.g. CNC, Lathe, Assembly'},
+        {id:'prd-tolerance', label:'Tolerance / Spec', placeholder:'e.g. ±0.5mm'},
+        {id:'prd-quality', label:'Quality Standard', placeholder:'e.g. ISO 9001, BIS'}
+      ]
+    }
+  };
+  
+  if(type === 'general' || !fields[type]) {
+    extraDiv.style.display = 'none';
+    return;
+  }
+  
+  var bizFields = fields[type];
+  extraTitle.textContent = bizFields.title;
+  var html = '';
+  bizFields.fields.forEach(function(f) {
+    html += '<div class="ff2"><label>'+f.label+'</label>';
+    if(f.isSelect) {
+      html += '<select id="'+f.id+'"><option value="">Select...</option>';
+      f.options.forEach(function(o){html+='<option value="'+o+'">'+o+'</option>';});
+      html += '</select>';
+    } else {
+      html += '<input id="'+f.id+'" type="'+(f.type||'text')+'" placeholder="'+(f.placeholder||'')+'">';
+    }
+    html += '</div>';
+  });
+  extraContent.innerHTML = html;
+  extraDiv.style.display = 'block';
+}
+
 async function submitProduct(){
   var name=document.getElementById('prd-name').value.trim();
   if(!name){toast('Product name required','err');return;}
-  var res=await req('POST','/api/inventory/products',{name,sku:v('prd-sku'),hsn:v('prd-hsn'),category:v('prd-cat'),unit:v('prd-unit'),barcode:v('prd-barcode'),salePrice:parseFloat(v('prd-sale'))||0,costPrice:parseFloat(v('prd-cost'))||0,stock:parseFloat(v('prd-stock'))||0,reorderLevel:parseFloat(v('prd-reorder'))||10,description:v('prd-desc')});
+  var extraData = {};
+  document.querySelectorAll('#extra-fields-content input, #extra-fields-content select').forEach(function(el){if(el.value)extraData[el.id]=el.value;});
+  var description = v('prd-desc') + (Object.keys(extraData).length ? ' | BizType:'+currentBizType+' | '+JSON.stringify(extraData) : '');
+  var assignedTo = v('prd-assigned') || null;
+  var res=await req('POST','/api/inventory/products',{name,sku:v('prd-sku'),hsn:v('prd-hsn'),category:v('prd-cat')||currentBizType,unit:v('prd-unit'),barcode:v('prd-barcode'),salePrice:parseFloat(v('prd-sale'))||0,costPrice:parseFloat(v('prd-cost'))||0,stock:parseFloat(v('prd-stock'))||0,reorderLevel:parseFloat(v('prd-reorder'))||10,description:description});
   if(res.success){products.push(res.data);toast('Product added!','ok');cm('product');loadProducts('all');}
   else toast(res.message||'Failed','err');
 }
@@ -857,7 +1073,7 @@ async function loadProducts(filter,el){
   list.forEach(function(p){
     var low=parseFloat(p.stock)<=parseFloat(p.reorder_level);
     h+='<tr><td><strong>'+p.name+'</strong><br><span style="font-size:10px;color:var(--gray);">'+(p.description||'')+'</span></td>';
-    h+='<td><span class="b bn">'+(p.sku||'--')+'</span></td>';
+    h+='<td><span class="b bn">'+(p.sku||'--')+'</span>'+(p.barcode?'<br><span style="font-size:9px;color:var(--gray);">🔳 '+p.barcode+'</span>':'')+'</td>';
     h+='<td style="font-size:11px;">'+(p.hsn||'--')+'</td>';
     h+='<td><span class="b bt">'+(p.category||'--')+'</span></td>';
     h+='<td>'+(p.unit||'Nos')+'</td>';
@@ -1191,6 +1407,176 @@ function sf(id,val){var el=document.getElementById(id);if(el)el.textContent=fmt(
 function v(id){var el=document.getElementById(id);return el?el.value:'';}
 function kpi(val,label,sub,color){return '<div class="kp"><div class="kv" style="color:'+color+';">'+val+'</div><div class="kl">'+label+'</div><div class="kt" style="color:'+color+';">'+sub+'</div></div>';}
 function toast(msg,type){var t=document.createElement('div');t.className='tst'+(type==='err'?' err':type==='ok'?' ok':'');t.textContent=msg;document.getElementById('toast').appendChild(t);setTimeout(function(){t.remove();},3000);}
+
+// ── BARCODE SCANNER ──────────────────────────────────
+var scannerTargetId = null;
+var scannerProductSel = null;
+var scannerActive = false;
+
+function openScanner(targetInputId, productSelId) {
+  scannerTargetId = targetInputId;
+  scannerProductSel = productSelId || null;
+  document.getElementById('scanner-wrap').classList.add('on');
+  document.getElementById('scanner-status').textContent = '📷 Initialising camera...';
+  document.getElementById('scanner-result').style.background = 'white';
+  
+  // Try QuaggaJS first
+  var container = document.getElementById('scanner-video-container');
+  container.innerHTML = '<div id="quagga-scanner" style="width:340px;height:260px;"></div>';
+  
+  setTimeout(function() {
+    try {
+      Quagga.init({
+        inputStream: {
+          name: 'Live',
+          type: 'LiveStream',
+          target: document.getElementById('quagga-scanner'),
+          constraints: {
+            width: 340,
+            height: 260,
+            facingMode: 'environment'
+          }
+        },
+        locator: { patchSize: 'medium', halfSample: true },
+        numOfWorkers: 2,
+        frequency: 10,
+        decoder: {
+          readers: ['ean_reader','ean_8_reader','code_128_reader','code_39_reader','upc_reader','upc_e_reader','qr_code_reader']
+        },
+        locate: true
+      }, function(err) {
+        if(err) {
+          console.log('Quagga error:', err);
+          document.getElementById('scanner-status').textContent = '⚠️ Camera not available. Use manual entry.';
+          return;
+        }
+        Quagga.start();
+        scannerActive = true;
+        document.getElementById('scanner-status').textContent = '🔍 Scanning... Hold barcode steady';
+      });
+      
+      Quagga.onDetected(function(result) {
+        if(!scannerActive) return;
+        var code = result.codeResult.code;
+        if(code && code.length > 3) {
+          scannerActive = false;
+          Quagga.stop();
+          onBarcodeDetected(code);
+        }
+      });
+    } catch(e) {
+      document.getElementById('scanner-status').textContent = '⚠️ Camera error. Use manual entry.';
+    }
+  }, 500);
+}
+
+function onBarcodeDetected(code) {
+  // Flash green
+  var resultEl = document.getElementById('scanner-result');
+  resultEl.style.background = '#F0FFF4';
+  document.getElementById('scanner-status').textContent = '✅ Detected: ' + code;
+  
+  // Set the barcode value
+  var targetInput = document.getElementById(scannerTargetId);
+  if(targetInput) targetInput.value = code;
+  
+  // If scanner was for stock movement — try to find product by barcode
+  if(scannerProductSel) {
+    var found = products.find(function(p){ return p.barcode === code || p.sku === code; });
+    if(found) {
+      var sel = document.getElementById(scannerProductSel);
+      if(sel) sel.value = found.id;
+      document.getElementById('scanner-status').textContent = '✅ Product found: ' + found.name;
+    } else {
+      document.getElementById('scanner-status').textContent = '✅ Code: ' + code + ' (product not found in catalog)';
+    }
+  }
+  
+  // Auto close after 1.5s
+  setTimeout(closeScanner, 1500);
+}
+
+function closeScanner() {
+  if(scannerActive) {
+    try { Quagga.stop(); } catch(e) {}
+    scannerActive = false;
+  }
+  document.getElementById('scanner-wrap').classList.remove('on');
+  document.getElementById('scanner-video-container').innerHTML = '';
+}
+
+function manualBarcodeEntry() {
+  closeScanner();
+  var code = prompt('Enter barcode / QR code manually:');
+  if(code && code.trim()) {
+    var targetInput = document.getElementById(scannerTargetId);
+    if(targetInput) targetInput.value = code.trim();
+    if(scannerProductSel) {
+      var found = products.find(function(p){ return p.barcode === code.trim() || p.sku === code.trim(); });
+      if(found) {
+        var sel = document.getElementById(scannerProductSel);
+        if(sel) { sel.value = found.id; toast('Product found: ' + found.name, 'ok'); }
+      } else {
+        toast('Barcode entered: ' + code.trim());
+      }
+    }
+  }
+}
+
+// Also allow keyboard barcode scanner (USB/Bluetooth scanners type fast)
+var barcodeBuffer = '';
+var barcodeTimer = null;
+document.addEventListener('keydown', function(e) {
+  // Only capture when a barcode input is focused
+  var focused = document.activeElement;
+  if(focused && (focused.id === 'prd-barcode' || focused.id === 'sm-barcode')) {
+    if(e.key === 'Enter') {
+      // Barcode scanner sends Enter at end
+      if(barcodeBuffer.length > 3) {
+        focused.value = barcodeBuffer;
+        // Try to match product
+        if(focused.id === 'sm-barcode') {
+          var found = products.find(function(p){ return p.barcode === barcodeBuffer || p.sku === barcodeBuffer; });
+          if(found) {
+            document.getElementById('sm-product').value = found.id;
+            toast('Product: ' + found.name, 'ok');
+          }
+        }
+        toast('Barcode scanned: ' + barcodeBuffer, 'ok');
+      }
+      barcodeBuffer = '';
+      clearTimeout(barcodeTimer);
+      e.preventDefault();
+    } else if(e.key.length === 1) {
+      barcodeBuffer += e.key;
+      clearTimeout(barcodeTimer);
+      barcodeTimer = setTimeout(function(){ barcodeBuffer = ''; }, 200);
+    }
+  }
+});
+
+// Load ERP users for assigned-to selects
+async function loadERPUsers() {
+  // Use parties as proxy since users endpoint needs admin
+  var sel = document.getElementById('prd-assigned');
+  if(!sel) return;
+  // Add current user at minimum
+  if(USER) {
+    sel.innerHTML = '<option value="">Unassigned</option><option value="'+USER.id+'" selected>'+USER.name+' (Me)</option>';
+  }
+  // Try to load all users if admin
+  if(USER && USER.role === 'admin') {
+    try {
+      var res = await req('GET', '/api/users');
+      if(res.success) {
+        sel.innerHTML = '<option value="">Unassigned</option>';
+        res.data.forEach(function(u) {
+          sel.innerHTML += '<option value="'+u.id+'"'+(u.id===USER.id?' selected':'')+'>'+u.name+' ('+u.role+')</option>';
+        });
+      }
+    } catch(e) {}
+  }
+}
 
 // AUTO LOGIN
 if(TOKEN&&USER)startApp();
