@@ -1,0 +1,1199 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>PayPe ERP — Inventory & CRM</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Syne:wght@700;800&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+:root{--navy:#0D1B3E;--teal:#00C2A8;--red:#E63329;--bg:#F0F4F8;--border:#E2E8F0;--gray:#718096;--green:#38A169;--orange:#DD6B20;--purple:#805AD5;--yellow:#D69E2E;}
+body{font-family:'Inter',sans-serif;background:var(--bg);color:#1A202C;font-size:13px;}
+.login-wrap{display:flex;min-height:100vh;}
+.login-left{flex:1;background:linear-gradient(135deg,#0D1B3E,#162952,#0D2D4E);display:flex;flex-direction:column;justify-content:center;padding:60px;position:relative;overflow:hidden;}
+.login-left::before{content:'';position:absolute;top:-100px;right:-100px;width:400px;height:400px;border-radius:50%;background:rgba(0,194,168,.08);}
+.ll-brand{font-family:'Syne',sans-serif;font-size:36px;font-weight:800;color:white;margin-bottom:4px;}
+.ll-brand span{color:var(--teal);}
+.ll-sub{font-size:12px;color:rgba(255,255,255,.4);letter-spacing:2px;text-transform:uppercase;margin-bottom:48px;}
+.ll-title{font-size:28px;font-weight:800;color:white;margin-bottom:14px;line-height:1.3;}
+.ll-desc{font-size:14px;color:rgba(255,255,255,.6);line-height:1.7;margin-bottom:40px;max-width:400px;}
+.ll-modules{display:flex;flex-direction:column;gap:10px;}
+.ll-mod{display:flex;align-items:center;gap:12px;padding:12px 16px;background:rgba(255,255,255,.06);border-radius:10px;border:1px solid rgba(255,255,255,.08);}
+.ll-mod-icon{width:36px;height:36px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;}
+.ll-mod-text{font-size:12px;color:rgba(255,255,255,.7);font-weight:500;}
+.ll-mod-badge{margin-left:auto;font-size:10px;font-weight:700;padding:2px 8px;border-radius:20px;}
+.ll-stats{display:flex;gap:24px;margin-top:40px;}
+.ll-stat-val{font-size:24px;font-weight:800;color:var(--teal);}
+.ll-stat-label{font-size:11px;color:rgba(255,255,255,.4);margin-top:2px;}
+.login-right{width:460px;background:white;display:flex;flex-direction:column;justify-content:center;padding:60px 50px;flex-shrink:0;}
+.lr-logo{font-family:'Syne',sans-serif;font-size:24px;font-weight:800;color:var(--navy);margin-bottom:6px;}
+.lr-logo span{color:var(--teal);}
+.lr-welcome{font-size:22px;font-weight:800;color:var(--navy);margin-bottom:6px;}
+.lr-sub{font-size:13px;color:var(--gray);margin-bottom:32px;}
+.mod-tabs{display:flex;gap:5px;margin-bottom:20px;background:var(--bg);padding:4px;border-radius:10px;}
+.mod-tab{flex:1;padding:8px;text-align:center;border-radius:8px;cursor:pointer;font-size:11px;font-weight:600;color:var(--gray);transition:.2s;border:none;background:none;font-family:inherit;}
+.mod-tab.on{background:var(--navy);color:white;}
+.ff{display:flex;flex-direction:column;gap:5px;margin-bottom:16px;}
+.ff label{font-size:11px;font-weight:700;color:var(--gray);text-transform:uppercase;letter-spacing:.5px;}
+.ff input{border:1.5px solid var(--border);border-radius:10px;padding:11px 14px;font-family:inherit;font-size:13px;outline:none;transition:.15s;width:100%;}
+.ff input:focus{border-color:var(--teal);box-shadow:0 0 0 3px rgba(0,194,168,.08);}
+.pass-wrap{position:relative;}
+.pass-wrap input{padding-right:40px;}
+.pass-eye{position:absolute;right:12px;top:50%;transform:translateY(-50%);cursor:pointer;background:none;border:none;font-size:14px;}
+.login-btn{width:100%;padding:13px;background:var(--navy);color:white;border:none;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;transition:.2s;margin-top:8px;}
+.login-btn:hover{background:#162952;}
+.login-err{background:#FFF5F5;border:1px solid #FED7D7;color:var(--red);border-radius:8px;padding:10px 14px;font-size:12px;margin-top:10px;display:none;}
+.login-footer{margin-top:24px;padding-top:16px;border-top:1px solid var(--border);text-align:center;font-size:11px;color:var(--gray);}
+.app{display:none;height:100vh;overflow:hidden;flex-direction:row;}
+.app.on{display:flex;}
+.sb{width:230px;background:var(--navy);display:flex;flex-direction:column;flex-shrink:0;overflow-y:auto;}
+.sb::-webkit-scrollbar{width:3px;}.sb::-webkit-scrollbar-thumb{background:rgba(255,255,255,.1);}
+.sb-logo{padding:14px;border-bottom:1px solid rgba(255,255,255,.08);}
+.sb-brand{font-family:'Syne',sans-serif;font-size:17px;font-weight:800;color:white;}
+.sb-brand span{color:var(--teal);}
+.sb-module{font-size:9px;color:var(--teal);font-weight:700;letter-spacing:1px;margin-top:2px;}
+.sb-user{font-size:10px;color:rgba(255,255,255,.4);margin-top:3px;}
+.sb-role{display:inline-block;font-size:9px;font-weight:700;padding:2px 7px;border-radius:20px;margin-top:3px;background:rgba(0,194,168,.2);color:var(--teal);}
+.sb-nav{padding:8px 10px;flex:1;}
+.sb-section{font-size:9px;font-weight:700;color:rgba(255,255,255,.25);text-transform:uppercase;letter-spacing:1px;padding:10px 4px 4px;}
+.ni{display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:8px;cursor:pointer;color:rgba(255,255,255,.55);font-size:12px;font-weight:500;transition:.15s;margin-bottom:1px;}
+.ni:hover{background:rgba(255,255,255,.07);color:white;}
+.ni.on{background:rgba(0,194,168,.15);color:var(--teal);font-weight:600;}
+.ni svg{width:15px;height:15px;flex-shrink:0;}
+.sb-bottom{padding:10px;border-top:1px solid rgba(255,255,255,.08);}
+.sb-links{padding:8px 10px;}
+.sb-link{display:flex;align-items:center;gap:8px;padding:7px 10px;border-radius:8px;cursor:pointer;color:rgba(255,255,255,.35);font-size:11px;transition:.15s;text-decoration:none;}
+.sb-link:hover{background:rgba(255,255,255,.05);color:rgba(255,255,255,.7);}
+.sb-logout{display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:8px;cursor:pointer;color:rgba(255,255,255,.4);font-size:12px;transition:.15s;border:none;background:none;width:100%;font-family:inherit;}
+.sb-logout:hover{background:rgba(230,51,41,.1);color:var(--red);}
+.main{flex:1;display:flex;flex-direction:column;overflow:hidden;}
+.tb{background:white;border-bottom:1px solid var(--border);padding:0 20px;height:54px;display:flex;align-items:center;gap:12px;}
+.tb-menu{background:none;border:none;cursor:pointer;font-size:18px;color:var(--navy);}
+.tb-title{font-family:'Syne',sans-serif;font-size:15px;font-weight:700;color:var(--navy);flex:1;}
+.tb-company{font-size:11px;color:var(--gray);background:var(--bg);padding:4px 12px;border-radius:20px;border:1px solid var(--border);}
+.tb-bell{position:relative;background:none;border:none;cursor:pointer;padding:6px;border-radius:8px;}
+.tb-bell:hover{background:var(--bg);}
+.tb-bell svg{width:18px;height:18px;color:var(--gray);}
+.tb-bell-dot{position:absolute;top:4px;right:4px;width:8px;height:8px;background:var(--red);border-radius:50%;border:2px solid white;}
+.tb-avatar{width:32px;height:32px;border-radius:50%;background:var(--navy);color:white;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;cursor:pointer;}
+.content{flex:1;overflow-y:auto;padding:16px;}
+.pg{display:none;}.pg.on{display:block;}
+.ph{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px;}
+.ph h1{font-family:'Syne',sans-serif;font-size:20px;font-weight:800;color:var(--navy);}
+.ph p{font-size:12px;color:var(--gray);margin-top:2px;}
+.card{background:white;border-radius:12px;border:1px solid var(--border);margin-bottom:12px;}
+.ch{padding:12px 14px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--bg);}
+.ct{font-size:13px;font-weight:700;color:var(--navy);}
+.cb{padding:14px;}
+.kgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(155px,1fr));gap:12px;margin-bottom:14px;}
+.kp{background:white;border-radius:12px;padding:14px 16px;border:1px solid var(--border);}
+.kv{font-size:20px;font-weight:800;color:var(--navy);margin-bottom:3px;}
+.kl{font-size:11px;color:var(--gray);}
+.kt{font-size:10px;font-weight:600;margin-top:6px;}
+.tw{overflow-x:auto;}
+table{width:100%;border-collapse:collapse;}
+th{background:var(--navy);color:white;padding:8px 10px;font-size:11px;font-weight:600;text-align:left;white-space:nowrap;}
+td{padding:8px 10px;border-bottom:1px solid var(--bg);font-size:12px;}
+tr:last-child td{border-bottom:none;}
+tr:hover td{background:#FAFBFC;}
+.btn{display:inline-flex;align-items:center;gap:5px;padding:7px 14px;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;border:none;font-family:inherit;transition:.15s;}
+.btp{background:var(--navy);color:white;}.btp:hover{background:#162952;}
+.bto{background:var(--bg);color:var(--navy);border:1px solid var(--border);}.bto:hover{background:var(--border);}
+.btt{background:var(--teal);color:white;}.btt:hover{opacity:.9;}
+.btg{background:#F0FFF4;color:var(--green);border:1px solid #C6F6D5;}
+.btr{background:#FFF5F5;color:var(--red);border:1px solid #FED7D7;}
+.btsm{padding:4px 10px;font-size:11px;}
+.b{display:inline-flex;align-items:center;padding:2px 8px;border-radius:20px;font-size:10px;font-weight:700;}
+.bg{background:#F0FFF4;color:var(--green);}
+.br{background:#FFF5F5;color:var(--red);}
+.by{background:#FFFBEB;color:#B7791F;}
+.bt{background:rgba(0,194,168,.1);color:var(--teal);}
+.bn{background:var(--bg);color:var(--gray);}
+.bp{background:#FAF5FF;color:var(--purple);}
+.bpu{background:#FFFFF0;color:var(--yellow);}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;}
+.g4{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:12px;}
+.ov{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:200;display:none;align-items:center;justify-content:center;padding:16px;}
+.ov.on{display:flex;}
+.mo{background:white;border-radius:16px;width:100%;max-width:600px;max-height:92vh;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,.25);}
+.mh{padding:14px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-shrink:0;}
+.mt{font-size:15px;font-weight:700;color:var(--navy);}
+.mb{padding:16px 18px;overflow-y:auto;flex:1;}
+.mf{padding:12px 18px;border-top:1px solid var(--border);display:flex;gap:8px;justify-content:flex-end;flex-shrink:0;}
+.mx{background:none;border:none;font-size:20px;cursor:pointer;color:var(--gray);}
+.ff2{display:flex;flex-direction:column;gap:5px;margin-bottom:12px;}
+.ff2 label{font-size:11px;font-weight:700;color:var(--gray);text-transform:uppercase;letter-spacing:.5px;}
+.ff2 input,.ff2 select,.ff2 textarea{border:1.5px solid var(--border);border-radius:8px;padding:8px 11px;font-family:inherit;font-size:13px;outline:none;transition:.15s;width:100%;}
+.ff2 input:focus,.ff2 select:focus{border-color:var(--teal);}
+.ff2 input[readonly]{background:var(--bg);}
+.ld{display:flex;align-items:center;gap:8px;color:var(--gray);padding:30px;justify-content:center;}
+.sp{width:18px;height:18px;border:2px solid var(--border);border-top-color:var(--teal);border-radius:50%;animation:spin .7s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg);}}
+.em{text-align:center;padding:30px 20px;color:var(--gray);}
+.em h3{font-size:15px;font-weight:700;color:var(--navy);margin-bottom:4px;}
+.dr{color:var(--red);font-weight:600;}
+.cr{color:var(--green);font-weight:600;}
+.tab-row{display:flex;gap:5px;margin-bottom:14px;background:white;padding:5px;border-radius:10px;border:1px solid var(--border);}
+.tab-btn{flex:1;padding:7px;text-align:center;border-radius:7px;cursor:pointer;font-size:11px;font-weight:600;border:none;background:none;color:var(--gray);font-family:inherit;transition:.15s;}
+.tab-btn.on{background:var(--navy);color:white;}
+#toast{position:fixed;bottom:20px;right:20px;z-index:999;display:flex;flex-direction:column;gap:6px;}
+.tst{background:var(--navy);color:white;padding:10px 16px;border-radius:10px;font-size:12px;font-weight:600;box-shadow:0 4px 16px rgba(0,0,0,.2);animation:sIn .3s ease;}
+.tst.err{background:var(--red);}
+.tst.ok{background:var(--green);}
+@keyframes sIn{from{transform:translateX(100px);opacity:0;}to{transform:translateX(0);opacity:1;}}
+/* KANBAN */
+.kanban{display:flex;gap:12px;overflow-x:auto;padding-bottom:8px;}
+.kanban-col{min-width:200px;flex-shrink:0;background:var(--bg);border-radius:12px;padding:10px;}
+.kanban-header{font-size:11px;font-weight:700;color:var(--gray);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px;display:flex;justify-content:space-between;align-items:center;}
+.kanban-card{background:white;border-radius:10px;padding:12px;margin-bottom:8px;border:1px solid var(--border);cursor:pointer;transition:.15s;}
+.kanban-card:hover{box-shadow:0 2px 8px rgba(0,0,0,.08);transform:translateY(-1px);}
+.kanban-card-title{font-size:12px;font-weight:600;color:var(--navy);margin-bottom:4px;}
+.kanban-card-sub{font-size:11px;color:var(--gray);}
+.kanban-card-val{font-size:12px;font-weight:700;color:var(--green);margin-top:6px;}
+/* STOCK BADGE */
+.stock-low{color:var(--red);font-weight:700;}
+.stock-ok{color:var(--green);font-weight:600;}
+@media(max-width:900px){.login-left{display:none;}.login-right{width:100%;}.g2,.g3,.g4{grid-template-columns:1fr;}.sb{position:fixed;left:-230px;z-index:150;height:100vh;transition:.3s;}.sb.open{left:0;}}
+</style>
+</head>
+<body>
+
+<!-- LOGIN PAGE -->
+<div class="login-wrap" id="login-page">
+  <div class="login-left">
+    <div class="ll-brand">Pay<span>Pe</span> ERP</div>
+    <div class="ll-sub">Inventory & CRM Module</div>
+    <div class="ll-title">Smart Inventory +<br>Powerful CRM</div>
+    <div class="ll-desc">Manage products, warehouses, purchase & sales orders. Track leads, pipeline, quotations and customer relationships — all in one platform.</div>
+    <div class="ll-modules">
+      <div class="ll-mod"><div class="ll-mod-icon" style="background:rgba(221,107,32,.15);">📦</div><div class="ll-mod-text">Products & Warehouses</div><span class="ll-mod-badge" style="background:rgba(0,194,168,.2);color:var(--teal);">Active</span></div>
+      <div class="ll-mod"><div class="ll-mod-icon" style="background:rgba(56,161,105,.15);">🛒</div><div class="ll-mod-text">Purchase & Sales Orders</div><span class="ll-mod-badge" style="background:rgba(0,194,168,.2);color:var(--teal);">Active</span></div>
+      <div class="ll-mod"><div class="ll-mod-icon" style="background:rgba(128,90,213,.15);">🎯</div><div class="ll-mod-text">CRM — Leads & Pipeline</div><span class="ll-mod-badge" style="background:rgba(0,194,168,.2);color:var(--teal);">Active</span></div>
+      <div class="ll-mod"><div class="ll-mod-icon" style="background:rgba(0,194,168,.15);">📊</div><div class="ll-mod-text">Quotations & Tasks</div><span class="ll-mod-badge" style="background:rgba(0,194,168,.2);color:var(--teal);">Active</span></div>
+    </div>
+    <div class="ll-stats">
+      <div class="ll-stat"><div class="ll-stat-val">8</div><div class="ll-stat-label">Modules</div></div>
+      <div class="ll-stat"><div class="ll-stat-val">100+</div><div class="ll-stat-label">Features</div></div>
+      <div class="ll-stat"><div class="ll-stat-val">₹0</div><div class="ll-stat-label">Setup Cost</div></div>
+    </div>
+  </div>
+  <div class="login-right">
+    <div class="lr-logo">Pay<span>Pe</span> ERP</div>
+    <div style="font-size:11px;color:var(--teal);font-weight:600;letter-spacing:1px;margin-bottom:24px;">INVENTORY & CRM MODULE</div>
+    <div class="lr-welcome">Welcome Back 👋</div>
+    <div class="lr-sub">Sign in to Inventory & CRM portal</div>
+    <div class="mod-tabs">
+      <button class="mod-tab on" onclick="setMod('inventory',this)">📦 Inventory</button>
+      <button class="mod-tab" onclick="setMod('crm',this)">🎯 CRM</button>
+    </div>
+    <div class="ff"><label>Email Address</label><input id="l-email" type="email" value="admin@paype.co.in" placeholder="admin@paype.co.in"></div>
+    <div class="ff"><label>Password</label><div class="pass-wrap"><input id="l-pass" type="password" value="Admin@PayPe2026"><button class="pass-eye" onclick="togglePass()">👁</button></div></div>
+    <button class="login-btn" id="l-btn" onclick="doLogin()">Sign In</button>
+    <div class="login-err" id="l-err"></div>
+    <div class="login-footer">
+      <div>admin@paype.co.in / Admin@PayPe2026</div>
+      <div style="margin-top:4px;font-size:10px;">© 2026 PayPe Technologies Pvt. Ltd.</div>
+    </div>
+  </div>
+</div>
+
+<!-- MAIN APP -->
+<div class="app" id="erp-app">
+  <div class="sb" id="sb">
+    <div class="sb-logo">
+      <div class="sb-brand">Pay<span>Pe</span> ERP</div>
+      <div class="sb-module" id="sb-module">INVENTORY & CRM</div>
+      <div class="sb-user" id="sb-user">Loading...</div>
+      <span class="sb-role" id="sb-role">Admin</span>
+    </div>
+    <div class="sb-nav">
+      <!-- INVENTORY -->
+      <div class="sb-section">📦 Inventory</div>
+      <div class="ni on" id="ni-inv-dash" onclick="go('inv-dash',this)"><svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>Inventory Dashboard</div>
+      <div class="ni" id="ni-products" onclick="go('products',this)"><svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/></svg>Products</div>
+      <div class="ni" id="ni-warehouses" onclick="go('warehouses',this)"><svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/></svg>Warehouses & Stock</div>
+      <div class="ni" id="ni-po" onclick="go('po',this)"><svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 01-8 0"/></svg>Purchase Orders</div>
+      <div class="ni" id="ni-so" onclick="go('so',this)"><svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>Sales Orders</div>
+      <div class="ni" id="ni-stock" onclick="go('stock',this)"><svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>Stock Movements</div>
+      <!-- CRM -->
+      <div class="sb-section">🎯 CRM</div>
+      <div class="ni" id="ni-crm-dash" onclick="go('crm-dash',this)"><svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>CRM Dashboard</div>
+      <div class="ni" id="ni-leads" onclick="go('leads',this)"><svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>Leads</div>
+      <div class="ni" id="ni-pipeline" onclick="go('pipeline',this)"><svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>Sales Pipeline</div>
+      <div class="ni" id="ni-quotations" onclick="go('quotations',this)"><svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M9 14l6-6m-5.5.5h.01m4.99 5h.01M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16l3.5-2 3.5 2 3.5-2 3.5 2z"/></svg>Quotations</div>
+      <div class="ni" id="ni-tasks" onclick="go('tasks',this)"><svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>Tasks & Follow-ups</div>
+    </div>
+    <div class="sb-links">
+      <a class="sb-link" href="https://hr.paype.co.in" target="_blank">👥 HRMS Portal →</a>
+      <a class="sb-link" href="https://erp.paype.co.in" target="_blank">📊 Accounting →</a>
+    </div>
+    <div class="sb-bottom">
+      <button class="sb-logout" onclick="doLogout()"><svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9"/></svg>Sign Out</button>
+    </div>
+  </div>
+
+  <div class="main">
+    <div class="tb">
+      <button class="tb-menu" onclick="document.getElementById('sb').classList.toggle('open')">☰</button>
+      <div class="tb-title" id="tb-title">Inventory Dashboard</div>
+      <div class="tb-company" id="tb-company">PayPe Technologies | FY 2026-27</div>
+      <button class="tb-bell"><svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 01-3.46 0"/></svg><div class="tb-bell-dot"></div></button>
+      <div class="tb-avatar" id="tb-avatar">R</div>
+    </div>
+    <div class="content">
+
+      <!-- INVENTORY DASHBOARD -->
+      <div class="pg on" id="pg-inv-dash">
+        <div class="ph"><div><h1>📦 Inventory Dashboard</h1><p id="inv-dash-sub">Stock overview — FY 2026-27</p></div>
+          <div style="display:flex;gap:7px;"><button class="btn bto" onclick="go('stock',document.getElementById('ni-stock'))">Stock Movements</button><button class="btn btp" onclick="openModal('product')">+ Add Product</button></div>
+        </div>
+        <div id="inv-dash-content"><div class="ld"><div class="sp"></div>Loading...</div></div>
+      </div>
+
+      <!-- PRODUCTS -->
+      <div class="pg" id="pg-products">
+        <div class="ph"><div><h1>📦 Products</h1><p>Product master & inventory</p></div>
+          <div style="display:flex;gap:7px;"><button class="btn bto" onclick="openModal('stock-movement')">+ Stock In/Out</button><button class="btn btp" onclick="openModal('product')">+ Add Product</button></div>
+        </div>
+        <div class="tab-row"><button class="tab-btn on" onclick="loadProducts('all',this)">All Products</button><button class="tab-btn" onclick="loadProducts('low',this)">⚠ Low Stock</button><button class="tab-btn" onclick="loadProducts('software',this)">Software</button><button class="tab-btn" onclick="loadProducts('hardware',this)">Hardware</button></div>
+        <div id="products-content"><div class="ld"><div class="sp"></div>Loading...</div></div>
+      </div>
+
+      <!-- WAREHOUSES -->
+      <div class="pg" id="pg-warehouses">
+        <div class="ph"><div><h1>🏭 Warehouses & Stock</h1><p>Manage storage locations</p></div>
+          <button class="btn btp" onclick="openModal('warehouse')">+ Add Warehouse</button>
+        </div>
+        <div id="warehouses-content"><div class="ld"><div class="sp"></div>Loading...</div></div>
+      </div>
+
+      <!-- PURCHASE ORDERS -->
+      <div class="pg" id="pg-po">
+        <div class="ph"><div><h1>🛒 Purchase Orders</h1><p>Vendor purchase orders</p></div>
+          <button class="btn btp" onclick="openModal('po')">+ New PO</button>
+        </div>
+        <div class="tab-row"><button class="tab-btn on" onclick="loadPO('all',this)">All</button><button class="tab-btn" onclick="loadPO('Draft',this)">Draft</button><button class="tab-btn" onclick="loadPO('Approved',this)">Approved</button><button class="tab-btn" onclick="loadPO('Received',this)">Received</button></div>
+        <div id="po-content"><div class="ld"><div class="sp"></div>Loading...</div></div>
+      </div>
+
+      <!-- SALES ORDERS -->
+      <div class="pg" id="pg-so">
+        <div class="ph"><div><h1>📋 Sales Orders</h1><p>Customer sales orders</p></div>
+          <button class="btn btp" onclick="openModal('so')">+ New SO</button>
+        </div>
+        <div class="tab-row"><button class="tab-btn on" onclick="loadSO('all',this)">All</button><button class="tab-btn" onclick="loadSO('Draft',this)">Draft</button><button class="tab-btn" onclick="loadSO('Confirmed',this)">Confirmed</button><button class="tab-btn" onclick="loadSO('Delivered',this)">Delivered</button></div>
+        <div id="so-content"><div class="ld"><div class="sp"></div>Loading...</div></div>
+      </div>
+
+      <!-- STOCK MOVEMENTS -->
+      <div class="pg" id="pg-stock">
+        <div class="ph"><div><h1>🔄 Stock Movements</h1><p>All stock in/out transactions</p></div>
+          <button class="btn btp" onclick="openModal('stock-movement')">+ Stock Movement</button>
+        </div>
+        <div id="stock-content"><div class="ld"><div class="sp"></div>Loading...</div></div>
+      </div>
+
+      <!-- CRM DASHBOARD -->
+      <div class="pg" id="pg-crm-dash">
+        <div class="ph"><div><h1>🎯 CRM Dashboard</h1><p id="crm-dash-sub">Sales pipeline overview</p></div>
+          <div style="display:flex;gap:7px;"><button class="btn bto" onclick="go('pipeline',document.getElementById('ni-pipeline'))">Pipeline</button><button class="btn btp" onclick="openModal('lead')">+ New Lead</button></div>
+        </div>
+        <div id="crm-dash-content"><div class="ld"><div class="sp"></div>Loading...</div></div>
+      </div>
+
+      <!-- LEADS -->
+      <div class="pg" id="pg-leads">
+        <div class="ph"><div><h1>👥 Leads</h1><p>Manage potential customers</p></div>
+          <button class="btn btp" onclick="openModal('lead')">+ New Lead</button>
+        </div>
+        <div class="tab-row"><button class="tab-btn on" onclick="loadLeads('all',this)">All</button><button class="tab-btn" onclick="loadLeads('New',this)">New</button><button class="tab-btn" onclick="loadLeads('Contacted',this)">Contacted</button><button class="tab-btn" onclick="loadLeads('Qualified',this)">Qualified</button><button class="tab-btn" onclick="loadLeads('Proposal',this)">Proposal</button></div>
+        <div id="leads-content"><div class="ld"><div class="sp"></div>Loading...</div></div>
+      </div>
+
+      <!-- PIPELINE -->
+      <div class="pg" id="pg-pipeline">
+        <div class="ph"><div><h1>📊 Sales Pipeline</h1><p>Opportunities kanban board</p></div>
+          <button class="btn btp" onclick="openModal('opportunity')">+ New Opportunity</button>
+        </div>
+        <div id="pipeline-content"><div class="ld"><div class="sp"></div>Loading...</div></div>
+      </div>
+
+      <!-- QUOTATIONS -->
+      <div class="pg" id="pg-quotations">
+        <div class="ph"><div><h1>📄 Quotations</h1><p>Sales quotations & proposals</p></div>
+          <button class="btn btp" onclick="openModal('quotation')">+ New Quotation</button>
+        </div>
+        <div class="tab-row"><button class="tab-btn on" onclick="loadQuotations('all',this)">All</button><button class="tab-btn" onclick="loadQuotations('Draft',this)">Draft</button><button class="tab-btn" onclick="loadQuotations('Sent',this)">Sent</button><button class="tab-btn" onclick="loadQuotations('Accepted',this)">Accepted</button></div>
+        <div id="quotations-content"><div class="ld"><div class="sp"></div>Loading...</div></div>
+      </div>
+
+      <!-- TASKS -->
+      <div class="pg" id="pg-tasks">
+        <div class="ph"><div><h1>✅ Tasks & Follow-ups</h1><p>CRM tasks and reminders</p></div>
+          <button class="btn btp" onclick="openModal('task')">+ New Task</button>
+        </div>
+        <div class="tab-row"><button class="tab-btn on" onclick="loadTasks('all',this)">All</button><button class="tab-btn" onclick="loadTasks('Open',this)">Open</button><button class="tab-btn" onclick="loadTasks('In Progress',this)">In Progress</button><button class="tab-btn" onclick="loadTasks('Done',this)">Done</button></div>
+        <div id="tasks-content"><div class="ld"><div class="sp"></div>Loading...</div></div>
+      </div>
+
+    </div>
+  </div>
+</div>
+<div id="toast"></div>
+
+<!-- ══════════ MODALS ══════════ -->
+<!-- PRODUCT MODAL -->
+<div class="ov" id="mod-product" onclick="if(event.target===this)cm('product')">
+  <div class="mo"><div class="mh"><div class="mt">Add Product</div><button class="mx" onclick="cm('product')">✕</button></div>
+  <div class="mb"><div class="g2">
+    <div class="ff2"><label>Product Name *</label><input id="prd-name" placeholder="e.g. Dell Laptop"></div>
+    <div class="ff2"><label>SKU / Item Code</label><input id="prd-sku" placeholder="e.g. LAP-001"></div>
+    <div class="ff2"><label>HSN Code</label><input id="prd-hsn" placeholder="e.g. 84713090"></div>
+    <div class="ff2"><label>Category</label><select id="prd-cat"><option value="Software">Software</option><option value="Hardware">Hardware</option><option value="Furniture">Furniture</option><option value="Stationery">Stationery</option><option value="Electronics">Electronics</option><option value="Other">Other</option></select></div>
+    <div class="ff2"><label>Unit</label><select id="prd-unit"><option value="Nos">Nos</option><option value="License">License</option><option value="Kg">Kg</option><option value="Litre">Litre</option><option value="Meter">Meter</option><option value="Box">Box</option><option value="Packet">Packet</option><option value="Set">Set</option></select></div>
+    <div class="ff2"><label>Barcode / QR</label><input id="prd-barcode" placeholder="Barcode number"></div>
+    <div class="ff2"><label>Sale Price (Rs) *</label><input id="prd-sale" type="number" placeholder="0.00"></div>
+    <div class="ff2"><label>Cost Price (Rs)</label><input id="prd-cost" type="number" placeholder="0.00"></div>
+    <div class="ff2"><label>Opening Stock</label><input id="prd-stock" type="number" placeholder="0"></div>
+    <div class="ff2"><label>Reorder Level</label><input id="prd-reorder" type="number" placeholder="10"></div>
+    <div class="ff2" style="grid-column:span 2;"><label>Description</label><textarea id="prd-desc" rows="2"></textarea></div>
+  </div></div>
+  <div class="mf"><button class="btn bto" onclick="cm('product')">Cancel</button><button class="btn btp" onclick="submitProduct()">Add Product</button></div></div>
+</div>
+
+<!-- WAREHOUSE MODAL -->
+<div class="ov" id="mod-warehouse" onclick="if(event.target===this)cm('warehouse')">
+  <div class="mo"><div class="mh"><div class="mt">Add Warehouse</div><button class="mx" onclick="cm('warehouse')">✕</button></div>
+  <div class="mb">
+    <div class="ff2"><label>Warehouse Name *</label><input id="wh-name" placeholder="e.g. Main Warehouse"></div>
+    <div class="ff2"><label>Location</label><input id="wh-loc" placeholder="e.g. Coimbatore, Tamil Nadu"></div>
+    <div class="ff2"><label>Manager</label><input id="wh-mgr" placeholder="Manager name"></div>
+  </div>
+  <div class="mf"><button class="btn bto" onclick="cm('warehouse')">Cancel</button><button class="btn btp" onclick="submitWarehouse()">Add Warehouse</button></div></div>
+</div>
+
+<!-- STOCK MOVEMENT MODAL -->
+<div class="ov" id="mod-stock-movement" onclick="if(event.target===this)cm('stock-movement')">
+  <div class="mo"><div class="mh"><div class="mt">Stock Movement</div><button class="mx" onclick="cm('stock-movement')">✕</button></div>
+  <div class="mb"><div class="g2">
+    <div class="ff2"><label>Product *</label><select id="sm-product"><option value="">Select Product</option></select></div>
+    <div class="ff2"><label>Warehouse</label><select id="sm-wh"><option value="">Select Warehouse</option></select></div>
+    <div class="ff2"><label>Movement Type *</label>
+      <select id="sm-type">
+        <option value="stock-in">Stock In (Purchase)</option>
+        <option value="stock-out">Stock Out (Sale)</option>
+        <option value="adjustment">Adjustment</option>
+        <option value="transfer-in">Transfer In</option>
+        <option value="transfer-out">Transfer Out</option>
+        <option value="return">Return</option>
+      </select>
+    </div>
+    <div class="ff2"><label>Date *</label><input id="sm-date" type="date"></div>
+    <div class="ff2"><label>Quantity *</label><input id="sm-qty" type="number" placeholder="0" min="0.01"></div>
+    <div class="ff2"><label>Rate (Rs)</label><input id="sm-rate" type="number" placeholder="0.00"></div>
+    <div class="ff2" style="grid-column:span 2;"><label>Reference / Notes</label><input id="sm-ref" placeholder="PO number, note..."></div>
+  </div></div>
+  <div class="mf"><button class="btn bto" onclick="cm('stock-movement')">Cancel</button><button class="btn btp" onclick="submitStockMovement()">Record Movement</button></div></div>
+</div>
+
+<!-- PO MODAL -->
+<div class="ov" id="mod-po" onclick="if(event.target===this)cm('po')">
+  <div class="mo" style="max-width:680px;"><div class="mh"><div class="mt">New Purchase Order</div><button class="mx" onclick="cm('po')">✕</button></div>
+  <div class="mb">
+    <div class="g2">
+      <div class="ff2"><label>Vendor *</label><select id="po-vendor"><option value="">Select Vendor</option></select></div>
+      <div class="ff2"><label>PO Date *</label><input id="po-date" type="date"></div>
+      <div class="ff2"><label>Expected Delivery</label><input id="po-exp" type="date"></div>
+    </div>
+    <div style="font-size:11px;font-weight:700;color:var(--gray);text-transform:uppercase;margin-bottom:8px;">Line Items</div>
+    <div style="display:grid;grid-template-columns:2fr .8fr 1fr .7fr 28px;gap:5px;margin-bottom:5px;"><span style="font-size:10px;font-weight:700;color:var(--gray);">PRODUCT/DESCRIPTION</span><span style="font-size:10px;font-weight:700;color:var(--gray);">QTY</span><span style="font-size:10px;font-weight:700;color:var(--gray);">RATE</span><span style="font-size:10px;font-weight:700;color:var(--gray);">GST%</span><span></span></div>
+    <div id="po-lines"></div>
+    <button class="btn bto btsm" onclick="addOrderLine('po')" style="margin-bottom:10px;">+ Add Line</button>
+    <div style="background:var(--bg);border-radius:8px;padding:12px;">
+      <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px;"><span style="color:var(--gray);">Subtotal</span><span id="po-sub" style="font-weight:600;">Rs 0.00</span></div>
+      <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px;"><span style="color:var(--gray);">GST</span><span id="po-gst" style="font-weight:600;">Rs 0.00</span></div>
+      <div style="display:flex;justify-content:space-between;border-top:1px solid var(--border);padding-top:6px;"><span style="font-weight:700;">Total</span><span id="po-total" style="font-weight:800;font-size:15px;color:var(--navy);">Rs 0.00</span></div>
+    </div>
+  </div>
+  <div class="mf"><button class="btn bto" onclick="cm('po')">Cancel</button><button class="btn btp" onclick="submitPO()">Create PO</button></div></div>
+</div>
+
+<!-- SO MODAL -->
+<div class="ov" id="mod-so" onclick="if(event.target===this)cm('so')">
+  <div class="mo" style="max-width:680px;"><div class="mh"><div class="mt">New Sales Order</div><button class="mx" onclick="cm('so')">✕</button></div>
+  <div class="mb">
+    <div class="g2">
+      <div class="ff2"><label>Customer *</label><select id="so-customer"><option value="">Select Customer</option></select></div>
+      <div class="ff2"><label>SO Date *</label><input id="so-date" type="date"></div>
+      <div class="ff2"><label>Delivery Date</label><input id="so-del" type="date"></div>
+    </div>
+    <div style="font-size:11px;font-weight:700;color:var(--gray);text-transform:uppercase;margin-bottom:8px;">Line Items</div>
+    <div style="display:grid;grid-template-columns:2fr .8fr 1fr .7fr 28px;gap:5px;margin-bottom:5px;"><span style="font-size:10px;font-weight:700;color:var(--gray);">PRODUCT/DESCRIPTION</span><span style="font-size:10px;font-weight:700;color:var(--gray);">QTY</span><span style="font-size:10px;font-weight:700;color:var(--gray);">RATE</span><span style="font-size:10px;font-weight:700;color:var(--gray);">GST%</span><span></span></div>
+    <div id="so-lines"></div>
+    <button class="btn bto btsm" onclick="addOrderLine('so')" style="margin-bottom:10px;">+ Add Line</button>
+    <div style="background:var(--bg);border-radius:8px;padding:12px;">
+      <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px;"><span style="color:var(--gray);">Subtotal</span><span id="so-sub" style="font-weight:600;">Rs 0.00</span></div>
+      <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px;"><span style="color:var(--gray);">GST</span><span id="so-gst" style="font-weight:600;">Rs 0.00</span></div>
+      <div style="display:flex;justify-content:space-between;border-top:1px solid var(--border);padding-top:6px;"><span style="font-weight:700;">Total</span><span id="so-total" style="font-weight:800;font-size:15px;color:var(--navy);">Rs 0.00</span></div>
+    </div>
+  </div>
+  <div class="mf"><button class="btn bto" onclick="cm('so')">Cancel</button><button class="btn btp" onclick="submitSO()">Create SO</button></div></div>
+</div>
+
+<!-- LEAD MODAL -->
+<div class="ov" id="mod-lead" onclick="if(event.target===this)cm('lead')">
+  <div class="mo"><div class="mh"><div class="mt">New Lead</div><button class="mx" onclick="cm('lead')">✕</button></div>
+  <div class="mb"><div class="g2">
+    <div class="ff2"><label>Contact Name *</label><input id="ld-name" placeholder="Full name"></div>
+    <div class="ff2"><label>Company Name</label><input id="ld-company" placeholder="Company name"></div>
+    <div class="ff2"><label>Email</label><input id="ld-email" type="email" placeholder="email@company.com"></div>
+    <div class="ff2"><label>Phone</label><input id="ld-phone" type="tel" placeholder="Mobile number"></div>
+    <div class="ff2"><label>Lead Source</label>
+      <select id="ld-source"><option value="Website">Website</option><option value="Referral">Referral</option><option value="Cold Call">Cold Call</option><option value="Exhibition">Exhibition</option><option value="Social Media">Social Media</option><option value="Email Campaign">Email Campaign</option><option value="Other">Other</option></select>
+    </div>
+    <div class="ff2"><label>Status</label>
+      <select id="ld-status"><option value="New">New</option><option value="Contacted">Contacted</option><option value="Qualified">Qualified</option><option value="Proposal">Proposal</option><option value="Won">Won</option><option value="Lost">Lost</option></select>
+    </div>
+    <div class="ff2" style="grid-column:span 2;"><label>Expected Value (Rs)</label><input id="ld-value" type="number" placeholder="0.00"></div>
+    <div class="ff2" style="grid-column:span 2;"><label>Notes</label><textarea id="ld-notes" rows="2"></textarea></div>
+  </div></div>
+  <div class="mf"><button class="btn bto" onclick="cm('lead')">Cancel</button><button class="btn btp" onclick="submitLead()">Add Lead</button></div></div>
+</div>
+
+<!-- OPPORTUNITY MODAL -->
+<div class="ov" id="mod-opportunity" onclick="if(event.target===this)cm('opportunity')">
+  <div class="mo"><div class="mh"><div class="mt">New Opportunity</div><button class="mx" onclick="cm('opportunity')">✕</button></div>
+  <div class="mb"><div class="g2">
+    <div class="ff2"><label>Title *</label><input id="op-title" placeholder="e.g. HRMS Implementation — TechCorp"></div>
+    <div class="ff2"><label>Lead</label><select id="op-lead"><option value="">Select Lead</option></select></div>
+    <div class="ff2"><label>Stage</label>
+      <select id="op-stage"><option value="Prospect">Prospect</option><option value="Qualified">Qualified</option><option value="Proposal">Proposal</option><option value="Negotiation">Negotiation</option><option value="Won">Won</option><option value="Lost">Lost</option></select>
+    </div>
+    <div class="ff2"><label>Value (Rs)</label><input id="op-value" type="number" placeholder="0.00"></div>
+    <div class="ff2"><label>Win Probability (%)</label><input id="op-prob" type="number" placeholder="50" min="0" max="100"></div>
+    <div class="ff2"><label>Expected Close Date</label><input id="op-close" type="date"></div>
+    <div class="ff2" style="grid-column:span 2;"><label>Notes</label><textarea id="op-notes" rows="2"></textarea></div>
+  </div></div>
+  <div class="mf"><button class="btn bto" onclick="cm('opportunity')">Cancel</button><button class="btn btp" onclick="submitOpportunity()">Add Opportunity</button></div></div>
+</div>
+
+<!-- QUOTATION MODAL -->
+<div class="ov" id="mod-quotation" onclick="if(event.target===this)cm('quotation')">
+  <div class="mo" style="max-width:680px;"><div class="mh"><div class="mt">New Quotation</div><button class="mx" onclick="cm('quotation')">✕</button></div>
+  <div class="mb">
+    <div class="g2">
+      <div class="ff2"><label>Customer Name *</label><input id="qt-customer" placeholder="Customer name"></div>
+      <div class="ff2"><label>Lead</label><select id="qt-lead"><option value="">Select Lead (optional)</option></select></div>
+      <div class="ff2"><label>Quote Date *</label><input id="qt-date" type="date"></div>
+      <div class="ff2"><label>Valid Until</label><input id="qt-valid" type="date"></div>
+    </div>
+    <div style="font-size:11px;font-weight:700;color:var(--gray);text-transform:uppercase;margin-bottom:8px;">Line Items</div>
+    <div style="display:grid;grid-template-columns:2fr .8fr 1fr .7fr 28px;gap:5px;margin-bottom:5px;"><span style="font-size:10px;font-weight:700;color:var(--gray);">DESCRIPTION</span><span style="font-size:10px;font-weight:700;color:var(--gray);">QTY</span><span style="font-size:10px;font-weight:700;color:var(--gray);">RATE</span><span style="font-size:10px;font-weight:700;color:var(--gray);">GST%</span><span></span></div>
+    <div id="qt-lines"></div>
+    <button class="btn bto btsm" onclick="addOrderLine('qt')" style="margin-bottom:10px;">+ Add Line</button>
+    <div style="background:var(--bg);border-radius:8px;padding:12px;">
+      <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px;"><span style="color:var(--gray);">Subtotal</span><span id="qt-sub" style="font-weight:600;">Rs 0.00</span></div>
+      <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px;"><span style="color:var(--gray);">GST</span><span id="qt-gst" style="font-weight:600;">Rs 0.00</span></div>
+      <div style="display:flex;justify-content:space-between;border-top:1px solid var(--border);padding-top:6px;"><span style="font-weight:700;">Total</span><span id="qt-total" style="font-weight:800;font-size:15px;color:var(--navy);">Rs 0.00</span></div>
+    </div>
+  </div>
+  <div class="mf"><button class="btn bto" onclick="cm('quotation')">Cancel</button><button class="btn btp" onclick="submitQuotation()">Create Quotation</button></div></div>
+</div>
+
+<!-- TASK MODAL -->
+<div class="ov" id="mod-task" onclick="if(event.target===this)cm('task')">
+  <div class="mo"><div class="mh"><div class="mt">New Task</div><button class="mx" onclick="cm('task')">✕</button></div>
+  <div class="mb"><div class="g2">
+    <div class="ff2" style="grid-column:span 2;"><label>Task Title *</label><input id="tsk-title" placeholder="e.g. Follow up with Vijay Kumar"></div>
+    <div class="ff2"><label>Priority</label><select id="tsk-priority"><option value="High">🔴 High</option><option value="Medium" selected>🟡 Medium</option><option value="Low">🟢 Low</option></select></div>
+    <div class="ff2"><label>Due Date</label><input id="tsk-due" type="date"></div>
+    <div class="ff2"><label>Type</label><select id="tsk-type"><option value="call">📞 Call</option><option value="email">📧 Email</option><option value="meeting">🤝 Meeting</option><option value="follow-up">🔔 Follow-up</option><option value="demo">💻 Demo</option><option value="general">📋 General</option></select></div>
+    <div class="ff2"><label>Lead / Reference</label><select id="tsk-ref"><option value="">Select Lead (optional)</option></select></div>
+    <div class="ff2" style="grid-column:span 2;"><label>Notes</label><textarea id="tsk-notes" rows="2" placeholder="Additional notes..."></textarea></div>
+  </div></div>
+  <div class="mf"><button class="btn bto" onclick="cm('task')">Cancel</button><button class="btn btp" onclick="submitTask()">Add Task</button></div></div>
+</div>
+
+<script>
+var API='https://erpapi.paype.co.in';
+var TOKEN=localStorage.getItem('erp_token');
+var USER=JSON.parse(localStorage.getItem('erp_user')||'null');
+var startModule='inventory';
+var products=[], warehouses=[], parties=[], leads=[];
+var orderLineIdx=0;
+
+// LOGIN
+function setMod(mod,el){
+  document.querySelectorAll('.mod-tab').forEach(function(t){t.classList.remove('on');});
+  el.classList.add('on');
+  startModule=mod;
+}
+function togglePass(){var i=document.getElementById('l-pass');i.type=i.type==='password'?'text':'password';}
+
+async function doLogin(){
+  var email=document.getElementById('l-email').value.trim();
+  var pass=document.getElementById('l-pass').value.trim();
+  var err=document.getElementById('l-err');
+  var btn=document.getElementById('l-btn');
+  err.style.display='none';
+  if(!email||!pass){err.textContent='Enter email and password';err.style.display='block';return;}
+  btn.textContent='Signing in...';btn.disabled=true;
+  try{
+    var res=await fetch(API+'/api/auth/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email,password:pass})});
+    var data=await res.json();
+    if(data.success){
+      TOKEN=data.token;USER=data.user;
+      localStorage.setItem('erp_token',TOKEN);
+      localStorage.setItem('erp_user',JSON.stringify(USER));
+      startApp();
+    }else{err.textContent=data.message||'Invalid credentials';err.style.display='block';}
+  }catch(e){err.textContent='Connection error: '+e.message;err.style.display='block';}
+  btn.textContent='Sign In';btn.disabled=false;
+}
+document.addEventListener('keydown',function(e){if(e.key==='Enter'&&document.getElementById('login-page').style.display!=='none')doLogin();});
+
+async function startApp(){
+  document.getElementById('login-page').style.display='none';
+  document.getElementById('erp-app').classList.add('on');
+  document.getElementById('sb-user').textContent=USER.name||'User';
+  document.getElementById('tb-avatar').textContent=(USER.name||'U').charAt(0).toUpperCase();
+  document.getElementById('tb-company').textContent=(USER.company||'PayPe')+' | FY '+(USER.fy||'2026-27');
+  document.getElementById('sb-role').textContent={admin:'Admin',manager:'Manager',employee:'Employee'}[USER.role]||USER.role;
+  var h=new Date().getHours();
+  var g=h<12?'Good Morning':h<17?'Good Afternoon':'Good Evening';
+  document.getElementById('inv-dash-sub').textContent=g+', '+(USER.name||'').split(' ')[0]+'!';
+  document.getElementById('crm-dash-sub').textContent=g+', '+(USER.name||'').split(' ')[0]+'!';
+  await preload();
+  if(startModule==='crm') go('crm-dash',document.getElementById('ni-crm-dash'));
+  else loadInvDash();
+}
+
+async function preload(){
+  try{
+    var [p,w,pt,l]=await Promise.all([
+      req('GET','/api/inventory/products'),
+      req('GET','/api/inventory/warehouses'),
+      req('GET','/api/parties'),
+      req('GET','/api/crm/leads')
+    ]);
+    if(p.success)products=p.data;
+    if(w.success)warehouses=w.data;
+    if(pt.success)parties=pt.data;
+    if(l.success)leads=l.data;
+  }catch(e){}
+}
+
+async function req(method,url,body){
+  var opts={method:method,headers:{'Content-Type':'application/json','Authorization':'Bearer '+TOKEN}};
+  if(body)opts.body=JSON.stringify(body);
+  try{var r=await fetch(API+url,opts);if(r.status===401){doLogout();return{success:false};}return r.json();}
+  catch(e){return{success:false,message:e.message};}
+}
+
+function doLogout(){localStorage.removeItem('erp_token');localStorage.removeItem('erp_user');location.reload();}
+
+function go(name,el){
+  document.querySelectorAll('.pg').forEach(function(p){p.classList.remove('on');});
+  document.querySelectorAll('.ni').forEach(function(n){n.classList.remove('on');});
+  var pg=document.getElementById('pg-'+name);
+  if(pg)pg.classList.add('on');
+  if(el)el.classList.add('on');
+  document.getElementById('tb-title').textContent=el?el.textContent.trim():name;
+  document.getElementById('sb').classList.remove('open');
+  var loaders={'inv-dash':loadInvDash,products:function(){loadProducts('all');},warehouses:loadWarehouses,po:function(){loadPO('all');},so:function(){loadSO('all');},stock:loadStock,'crm-dash':loadCRMDash,leads:function(){loadLeads('all');},pipeline:loadPipeline,quotations:function(){loadQuotations('all');},tasks:function(){loadTasks('all');}};
+  if(loaders[name])loaders[name]();
+}
+
+// MODALS
+function openModal(type){
+  var today=new Date().toISOString().split('T')[0];
+  document.querySelectorAll('.ov').forEach(function(o){o.classList.remove('on');});
+  var el=document.getElementById('mod-'+type);
+  if(!el){toast('Modal not found','err');return;}
+
+  if(type==='product'){
+    ['prd-name','prd-sku','prd-hsn','prd-barcode','prd-desc'].forEach(function(id){var e=document.getElementById(id);if(e)e.value='';});
+    ['prd-sale','prd-cost','prd-stock','prd-reorder'].forEach(function(id){var e=document.getElementById(id);if(e)e.value='';});
+  }
+  else if(type==='warehouse'){
+    ['wh-name','wh-loc','wh-mgr'].forEach(function(id){var e=document.getElementById(id);if(e)e.value='';});
+  }
+  else if(type==='stock-movement'){
+    document.getElementById('sm-date').value=today;
+    ['sm-qty','sm-rate','sm-ref'].forEach(function(id){var e=document.getElementById(id);if(e)e.value='';});
+    fillSel('sm-product',products,'id','name','Select Product');
+    fillSel('sm-wh',warehouses,'id','name','Select Warehouse');
+  }
+  else if(type==='po'){
+    document.getElementById('po-date').value=today;
+    document.getElementById('po-exp').value='';
+    document.getElementById('po-lines').innerHTML='';
+    orderLineIdx=0; addOrderLine('po');
+    calcOrderLines('po');
+    fillSel('po-vendor',parties.filter(function(p){return p.type==='vendor'||p.type==='both';}),'id','name','Select Vendor');
+  }
+  else if(type==='so'){
+    document.getElementById('so-date').value=today;
+    document.getElementById('so-del').value='';
+    document.getElementById('so-lines').innerHTML='';
+    orderLineIdx=0; addOrderLine('so');
+    calcOrderLines('so');
+    fillSel('so-customer',parties.filter(function(p){return p.type==='customer'||p.type==='both';}),'id','name','Select Customer');
+  }
+  else if(type==='lead'){
+    ['ld-name','ld-company','ld-email','ld-phone','ld-value','ld-notes'].forEach(function(id){var e=document.getElementById(id);if(e)e.value='';});
+  }
+  else if(type==='opportunity'){
+    ['op-title','op-value','op-prob','op-notes'].forEach(function(id){var e=document.getElementById(id);if(e)e.value='';});
+    document.getElementById('op-close').value=today;
+    fillSel('op-lead',leads,'id','name','Select Lead (optional)');
+  }
+  else if(type==='quotation'){
+    document.getElementById('qt-date').value=today;
+    document.getElementById('qt-valid').value='';
+    document.getElementById('qt-customer').value='';
+    document.getElementById('qt-lines').innerHTML='';
+    orderLineIdx=0; addOrderLine('qt');
+    calcOrderLines('qt');
+    fillSel('qt-lead',leads,'id','name','Select Lead (optional)');
+  }
+  else if(type==='task'){
+    document.getElementById('tsk-due').value=today;
+    ['tsk-title','tsk-notes'].forEach(function(id){var e=document.getElementById(id);if(e)e.value='';});
+    fillSel('tsk-ref',leads,'id','name','Select Lead (optional)');
+  }
+  el.classList.add('on');
+}
+
+function cm(type){var el=document.getElementById('mod-'+type);if(el)el.classList.remove('on');}
+
+function fillSel(id,data,valKey,labelKey,placeholder){
+  var sel=document.getElementById(id);if(!sel)return;
+  sel.innerHTML='<option value="">'+placeholder+'</option>';
+  data.forEach(function(d){sel.innerHTML+='<option value="'+d[valKey]+'">'+d[labelKey]+'</option>';});
+}
+
+// ORDER LINE ITEMS
+function addOrderLine(prefix){
+  var i=orderLineIdx++;
+  var d=document.createElement('div');
+  d.id=prefix+'-line-'+i;
+  d.style.cssText='display:grid;grid-template-columns:2fr .8fr 1fr .7fr 28px;gap:5px;margin-bottom:6px;';
+  var prodOpts='<option value="">Description</option>'+products.map(function(p){return '<option value="'+p.id+'" data-rate="'+p.sale_price+'">'+p.name+' ('+p.sku+')';}).join('');
+  d.innerHTML=
+    '<select style="border:1.5px solid var(--border);border-radius:6px;padding:7px;font-size:12px;" onchange="autofillRate(this,\''+prefix+'\','+i+')">'+prodOpts+'</select>'+
+    '<input type="number" value="1" min="0.01" style="border:1.5px solid var(--border);border-radius:6px;padding:7px;font-size:12px;text-align:center;" oninput="calcOrderLines(\''+prefix+'\')">'+
+    '<input type="number" placeholder="0.00" style="border:1.5px solid var(--border);border-radius:6px;padding:7px;font-size:12px;" oninput="calcOrderLines(\''+prefix+'\')">'+
+    '<select style="border:1.5px solid var(--border);border-radius:6px;padding:7px;font-size:12px;" onchange="calcOrderLines(\''+prefix+'\')"><option value="18">18%</option><option value="12">12%</option><option value="5">5%</option><option value="0">0%</option></select>'+
+    '<button onclick="document.getElementById(\''+prefix+'-line-'+i+'\').remove();calcOrderLines(\''+prefix+'\');" style="background:var(--red);color:white;border:none;border-radius:6px;cursor:pointer;font-size:13px;">✕</button>';
+  document.getElementById(prefix+'-lines').appendChild(d);
+}
+
+function autofillRate(sel,prefix,idx){
+  var rate=sel.options[sel.selectedIndex].dataset.rate||'';
+  var row=document.getElementById(prefix+'-line-'+idx);
+  if(row&&rate)row.children[2].value=rate;
+  calcOrderLines(prefix);
+}
+
+function calcOrderLines(prefix){
+  var sub=0,gst=0;
+  document.querySelectorAll('#'+prefix+'-lines > div').forEach(function(row){
+    var qty=parseFloat(row.children[1].value)||0;
+    var rate=parseFloat(row.children[2].value)||0;
+    var gr=parseFloat(row.children[3].value)||18;
+    var base=qty*rate;sub+=base;gst+=base*gr/100;
+  });
+  sf(prefix+'-sub',sub);sf(prefix+'-gst',gst);sf(prefix+'-total',sub+gst);
+}
+
+// SUBMIT FUNCTIONS
+async function submitProduct(){
+  var name=document.getElementById('prd-name').value.trim();
+  if(!name){toast('Product name required','err');return;}
+  var res=await req('POST','/api/inventory/products',{name,sku:v('prd-sku'),hsn:v('prd-hsn'),category:v('prd-cat'),unit:v('prd-unit'),barcode:v('prd-barcode'),salePrice:parseFloat(v('prd-sale'))||0,costPrice:parseFloat(v('prd-cost'))||0,stock:parseFloat(v('prd-stock'))||0,reorderLevel:parseFloat(v('prd-reorder'))||10,description:v('prd-desc')});
+  if(res.success){products.push(res.data);toast('Product added!','ok');cm('product');loadProducts('all');}
+  else toast(res.message||'Failed','err');
+}
+
+async function submitWarehouse(){
+  var name=document.getElementById('wh-name').value.trim();
+  if(!name){toast('Name required','err');return;}
+  var res=await req('POST','/api/inventory/warehouses',{name,location:v('wh-loc'),manager:v('wh-mgr')});
+  if(res.success){warehouses.push(res.data);toast('Warehouse added!','ok');cm('warehouse');loadWarehouses();}
+  else toast(res.message||'Failed','err');
+}
+
+async function submitStockMovement(){
+  var productId=v('sm-product'),qty=parseFloat(v('sm-qty'))||0,date=v('sm-date');
+  if(!productId||!qty||!date){toast('Product, qty and date required','err');return;}
+  var res=await req('POST','/api/inventory/stock-movements',{productId,warehouseId:v('sm-wh')||null,type:v('sm-type'),qty,rate:parseFloat(v('sm-rate'))||0,reference:v('sm-ref'),date});
+  if(res.success){
+    // Update local stock
+    var prd=products.find(function(p){return p.id===productId;});
+    if(prd){var chg=['stock-in','purchase-receive','transfer-in'].includes(v('sm-type'))?qty:-qty;prd.stock=parseFloat(prd.stock)+chg;}
+    toast('Stock movement recorded!','ok');cm('stock-movement');loadStock();
+  } else toast(res.message||'Failed','err');
+}
+
+async function submitPO(){
+  var vendorId=v('po-vendor'),date=v('po-date');
+  if(!vendorId||!date){toast('Vendor and date required','err');return;}
+  var lines=getOrderLines('po');
+  if(!lines.length){toast('Add at least one line','err');return;}
+  var res=await req('POST','/api/inventory/purchase-orders',{vendorId,date,expectedDate:v('po-exp')||null,lines});
+  if(res.success){toast('PO '+res.data.po_no+' created!','ok');cm('po');loadPO('all');}
+  else toast(res.message||'Failed','err');
+}
+
+async function submitSO(){
+  var customerId=v('so-customer'),date=v('so-date');
+  if(!customerId||!date){toast('Customer and date required','err');return;}
+  var lines=getOrderLines('so');
+  if(!lines.length){toast('Add at least one line','err');return;}
+  var res=await req('POST','/api/inventory/sales-orders',{customerId,date,deliveryDate:v('so-del')||null,lines});
+  if(res.success){toast('SO '+res.data.so_no+' created!','ok');cm('so');loadSO('all');}
+  else toast(res.message||'Failed','err');
+}
+
+async function submitLead(){
+  var name=v('ld-name');
+  if(!name){toast('Contact name required','err');return;}
+  var res=await req('POST','/api/crm/leads',{name,companyName:v('ld-company'),email:v('ld-email'),phone:v('ld-phone'),source:v('ld-source'),status:v('ld-status'),value:parseFloat(v('ld-value'))||0,notes:v('ld-notes')});
+  if(res.success){leads.push(res.data);toast('Lead added!','ok');cm('lead');loadLeads('all');}
+  else toast(res.message||'Failed','err');
+}
+
+async function submitOpportunity(){
+  var title=v('op-title');
+  if(!title){toast('Title required','err');return;}
+  var res=await req('POST','/api/crm/opportunities',{leadId:v('op-lead')||null,title,value:parseFloat(v('op-value'))||0,stage:v('op-stage'),probability:parseFloat(v('op-prob'))||10,closeDate:v('op-close')||null,notes:v('op-notes')});
+  if(res.success){toast('Opportunity added!','ok');cm('opportunity');loadPipeline();}
+  else toast(res.message||'Failed','err');
+}
+
+async function submitQuotation(){
+  var customerName=v('qt-customer'),date=v('qt-date');
+  if(!customerName||!date){toast('Customer and date required','err');return;}
+  var lines=getOrderLines('qt');
+  if(!lines.length){toast('Add at least one line','err');return;}
+  var res=await req('POST','/api/crm/quotations',{leadId:v('qt-lead')||null,customerName,date,validUntil:v('qt-valid')||null,lines});
+  if(res.success){toast('Quotation '+res.data.quote_no+' created!','ok');cm('quotation');loadQuotations('all');}
+  else toast(res.message||'Failed','err');
+}
+
+async function submitTask(){
+  var title=v('tsk-title');
+  if(!title){toast('Title required','err');return;}
+  var refId=v('tsk-ref')||null;
+  var res=await req('POST','/api/crm/tasks',{title,refType:refId?'lead':'general',refId,dueDate:v('tsk-due')||null,priority:v('tsk-priority'),notes:v('tsk-notes')});
+  if(res.success){toast('Task added!','ok');cm('task');loadTasks('all');}
+  else toast(res.message||'Failed','err');
+}
+
+function getOrderLines(prefix){
+  var lines=[];
+  document.querySelectorAll('#'+prefix+'-lines > div').forEach(function(row){
+    var productId=row.children[0].value;
+    var desc=row.children[0].options[row.children[0].selectedIndex]?.text||'';
+    var qty=parseFloat(row.children[1].value)||0;
+    var rate=parseFloat(row.children[2].value)||0;
+    var gstRate=parseFloat(row.children[3].value)||18;
+    if(rate>0)lines.push({productId:productId||null,description:desc,qty,rate,gstRate});
+  });
+  return lines;
+}
+
+// ── INVENTORY PAGES ───────────────────────────────────
+async function loadInvDash(){
+  var c=document.getElementById('inv-dash-content');
+  c.innerHTML='<div class="ld"><div class="sp"></div>Loading...</div>';
+  var res=await req('GET','/api/inventory/reports');
+  var d=res.success?res.data:{totalProducts:0,stockValue:0,movementsThisMonth:0,lowStockProducts:[]};
+  var h='<div class="kgrid">';
+  h+=kpi(String(d.totalProducts),'Total Products','Active in catalog','var(--navy)');
+  h+=kpi(fmt(d.stockValue),'Stock Value','At cost price','var(--teal)');
+  h+=kpi(String(d.movementsThisMonth),'Movements (Month)','Stock transactions','var(--orange)');
+  h+=kpi(String(d.lowStockProducts?.length||0),'Low Stock Alerts','Reorder needed','var(--red)');
+  h+='</div>';
+  // Low stock alerts
+  if(d.lowStockProducts?.length){
+    h+='<div class="card" style="border-color:rgba(230,51,41,.2);"><div class="ch"><div class="ct" style="color:var(--red);">⚠ Low Stock Alerts</div><button class="btn bto btsm" onclick="loadProducts(\'low\',null);go(\'products\',document.getElementById(\'ni-products\'))">View All</button></div><div class="tw"><table><thead><tr><th>Product</th><th>SKU</th><th>Current Stock</th><th>Reorder Level</th><th>Action</th></tr></thead><tbody>';
+    d.lowStockProducts.forEach(function(p){h+='<tr><td><strong>'+p.name+'</strong></td><td>'+( p.sku||'--')+'</td><td class="stock-low">'+p.stock+' '+p.unit+'</td><td>'+p.reorder_level+' '+p.unit+'</td><td><button class="btn btp btsm" onclick="openModal(\'stock-movement\')">Stock In</button></td></tr>';});
+    h+='</tbody></table></div></div>';
+  }
+  // Recent products
+  h+='<div class="g2">';
+  var pres=await req('GET','/api/inventory/products');
+  var prods=pres.success?pres.data:[];
+  h+='<div class="card"><div class="ch"><div class="ct">Products Overview</div><button class="btn bto btsm" onclick="go(\'products\',document.getElementById(\'ni-products\'))">View All</button></div><div class="tw"><table><thead><tr><th>Product</th><th>Category</th><th>Stock</th><th>Sale Price</th></tr></thead><tbody>';
+  prods.slice(0,6).forEach(function(p){var low=parseFloat(p.stock)<=parseFloat(p.reorder_level);h+='<tr><td><strong>'+p.name+'</strong></td><td><span class="b bn">'+(p.category||'--')+'</span></td><td class="'+(low?'stock-low':'stock-ok')+'">'+p.stock+' '+(p.unit||'')+(low?' ⚠':'')+'</td><td>'+fmt(parseFloat(p.sale_price||0))+'</td></tr>';});
+  if(!prods.length)h+='<tr><td colspan="4"><div class="em">No products yet.</div></td></tr>';
+  h+='</tbody></table></div></div>';
+  // Recent POs
+  var pores=await req('GET','/api/inventory/purchase-orders');
+  var pos=pores.success?pores.data:[];
+  h+='<div class="card"><div class="ch"><div class="ct">Recent Purchase Orders</div><button class="btn bto btsm" onclick="go(\'po\',document.getElementById(\'ni-po\'))">View All</button></div><div class="tw"><table><thead><tr><th>PO No</th><th>Vendor</th><th>Total</th><th>Status</th></tr></thead><tbody>';
+  pos.slice(0,5).forEach(function(po){var sc=po.status==='Received'?'bg':po.status==='Approved'?'bt':'by';h+='<tr><td><strong>'+po.po_no+'</strong></td><td>'+(po.vendor_name||'--')+'</td><td class="dr">'+fmt(parseFloat(po.total||0))+'</td><td><span class="b '+sc+'">'+po.status+'</span></td></tr>';});
+  if(!pos.length)h+='<tr><td colspan="4"><div class="em">No POs yet.</div></td></tr>';
+  h+='</tbody></table></div></div>';
+  h+='</div>';
+  c.innerHTML=h;
+}
+
+async function loadProducts(filter,el){
+  if(el){document.querySelectorAll('#pg-products .tab-btn').forEach(function(b){b.classList.remove('on');});el.classList.add('on');}
+  var c=document.getElementById('products-content');
+  c.innerHTML='<div class="ld"><div class="sp"></div>Loading...</div>';
+  var res=await req('GET','/api/inventory/products');
+  var list=res.success?res.data:[];
+  products=list;
+  if(filter==='low')list=list.filter(function(p){return parseFloat(p.stock)<=parseFloat(p.reorder_level);});
+  else if(filter&&filter!=='all')list=list.filter(function(p){return (p.category||'').toLowerCase()===filter.toLowerCase();});
+  var h='<div class="kgrid" style="margin-bottom:12px;">'+kpi(String(list.length),'Products','In this view','var(--navy)')+kpi(fmt(list.reduce(function(s,p){return s+parseFloat(p.stock||0)*parseFloat(p.cost_price||0);},0)),'Stock Value','At cost','var(--teal)')+kpi(String(list.filter(function(p){return parseFloat(p.stock)<=parseFloat(p.reorder_level);}).length),'Low Stock','Need reorder','var(--red)')+'</div>';
+  h+='<div class="card"><div class="tw"><table><thead><tr><th>Product Name</th><th>SKU</th><th>HSN</th><th>Category</th><th>Unit</th><th>Sale Price</th><th>Cost</th><th>Stock</th><th>Reorder</th><th>Action</th></tr></thead><tbody>';
+  if(!list.length)h+='<tr><td colspan="10"><div class="em">No products found. Click + Add Product.</div></td></tr>';
+  list.forEach(function(p){
+    var low=parseFloat(p.stock)<=parseFloat(p.reorder_level);
+    h+='<tr><td><strong>'+p.name+'</strong><br><span style="font-size:10px;color:var(--gray);">'+(p.description||'')+'</span></td>';
+    h+='<td><span class="b bn">'+(p.sku||'--')+'</span></td>';
+    h+='<td style="font-size:11px;">'+(p.hsn||'--')+'</td>';
+    h+='<td><span class="b bt">'+(p.category||'--')+'</span></td>';
+    h+='<td>'+(p.unit||'Nos')+'</td>';
+    h+='<td class="cr">'+fmt(parseFloat(p.sale_price||0))+'</td>';
+    h+='<td>'+fmt(parseFloat(p.cost_price||0))+'</td>';
+    h+='<td class="'+(low?'stock-low':'stock-ok')+'">'+p.stock+(low?' ⚠':'')+'</td>';
+    h+='<td>'+p.reorder_level+'</td>';
+    h+='<td style="display:flex;gap:3px;"><button class="btn btp btsm" onclick="openModal(\'stock-movement\')">In/Out</button></td></tr>';
+  });
+  h+='</tbody></table></div></div>';
+  c.innerHTML=h;
+}
+
+async function loadWarehouses(){
+  var c=document.getElementById('warehouses-content');
+  c.innerHTML='<div class="ld"><div class="sp"></div>Loading...</div>';
+  var res=await req('GET','/api/inventory/warehouses');
+  var list=res.success?res.data:[];
+  warehouses=list;
+  var h='<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px;margin-bottom:14px;">';
+  list.forEach(function(w){
+    h+='<div class="card"><div style="background:linear-gradient(135deg,#DD6B20,#ED8936);padding:18px;border-radius:11px 11px 0 0;color:white;">';
+    h+='<div style="font-size:10px;opacity:.6;margin-bottom:4px;">WAREHOUSE</div>';
+    h+='<div style="font-size:18px;font-weight:800;margin-bottom:4px;">'+w.name+'</div>';
+    h+='<div style="font-size:12px;opacity:.7;">'+(w.location||'--')+'</div>';
+    h+='<div style="font-size:11px;opacity:.6;margin-top:2px;">Manager: '+(w.manager||'--')+'</div>';
+    h+='</div><div class="cb" style="display:flex;gap:7px;"><button class="btn btp btsm" onclick="openModal(\'stock-movement\')">Stock In/Out</button><button class="btn bto btsm">View Stock</button></div></div>';
+  });
+  if(!list.length)h+='<div class="em"><h3>No warehouses</h3><p>Click + Add Warehouse</p></div>';
+  h+='</div>';
+  // Product stock table
+  var pres=await req('GET','/api/inventory/products');
+  var prods=pres.success?pres.data:[];
+  h+='<div class="card"><div class="ch"><div class="ct">Product Stock Levels</div></div><div class="tw"><table><thead><tr><th>Product</th><th>SKU</th><th>Category</th><th>Unit</th><th>In Stock</th><th>Reorder Level</th><th>Status</th></tr></thead><tbody>';
+  if(!prods.length)h+='<tr><td colspan="7"><div class="em">No products yet.</div></td></tr>';
+  prods.forEach(function(p){
+    var low=parseFloat(p.stock)<=parseFloat(p.reorder_level);
+    var ok=parseFloat(p.stock)>parseFloat(p.reorder_level)*2;
+    var badge=low?'<span class="b br">⚠ Low Stock</span>':ok?'<span class="b bg">✓ In Stock</span>':'<span class="b by">⚡ Monitor</span>';
+    h+='<tr><td><strong>'+p.name+'</strong></td><td><span class="b bn">'+(p.sku||'--')+'</span></td><td>'+(p.category||'--')+'</td><td>'+(p.unit||'Nos')+'</td><td class="'+(low?'stock-low':'stock-ok')+'"><strong>'+p.stock+'</strong></td><td>'+p.reorder_level+'</td><td>'+badge+'</td></tr>';
+  });
+  h+='</tbody></table></div></div>';
+  c.innerHTML=h;
+}
+
+async function loadPO(filter,el){
+  if(el){document.querySelectorAll('#pg-po .tab-btn').forEach(function(b){b.classList.remove('on');});el.classList.add('on');}
+  var c=document.getElementById('po-content');
+  c.innerHTML='<div class="ld"><div class="sp"></div>Loading...</div>';
+  var res=await req('GET','/api/inventory/purchase-orders');
+  var list=res.success?res.data:[];
+  if(filter&&filter!=='all')list=list.filter(function(p){return p.status===filter;});
+  var total=list.reduce(function(s,p){return s+parseFloat(p.total||0);},0);
+  var h='<div class="kgrid" style="margin-bottom:12px;">'+kpi(String(list.length),'Total POs','Purchase orders','var(--navy)')+kpi(fmt(total),'Total Value','All orders','var(--orange)')+kpi(String(list.filter(function(p){return p.status==='Draft';}).length),'Drafts','Pending approval','var(--gray)')+'</div>';
+  h+='<div class="card"><div class="tw"><table><thead><tr><th>PO No</th><th>Vendor</th><th>Date</th><th>Expected</th><th>Subtotal</th><th>GST</th><th>Total</th><th>Status</th><th>Action</th></tr></thead><tbody>';
+  if(!list.length)h+='<tr><td colspan="9"><div class="em">No purchase orders. Click + New PO.</div></td></tr>';
+  list.forEach(function(po){
+    var sc=po.status==='Received'?'bg':po.status==='Approved'?'bt':po.status==='Cancelled'?'br':'by';
+    h+='<tr><td><strong>'+po.po_no+'</strong></td><td>'+(po.vendor_name||'--')+'</td>';
+    h+='<td>'+new Date(po.date).toLocaleDateString('en-IN')+'</td>';
+    h+='<td>'+(po.expected_date?new Date(po.expected_date).toLocaleDateString('en-IN'):'--')+'</td>';
+    h+='<td>'+fmt(parseFloat(po.subtotal||0))+'</td>';
+    h+='<td class="dr">'+fmt(parseFloat(po.cgst||0)+parseFloat(po.sgst||0))+'</td>';
+    h+='<td class="dr"><strong>'+fmt(parseFloat(po.total||0))+'</strong></td>';
+    h+='<td><span class="b '+sc+'">'+po.status+'</span></td>';
+    h+='<td style="display:flex;gap:3px;">';
+    if(po.status==='Draft')h+='<button class="btn btp btsm" onclick="updatePOStatus(\''+po.id+'\',\'Approved\')">Approve</button>';
+    if(po.status==='Approved')h+='<button class="btn btg btsm" onclick="updatePOStatus(\''+po.id+'\',\'Received\')">Received</button>';
+    h+='</td></tr>';
+  });
+  h+='</tbody></table></div></div>';
+  c.innerHTML=h;
+}
+
+async function updatePOStatus(id,status){
+  var res=await req('PUT','/api/inventory/purchase-orders/'+id+'/status',{status});
+  if(res.success){toast('PO status updated!','ok');loadPO('all');}
+  else toast(res.message,'err');
+}
+
+async function loadSO(filter,el){
+  if(el){document.querySelectorAll('#pg-so .tab-btn').forEach(function(b){b.classList.remove('on');});el.classList.add('on');}
+  var c=document.getElementById('so-content');
+  c.innerHTML='<div class="ld"><div class="sp"></div>Loading...</div>';
+  var res=await req('GET','/api/inventory/sales-orders');
+  var list=res.success?res.data:[];
+  if(filter&&filter!=='all')list=list.filter(function(s){return s.status===filter;});
+  var h='<div class="card"><div class="tw"><table><thead><tr><th>SO No</th><th>Customer</th><th>Date</th><th>Delivery</th><th>Subtotal</th><th>GST</th><th>Total</th><th>Status</th><th>Action</th></tr></thead><tbody>';
+  if(!list.length)h+='<tr><td colspan="9"><div class="em">No sales orders. Click + New SO.</div></td></tr>';
+  list.forEach(function(so){
+    var sc=so.status==='Delivered'?'bg':so.status==='Confirmed'?'bt':so.status==='Cancelled'?'br':'by';
+    h+='<tr><td><strong>'+so.so_no+'</strong></td><td>'+(so.customer_name||'--')+'</td>';
+    h+='<td>'+new Date(so.date).toLocaleDateString('en-IN')+'</td>';
+    h+='<td>'+(so.delivery_date?new Date(so.delivery_date).toLocaleDateString('en-IN'):'--')+'</td>';
+    h+='<td>'+fmt(parseFloat(so.subtotal||0))+'</td>';
+    h+='<td class="dr">'+fmt(parseFloat(so.cgst||0)+parseFloat(so.sgst||0))+'</td>';
+    h+='<td class="cr"><strong>'+fmt(parseFloat(so.total||0))+'</strong></td>';
+    h+='<td><span class="b '+sc+'">'+so.status+'</span></td>';
+    h+='<td><button class="btn bto btsm" onclick="toast(\''+so.so_no+'\')">View</button></td></tr>';
+  });
+  h+='</tbody></table></div></div>';
+  c.innerHTML=h;
+}
+
+async function loadStock(){
+  var c=document.getElementById('stock-content');
+  c.innerHTML='<div class="ld"><div class="sp"></div>Loading...</div>';
+  var res=await req('GET','/api/inventory/stock-movements');
+  var list=res.success?res.data:[];
+  var typeColors={'stock-in':'bg','stock-out':'br','adjustment':'by','transfer-in':'bt','transfer-out':'bp','return':'bn'};
+  var h='<div class="card"><div class="tw"><table><thead><tr><th>Date</th><th>Product</th><th>Type</th><th>Qty</th><th>Rate</th><th>Warehouse</th><th>Reference</th></tr></thead><tbody>';
+  if(!list.length)h+='<tr><td colspan="7"><div class="em">No stock movements yet.</div></td></tr>';
+  list.forEach(function(m){
+    var clr=typeColors[m.type]||'bn';
+    var isIn=['stock-in','purchase-receive','transfer-in','return'].includes(m.type);
+    h+='<tr><td>'+new Date(m.date).toLocaleDateString('en-IN')+'</td>';
+    h+='<td><strong>'+(m.product_name||'--')+'</strong><br><span style="font-size:10px;color:var(--gray);">'+(m.sku||'')+'</span></td>';
+    h+='<td><span class="b '+clr+'">'+m.type+'</span></td>';
+    h+='<td class="'+(isIn?'cr':'dr')+'">'+(isIn?'+':'-')+parseFloat(m.qty||0)+'</td>';
+    h+='<td>'+(parseFloat(m.rate||0)?fmt(parseFloat(m.rate)):'--')+'</td>';
+    h+='<td>'+(m.warehouse_name||'--')+'</td>';
+    h+='<td style="font-size:11px;">'+(m.reference||'--')+'</td></tr>';
+  });
+  h+='</tbody></table></div></div>';
+  c.innerHTML=h;
+}
+
+// ── CRM PAGES ─────────────────────────────────────────
+async function loadCRMDash(){
+  var c=document.getElementById('crm-dash-content');
+  c.innerHTML='<div class="ld"><div class="sp"></div>Loading...</div>';
+  var res=await req('GET','/api/crm/reports');
+  var pipe=await req('GET','/api/crm/pipeline');
+  var d=res.success?res.data:{leads:[],opportunities:[],quotations:{total:0,value:0},tasks:[]};
+  var p=pipe.success?pipe.data:{pipeline:[],opportunities:[]};
+  var totalLeads=d.leads.reduce(function(s,l){return s+parseInt(l.count||0);},0);
+  var totalLeadVal=d.leads.reduce(function(s,l){return s+parseFloat(l.total||0);},0);
+  var wonOpps=d.opportunities.find(function(o){return o.stage==='Won';});
+  var openOpps=d.opportunities.filter(function(o){return o.stage!=='Won'&&o.stage!=='Lost';}).reduce(function(s,o){return s+parseFloat(o.total||0);},0);
+  var openTasks=d.tasks.find(function(t){return t.status==='Open';});
+  var h='<div class="kgrid">';
+  h+=kpi(String(totalLeads),'Total Leads','All time','var(--navy)');
+  h+=kpi(fmt(totalLeadVal),'Lead Pipeline Value','Expected revenue','var(--teal)');
+  h+=kpi(fmt(openOpps),'Open Opportunities','Active deals','var(--orange)');
+  h+=kpi(fmt(parseFloat(wonOpps?.total||0)),'Won Deals','Revenue closed','var(--green)');
+  h+=kpi(String(parseInt(openTasks?.count||0)),'Open Tasks','Follow-ups pending','var(--purple)');
+  h+=kpi(fmt(parseFloat(d.quotations?.value||0)),'Quotation Value','All proposals','var(--yellow)');
+  h+='</div>';
+  // Pipeline funnel
+  h+='<div class="card"><div class="ch"><div class="ct">Sales Pipeline Funnel</div><button class="btn bto btsm" onclick="go(\'pipeline\',document.getElementById(\'ni-pipeline\'))">Kanban View</button></div><div class="cb">';
+  var stages=['Prospect','Qualified','Proposal','Negotiation','Won','Lost'];
+  var stageColors={Prospect:'var(--gray)',Qualified:'var(--teal)',Proposal:'var(--orange)',Negotiation:'var(--purple)',Won:'var(--green)',Lost:'var(--red)'};
+  h+='<div style="display:flex;flex-direction:column;gap:8px;">';
+  stages.forEach(function(stage){
+    var sd=p.pipeline.find(function(ps){return ps.stage===stage;})||{count:0,totalValue:0};
+    var maxVal=Math.max.apply(null,p.pipeline.map(function(ps){return ps.totalValue||0;}))||1;
+    var pct=Math.max(5,Math.round((sd.totalValue/maxVal)*100));
+    h+='<div style="display:flex;align-items:center;gap:10px;">';
+    h+='<div style="width:90px;font-size:11px;font-weight:600;color:'+stageColors[stage]+';">'+stage+'</div>';
+    h+='<div style="flex:1;background:var(--bg);border-radius:6px;height:28px;overflow:hidden;">';
+    h+='<div style="width:'+pct+'%;height:100%;background:'+stageColors[stage]+';opacity:.7;border-radius:6px;display:flex;align-items:center;padding:0 8px;">';
+    h+='<span style="font-size:11px;font-weight:700;color:white;white-space:nowrap;">'+sd.count+' deals</span></div></div>';
+    h+='<div style="width:100px;text-align:right;font-size:12px;font-weight:600;">'+fmt(sd.totalValue)+'</div></div>';
+  });
+  h+='</div></div></div>';
+  // Lead status + recent tasks
+  h+='<div class="g2">';
+  var lres=await req('GET','/api/crm/leads');
+  var llist=lres.success?lres.data:[];
+  h+='<div class="card"><div class="ch"><div class="ct">Recent Leads</div><button class="btn bto btsm" onclick="go(\'leads\',document.getElementById(\'ni-leads\'))">View All</button></div><div class="tw"><table><thead><tr><th>Name</th><th>Company</th><th>Value</th><th>Status</th></tr></thead><tbody>';
+  llist.slice(0,5).forEach(function(l){var sc=l.status==='Won'?'bg':l.status==='Lost'?'br':l.status==='Proposal'?'bp':l.status==='Qualified'?'bt':'by';h+='<tr><td><strong>'+l.name+'</strong></td><td>'+(l.company_name||'--')+'</td><td class="cr">'+fmt(parseFloat(l.value||0))+'</td><td><span class="b '+sc+'">'+l.status+'</span></td></tr>';});
+  if(!llist.length)h+='<tr><td colspan="4"><div class="em">No leads yet.</div></td></tr>';
+  h+='</tbody></table></div></div>';
+  var tres=await req('GET','/api/crm/tasks');
+  var tlist=tres.success?tres.data:[];
+  h+='<div class="card"><div class="ch"><div class="ct">Pending Tasks</div><button class="btn bto btsm" onclick="go(\'tasks\',document.getElementById(\'ni-tasks\'))">View All</button></div><div class="tw"><table><thead><tr><th>Task</th><th>Priority</th><th>Due Date</th><th>Status</th></tr></thead><tbody>';
+  tlist.filter(function(t){return t.status!=='Done';}).slice(0,5).forEach(function(t){
+    var pc=t.priority==='High'?'br':t.priority==='Low'?'bg':'by';
+    var overdue=t.due_date&&new Date(t.due_date)<new Date();
+    h+='<tr><td>'+(overdue?'🔴 ':'')+t.title+'</td><td><span class="b '+pc+'">'+t.priority+'</span></td><td style="'+(overdue?'color:var(--red);font-weight:600;':'')+'">'+( t.due_date?new Date(t.due_date).toLocaleDateString('en-IN'):'--')+'</td><td><span class="b bn">'+t.status+'</span></td></tr>';
+  });
+  if(!tlist.length)h+='<tr><td colspan="4"><div class="em">No tasks yet.</div></td></tr>';
+  h+='</tbody></table></div></div>';
+  h+='</div>';
+  c.innerHTML=h;
+}
+
+async function loadLeads(filter,el){
+  if(el){document.querySelectorAll('#pg-leads .tab-btn').forEach(function(b){b.classList.remove('on');});el.classList.add('on');}
+  var c=document.getElementById('leads-content');
+  c.innerHTML='<div class="ld"><div class="sp"></div>Loading...</div>';
+  var url='/api/crm/leads'+(filter&&filter!=='all'?'?status='+filter:'');
+  var res=await req('GET',url);
+  var list=res.success?res.data:[];
+  leads=list;
+  var total=list.reduce(function(s,l){return s+parseFloat(l.value||0);},0);
+  var h='<div class="kgrid" style="margin-bottom:12px;">'+kpi(String(list.length),'Total Leads','In this view','var(--navy)')+kpi(fmt(total),'Pipeline Value','Expected revenue','var(--teal)')+kpi(String(list.filter(function(l){return l.status==='Won';}).length),'Won Leads','Converted','var(--green)')+'</div>';
+  h+='<div class="card"><div class="tw"><table><thead><tr><th>Name</th><th>Company</th><th>Email</th><th>Phone</th><th>Source</th><th>Value</th><th>Status</th><th>Action</th></tr></thead><tbody>';
+  if(!list.length)h+='<tr><td colspan="8"><div class="em">No leads found. Click + New Lead.</div></td></tr>';
+  list.forEach(function(l){
+    var sc=l.status==='Won'?'bg':l.status==='Lost'?'br':l.status==='Proposal'?'bp':l.status==='Qualified'?'bt':'by';
+    h+='<tr><td><strong>'+l.name+'</strong></td><td>'+(l.company_name||'--')+'</td>';
+    h+='<td style="font-size:11px;">'+(l.email||'--')+'</td>';
+    h+='<td>'+(l.phone||'--')+'</td>';
+    h+='<td><span class="b bn">'+(l.source||'--')+'</span></td>';
+    h+='<td class="cr">'+fmt(parseFloat(l.value||0))+'</td>';
+    h+='<td><span class="b '+sc+'">'+l.status+'</span></td>';
+    h+='<td style="display:flex;gap:3px;">';
+    h+='<button class="btn bto btsm" onclick="moveLead(\''+l.id+'\',\''+l.status+'\')">Move</button>';
+    h+='<button class="btn btp btsm" onclick="addTaskForLead(\''+l.id+'\')">Task</button>';
+    h+='</td></tr>';
+  });
+  h+='</tbody></table></div></div>';
+  c.innerHTML=h;
+}
+
+async function moveLead(id,currentStatus){
+  var stages=['New','Contacted','Qualified','Proposal','Negotiation','Won','Lost'];
+  var idx=stages.indexOf(currentStatus);
+  var next=stages[idx+1]||stages[0];
+  var res=await req('PUT','/api/crm/leads/'+id,{status:next});
+  if(res.success){toast('Lead moved to '+next,'ok');loadLeads('all');}
+  else toast(res.message,'err');
+}
+
+function addTaskForLead(leadId){
+  openModal('task');
+  var sel=document.getElementById('tsk-ref');
+  if(sel)sel.value=leadId;
+}
+
+async function loadPipeline(){
+  var c=document.getElementById('pipeline-content');
+  c.innerHTML='<div class="ld"><div class="sp"></div>Loading...</div>';
+  var res=await req('GET','/api/crm/pipeline');
+  if(!res.success){c.innerHTML='<div class="em"><h3>Error loading pipeline</h3></div>';return;}
+  var d=res.data;
+  var stages=['Prospect','Qualified','Proposal','Negotiation','Won','Lost'];
+  var stageColors={Prospect:'#718096',Qualified:'#00C2A8',Proposal:'#DD6B20',Negotiation:'#805AD5',Won:'#38A169',Lost:'#E63329'};
+  var h='<div class="kgrid" style="margin-bottom:14px;">';
+  d.pipeline.forEach(function(ps){h+=kpi(fmt(ps.totalValue),ps.stage,ps.count+' deals','var(--navy)');});
+  h+='</div>';
+  h+='<div class="kanban">';
+  stages.forEach(function(stage){
+    var opps=d.opportunities.filter(function(o){return o.stage===stage;});
+    var total=opps.reduce(function(s,o){return s+parseFloat(o.value||0);},0);
+    h+='<div class="kanban-col">';
+    h+='<div class="kanban-header"><span style="color:'+stageColors[stage]+';">'+stage.toUpperCase()+'</span><span style="background:rgba(0,0,0,.08);padding:2px 7px;border-radius:20px;font-size:10px;">'+opps.length+'</span></div>';
+    if(total>0)h+='<div style="font-size:11px;color:var(--gray);margin-bottom:8px;">'+fmt(total)+'</div>';
+    opps.forEach(function(op){
+      h+='<div class="kanban-card">';
+      h+='<div class="kanban-card-title">'+op.title+'</div>';
+      h+='<div class="kanban-card-sub">'+(op.company_name||op.lead_name||'--')+'</div>';
+      h+='<div class="kanban-card-val">'+fmt(parseFloat(op.value||0))+'</div>';
+      if(op.close_date)h+='<div style="font-size:10px;color:var(--gray);margin-top:4px;">Close: '+new Date(op.close_date).toLocaleDateString('en-IN')+'</div>';
+      h+='<div style="margin-top:6px;display:flex;gap:4px;">';
+      h+='<span class="b bn" style="font-size:9px;">'+(op.probability||10)+'% win</span>';
+      h+='</div></div>';
+    });
+    if(!opps.length)h+='<div style="text-align:center;padding:16px;color:rgba(113,128,150,.5);font-size:11px;">No deals</div>';
+    h+='</div>';
+  });
+  h+='</div>';
+  c.innerHTML=h;
+}
+
+async function loadQuotations(filter,el){
+  if(el){document.querySelectorAll('#pg-quotations .tab-btn').forEach(function(b){b.classList.remove('on');});el.classList.add('on');}
+  var c=document.getElementById('quotations-content');
+  c.innerHTML='<div class="ld"><div class="sp"></div>Loading...</div>';
+  var res=await req('GET','/api/crm/quotations');
+  var list=res.success?res.data:[];
+  if(filter&&filter!=='all')list=list.filter(function(q){return q.status===filter;});
+  var total=list.reduce(function(s,q){return s+parseFloat(q.total||0);},0);
+  var h='<div class="kgrid" style="margin-bottom:12px;">'+kpi(String(list.length),'Quotations','Total','var(--navy)')+kpi(fmt(total),'Total Value','All quotes','var(--teal)')+kpi(String(list.filter(function(q){return q.status==='Accepted';}).length),'Accepted','Won quotations','var(--green)')+'</div>';
+  h+='<div class="card"><div class="tw"><table><thead><tr><th>Quote No</th><th>Customer</th><th>Lead</th><th>Date</th><th>Valid Until</th><th>Subtotal</th><th>GST</th><th>Total</th><th>Status</th></tr></thead><tbody>';
+  if(!list.length)h+='<tr><td colspan="9"><div class="em">No quotations. Click + New Quotation.</div></td></tr>';
+  list.forEach(function(q){
+    var sc=q.status==='Accepted'?'bg':q.status==='Rejected'?'br':q.status==='Sent'?'bt':'by';
+    h+='<tr><td><strong>'+q.quote_no+'</strong></td>';
+    h+='<td>'+(q.customer_name||'--')+'</td>';
+    h+='<td>'+(q.lead_name||'--')+'</td>';
+    h+='<td>'+new Date(q.date).toLocaleDateString('en-IN')+'</td>';
+    h+='<td>'+(q.valid_until?new Date(q.valid_until).toLocaleDateString('en-IN'):'--')+'</td>';
+    h+='<td>'+fmt(parseFloat(q.subtotal||0))+'</td>';
+    h+='<td class="dr">'+fmt(parseFloat(q.cgst||0)+parseFloat(q.sgst||0))+'</td>';
+    h+='<td class="cr"><strong>'+fmt(parseFloat(q.total||0))+'</strong></td>';
+    h+='<td><span class="b '+sc+'">'+q.status+'</span></td></tr>';
+  });
+  h+='</tbody></table></div></div>';
+  c.innerHTML=h;
+}
+
+async function loadTasks(filter,el){
+  if(el){document.querySelectorAll('#pg-tasks .tab-btn').forEach(function(b){b.classList.remove('on');});el.classList.add('on');}
+  var c=document.getElementById('tasks-content');
+  c.innerHTML='<div class="ld"><div class="sp"></div>Loading...</div>';
+  var res=await req('GET','/api/crm/tasks');
+  var list=res.success?res.data:[];
+  if(filter&&filter!=='all')list=list.filter(function(t){return t.status===filter;});
+  var h='<div class="kgrid" style="margin-bottom:12px;">'+kpi(String(list.length),'Tasks','In this view','var(--navy)')+kpi(String(list.filter(function(t){return t.priority==='High';}).length),'High Priority','Urgent','var(--red)')+kpi(String(list.filter(function(t){return t.due_date&&new Date(t.due_date)<new Date()&&t.status!=='Done';}).length),'Overdue','Past due date','var(--orange)')+'</div>';
+  h+='<div class="card"><div class="tw"><table><thead><tr><th>Task</th><th>Type</th><th>Priority</th><th>Due Date</th><th>Assigned To</th><th>Status</th><th>Action</th></tr></thead><tbody>';
+  if(!list.length)h+='<tr><td colspan="7"><div class="em">No tasks found. Click + New Task.</div></td></tr>';
+  list.forEach(function(t){
+    var pc=t.priority==='High'?'br':t.priority==='Low'?'bg':'by';
+    var sc=t.status==='Done'?'bg':t.status==='In Progress'?'bt':'bn';
+    var overdue=t.due_date&&new Date(t.due_date)<new Date()&&t.status!=='Done';
+    h+='<tr><td><strong>'+(overdue?'🔴 ':'')+t.title+'</strong><br><span style="font-size:10px;color:var(--gray);">'+(t.notes||'')+'</span></td>';
+    h+='<td><span class="b bn">'+(t.ref_type||'general')+'</span></td>';
+    h+='<td><span class="b '+pc+'">'+t.priority+'</span></td>';
+    h+='<td style="'+(overdue?'color:var(--red);font-weight:700;':'')+'">'+( t.due_date?new Date(t.due_date).toLocaleDateString('en-IN'):'--')+'</td>';
+    h+='<td>'+(t.assigned_name||'--')+'</td>';
+    h+='<td><span class="b '+sc+'">'+t.status+'</span></td>';
+    h+='<td style="display:flex;gap:3px;">';
+    if(t.status!=='Done')h+='<button class="btn btg btsm" onclick="completeTask(\''+t.id+'\')">✓ Done</button>';
+    h+='</td></tr>';
+  });
+  h+='</tbody></table></div></div>';
+  c.innerHTML=h;
+}
+
+async function completeTask(id){
+  var res=await req('PUT','/api/crm/tasks/'+id+'/status',{status:'Done'});
+  if(res.success){toast('Task completed! ✓','ok');loadTasks('all');}
+  else toast(res.message,'err');
+}
+
+// HELPERS
+function fmt(n){return 'Rs '+(n||0).toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2});}
+function sf(id,val){var el=document.getElementById(id);if(el)el.textContent=fmt(val);}
+function v(id){var el=document.getElementById(id);return el?el.value:'';}
+function kpi(val,label,sub,color){return '<div class="kp"><div class="kv" style="color:'+color+';">'+val+'</div><div class="kl">'+label+'</div><div class="kt" style="color:'+color+';">'+sub+'</div></div>';}
+function toast(msg,type){var t=document.createElement('div');t.className='tst'+(type==='err'?' err':type==='ok'?' ok':'');t.textContent=msg;document.getElementById('toast').appendChild(t);setTimeout(function(){t.remove();},3000);}
+
+// AUTO LOGIN
+if(TOKEN&&USER)startApp();
+</script>
+</body>
+</html>
