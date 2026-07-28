@@ -261,8 +261,11 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:#1A202C;font-size
     <button class="login-btn" id="l-btn" onclick="doLogin()">🤖 Sign In to AI Assistant</button>
     <div class="login-err" id="l-err"></div>
     <div class="login-footer">
-      <div style="margin-bottom:4px;">admin@paype.co.in / Admin@PayPe2026</div>
-      <div style="font-size:10px;margin-top:4px;">© 2026 PayPe Technologies Pvt. Ltd.</div>
+      <div style="font-size:10px;font-weight:700;color:var(--gray);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;">Default Credentials</div>
+      <div style="margin-bottom:3px;"><strong>Admin:</strong> admin@paype.co.in / Admin@PayPe2026</div>
+      <div style="margin-bottom:3px;"><strong>Manager:</strong> accounts@paype.co.in / Manager@PayPe2026</div>
+      <div style="margin-bottom:8px;"><strong>Employee:</strong> employee@paype.co.in / Employee@PayPe2026</div>
+      <div style="font-size:10px;color:rgba(0,0,0,.3);">© 2026 PayPe Technologies Pvt. Ltd.</div>
     </div>
   </div>
 </div>
@@ -748,9 +751,10 @@ var COMPANY_CONTEXT = {
 function setRole(role, el) {
   document.querySelectorAll('.role-tab').forEach(function(t){t.classList.remove('on');});
   el.classList.add('on');
-  var map = {admin:'admin@paype.co.in', manager:'accounts@paype.co.in', employee:'employee@paype.co.in'};
-  document.getElementById('l-email').value = map[role] || '';
-  document.getElementById('l-pass').value = 'Admin@PayPe2026';
+  var emailMap = {admin:'admin@paype.co.in', manager:'accounts@paype.co.in', employee:'employee@paype.co.in'};
+  var passMap  = {admin:'Admin@PayPe2026',   manager:'Manager@PayPe2026',    employee:'Employee@PayPe2026'};
+  document.getElementById('l-email').value = emailMap[role] || '';
+  document.getElementById('l-pass').value  = passMap[role]  || '';
 }
 function togglePass(){var i=document.getElementById('l-pass');i.type=i.type==='password'?'text':'password';}
 
@@ -786,7 +790,12 @@ function startApp() {
   document.getElementById('sb-user').textContent = USER.name || 'User';
   document.getElementById('tb-avatar').textContent = (USER.name||'U').charAt(0).toUpperCase();
   document.getElementById('tb-company').textContent = USER.company || 'PayPe Technologies';
-  document.getElementById('sb-role').textContent = {admin:'Admin',manager:'Manager',employee:'Employee'}[USER.role] || USER.role;
+  var roleEl = document.getElementById('sb-role');
+  var roleLabels = {admin:'Admin', manager:'AI Manager', employee:'Employee'};
+  roleEl.textContent = roleLabels[USER.role] || USER.role;
+
+  // Role-based feature access
+  applyRoleAccess(USER.role);
   COMPANY_CONTEXT.name = USER.company || COMPANY_CONTEXT.name;
   var h = new Date().getHours();
   document.getElementById('dash-greet').textContent = (h<12?'Good Morning':h<17?'Good Afternoon':'Good Evening') + ', ' + (USER.name||'').split(' ')[0] + '! Your AI assistant is ready.';
@@ -895,20 +904,57 @@ function saveToHistory(type, query, response) {
   localStorage.setItem('ai_history', JSON.stringify(aiHistory));
 }
 
+// ── ROLE-BASED ACCESS ────────────────────────────────
+function applyRoleAccess(role) {
+  // All roles can use AI tools - just restrict sensitive features
+  if (role === 'employee') {
+    // Employee: no business insights with ERP financial data, no document generator for legal docs
+    // Can use: chat, bookkeeping (view), OCR, GST, email drafter, history
+    var restrictedItems = ['ni-insights','ni-docs'];
+    restrictedItems.forEach(function(id){
+      var el = document.getElementById(id);
+      if(el){
+        el.style.opacity = '0.4';
+        el.style.pointerEvents = 'none';
+        el.title = 'Manager or Admin access required';
+      }
+    });
+    // Show access level notice in dashboard
+    window.employeeMode = true;
+  } else if (role === 'manager') {
+    // Manager: full access to all AI tools
+    window.employeeMode = false;
+  } else {
+    // Admin: full access
+    window.employeeMode = false;
+  }
+}
+
 // ── DASHBOARD ─────────────────────────────────────
 function loadDashboard() {
   var c = document.getElementById('dash-content');
-  var h = '<div class="ai-tool-grid">';
-  var tools = [
-    {icon:'💬',name:'AI Business Chat',desc:'Ask anything about your business, accounting, or operations',page:'chat',color:'rgba(0,194,168,.08)'},
-    {icon:'📒',name:'AI Bookkeeping',desc:'Describe a transaction and get instant journal entries',page:'bookkeeping',color:'rgba(128,90,213,.08)'},
-    {icon:'📷',name:'Invoice OCR',desc:'Upload invoice image and extract all data automatically',page:'ocr',color:'rgba(221,107,32,.08)'},
-    {icon:'🔢',name:'GST & Tax AI',desc:'Find HSN codes, GST rates, ITC eligibility instantly',page:'gst',color:'rgba(56,161,105,.08)'},
-    {icon:'📧',name:'Email Drafter',desc:'Generate professional business emails in seconds',page:'email',color:'rgba(230,51,41,.08)'},
-    {icon:'📊',name:'Business Insights',desc:'AI analysis of your revenue, costs, and growth trends',page:'insights',color:'rgba(13,27,62,.06)'},
-    {icon:'📄',name:'Document Generator',desc:'Create POs, NDAs, service agreements, offer letters',page:'docs',color:'rgba(0,194,168,.06)'},
-    {icon:'🕐',name:'AI History',desc:'View all your past AI queries and responses',page:'history',color:'rgba(128,90,213,.06)'},
+  var h = '';
+
+  // Role access banner
+  var roleBanners = {
+    admin: '',
+    manager: '<div style="padding:10px 14px;background:rgba(128,90,213,.08);border:1px solid rgba(128,90,213,.2);border-radius:10px;margin-bottom:12px;display:flex;align-items:center;gap:10px;font-size:12px;"><span style="font-size:18px;">🔑</span><span>You are logged in as <strong>Accounts Manager</strong> — full access to all AI tools. <span style="color:var(--purple);">Business Insights & Document Generator available.</span></span></div>',
+    employee: '<div style="padding:10px 14px;background:rgba(56,161,105,.08);border:1px solid rgba(56,161,105,.2);border-radius:10px;margin-bottom:12px;display:flex;align-items:center;gap:10px;font-size:12px;"><span style="font-size:18px;">👤</span><span>You are logged in as <strong>Employee</strong> — access to Chat, OCR, GST & Email tools. <span style="color:var(--gray);">Business Insights & Document Generator require Manager/Admin.</span></span></div>'
+  };
+  h += roleBanners[userRole] || '';
+  h += '<div class="ai-tool-grid">';
+  var allTools = [
+    {icon:'💬',name:'AI Business Chat',desc:'Ask anything about your business, accounting, or operations',page:'chat',color:'rgba(0,194,168,.08)',roles:['admin','manager','employee']},
+    {icon:'📒',name:'AI Bookkeeping',desc:'Describe a transaction and get instant journal entries',page:'bookkeeping',color:'rgba(128,90,213,.08)',roles:['admin','manager','employee']},
+    {icon:'📷',name:'Invoice OCR',desc:'Upload invoice image and extract all data automatically',page:'ocr',color:'rgba(221,107,32,.08)',roles:['admin','manager','employee']},
+    {icon:'🔢',name:'GST & Tax AI',desc:'Find HSN codes, GST rates, ITC eligibility instantly',page:'gst',color:'rgba(56,161,105,.08)',roles:['admin','manager','employee']},
+    {icon:'📧',name:'Email Drafter',desc:'Generate professional business emails in seconds',page:'email',color:'rgba(230,51,41,.08)',roles:['admin','manager','employee']},
+    {icon:'📊',name:'Business Insights',desc:'AI analysis of your revenue, costs, and growth trends',page:'insights',color:'rgba(13,27,62,.06)',roles:['admin','manager']},
+    {icon:'📄',name:'Document Generator',desc:'Create POs, NDAs, service agreements, offer letters',page:'docs',color:'rgba(0,194,168,.06)',roles:['admin','manager']},
+    {icon:'🕐',name:'AI History',desc:'View all your past AI queries and responses',page:'history',color:'rgba(128,90,213,.06)',roles:['admin','manager','employee']},
   ];
+  var userRole = USER ? USER.role : 'employee';
+  var tools = allTools.filter(function(t){ return t.roles.indexOf(userRole) > -1; });
   tools.forEach(function(t) {
     h += '<div class="ai-tool-card" onclick="go(\''+t.page+'\',document.getElementById(\'ni-'+t.page+'\'))" style="--grad-color:'+t.color+';">';
     h += '<div class="ai-tool-icon">'+t.icon+'</div>';
@@ -1387,6 +1433,12 @@ function loadProfile() {
   h += '</div>';
 
   // AI Usage stats
+  var roleDesc = {
+    admin: '🔴 Admin — Full access to all 8 AI tools including Business Insights & Document Generator',
+    manager: '🟣 Manager — Full access to all 8 AI tools including Business Insights & Document Generator',
+    employee: '🟢 Employee — Access to Chat, Bookkeeping, OCR, GST, Email & History tools'
+  };
+  h += '<div style="padding:10px 14px;background:var(--bg);border-radius:10px;margin-bottom:12px;font-size:12px;border:1px solid var(--border);">' + (roleDesc[USER.role]||'') + '</div>';
   h += '<div class="card"><div class="ch"><div class="ct">🤖 My AI Usage</div></div><div class="cb">';
   h += '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px;">';
   var typeCounts = {};
