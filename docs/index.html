@@ -716,18 +716,86 @@ function goHRMS() { window.open('https://hr.paype.co.in', '_blank'); }
 
 // ── MODAL ─────────────────────────────────────────────
 function openMod(id) {
-  document.getElementById(id).classList.add('on');
+  // Special handlers
+  if (id === 'bill-mod') { openBillMod(); return; }
+  if (id === 'txn-mod') { openBankTxnMod(); return; }
+
+  var el = document.getElementById(id);
+  if (!el) { console.error('Modal not found:', id); return; }
+  el.classList.add('on');
+
   if (id === 'invoice-mod') {
     lineItems = [];
     document.getElementById('line-items').innerHTML = '';
     addLineItem();
+    // Load customers
+    erpReq('GET', '/api/parties?type=customer').then(function(res) {
+      var sel = document.getElementById('inv-party');
+      if (sel && res && res.success) {
+        sel.innerHTML = '<option value="">Select Customer</option>';
+        res.data.forEach(function(p) {
+          sel.innerHTML += '<option value="' + p.id + '">' + p.name + '</option>';
+        });
+      }
+    }).catch(function() { loadPartySelects(); });
+    var today = new Date().toISOString().split('T')[0];
+    document.getElementById('inv-date').value = today;
+    document.getElementById('inv-due').value = today;
   }
   if (id === 'je-mod') {
     jeLines = [];
     document.getElementById('je-lines').innerHTML = '';
+    // Load accounts into JE
+    erpReq('GET', '/api/accounts').then(function(res) {
+      if (res && res.success) {
+        // Store accounts globally for JE lines
+        window._erpAccounts = res.data;
+      }
+    }).catch(function(){});
     addJELine(); addJELine();
+    var today = new Date().toISOString().split('T')[0];
+    document.getElementById('je-date').value = today;
   }
-  loadPartySelects();
+  if (id === 'party-mod') {
+    // Reset party form
+    ['pty-name','pty-gstin','pty-pan','pty-email','pty-mobile','pty-addr','pty-ob'].forEach(function(f) {
+      var el2 = document.getElementById(f);
+      if (el2) el2.value = '';
+    });
+  }
+  if (id === 'coa-mod') {
+    ['coa-code','coa-name','coa-ob','coa-desc'].forEach(function(f) {
+      var el2 = document.getElementById(f);
+      if (el2) el2.value = '';
+    });
+  }
+  if (id === 'tds-mod') {
+    var today = new Date().toISOString().split('T')[0];
+    document.getElementById('tds-date').value = today;
+    erpReq('GET', '/api/parties').then(function(res) {
+      var sel = document.getElementById('tds-party');
+      if (sel && res && res.success) {
+        sel.innerHTML = '<option value="">Select Party</option>';
+        res.data.forEach(function(p) {
+          sel.innerHTML += '<option value="' + p.id + '">' + p.name + '</option>';
+        });
+      }
+    }).catch(function(){});
+  }
+  if (id === 'asset-mod') {
+    var today = new Date().toISOString().split('T')[0];
+    document.getElementById('ast-date').value = today;
+    ['ast-name','ast-cost','ast-dep','ast-val','ast-loc','ast-serial'].forEach(function(f) {
+      var el2 = document.getElementById(f);
+      if (el2) el2.value = '';
+    });
+  }
+  if (id === 'addbank-mod') {
+    ['bnk-name','bnk-bank','bnk-accno','bnk-ifsc','bnk-swift','bnk-branch','bnk-bal'].forEach(function(f) {
+      var el2 = document.getElementById(f);
+      if (el2) el2.value = '';
+    });
+  }
 }
 function closeMod(id) { document.getElementById(id).classList.remove('on'); }
 
@@ -834,22 +902,28 @@ function viewLedger(id) {
 }
 
 // ── JOURNAL ENTRIES ───────────────────────────────────
-function loadJournal() {
-  var h = '<div class="card"><div class="tw"><table><thead><tr><th>Date</th><th>Reference</th><th>Description</th><th>Type</th><th>Debit</th><th>Credit</th><th>Status</th><th>Action</th></tr></thead><tbody>';
-  if (!journalEntries.length) {
-    h += '<tr><td colspan="8" style="text-align:center;color:var(--gray);padding:30px;">No journal entries yet. Click + New Entry.</td></tr>';
+async function loadJournal() {
+  var c = document.getElementById('je-content');
+  if (c) c.innerHTML = '<div class="ld"><div class="sp"></div>Loading...</div>';
+  var res = await erpReq('GET', '/api/journal');
+  var list = (res && res.success) ? res.data : journalEntries;
+  var h = '<div class="card"><div class="tw"><table><thead><tr><th>Date</th><th>Reference</th><th>Description</th><th>Type</th><th>Debit</th><th>Credit</th><th>Status</th></tr></thead><tbody>';
+  if (!list.length) {
+    h += '<tr><td colspan="7" style="text-align:center;color:var(--gray);padding:30px;">No journal entries yet.</td></tr>';
   } else {
-    journalEntries.forEach(function(je) {
-      var sc = je.status==='Posted'?'bg':'by';
-      h += '<tr><td>' + je.date + '</td><td><strong>' + je.ref + '</strong></td>';
-      h += '<td>' + je.desc + '</td><td><span class="b bn">' + je.type + '</span></td>';
-      h += '<td class="dr">' + fmtAmt(je.dr) + '</td><td class="cr">' + fmtAmt(je.cr) + '</td>';
-      h += '<td><span class="b ' + sc + '">' + je.status + '</span></td>';
-      h += '<td><button class="btn bto btsm">View</button></td></tr>';
+    list.forEach(function(je) {
+      var sc = (je.status||je.status)==='Posted'?'bg':'by';
+      var dt = je.date ? new Date(je.date).toLocaleDateString('en-IN') : '--';
+      h += '<tr><td>' + dt + '</td><td><strong>' + (je.entry_no||je.ref||'--') + '</strong></td>';
+      h += '<td>' + (je.description||je.desc||'--') + '</td>';
+      h += '<td><span class="b bn">' + (je.type||'General') + '</span></td>';
+      h += '<td class="dr">' + fmtAmt(parseFloat(je.total_debit||je.dr||0)) + '</td>';
+      h += '<td class="cr">' + fmtAmt(parseFloat(je.total_credit||je.cr||0)) + '</td>';
+      h += '<td><span class="b ' + sc + '">' + (je.status||'Posted') + '</span></td></tr>';
     });
   }
   h += '</tbody></table></div></div>';
-  document.getElementById('je-content').innerHTML = h;
+  if (c) c.innerHTML = h;
 }
 
 function addJELine() {
@@ -857,8 +931,9 @@ function addJELine() {
   jeLines.push({});
   var div = document.createElement('div');
   div.style.cssText = 'display:grid;grid-template-columns:2fr 1fr 1fr 0.5fr;gap:6px;margin-bottom:6px;';
+  var accs = window._erpAccounts || accounts;
   div.innerHTML = '<select id="jel-acc-' + idx + '" style="border:1.5px solid var(--border);border-radius:6px;padding:6px;font-size:12px;"><option value="">Select Account</option>' +
-    accounts.map(function(a){return '<option value="' + a.id + '">' + a.code + ' - ' + a.name + '</option>';}).join('') + '</select>' +
+    accs.map(function(a){return '<option value="' + a.id + '">' + a.code + ' - ' + a.name + '</option>';}).join('') + '</select>' +
     '<input id="jel-dr-' + idx + '" type="number" placeholder="0.00" style="border:1.5px solid var(--border);border-radius:6px;padding:6px;font-size:12px;" oninput="calcJETotals()">' +
     '<input id="jel-cr-' + idx + '" type="number" placeholder="0.00" style="border:1.5px solid var(--border);border-radius:6px;padding:6px;font-size:12px;" oninput="calcJETotals()">' +
     '<button onclick="this.parentElement.remove();calcJETotals();" style="background:var(--red);color:white;border:none;border-radius:6px;cursor:pointer;font-size:12px;">✕</button>';
@@ -876,23 +951,33 @@ function calcJETotals() {
   document.getElementById('je-balanced').style.display = balanced ? 'inline' : 'none';
 }
 
-function saveJE() {
+async function saveJE() {
   var date = document.getElementById('je-date').value;
   var desc = document.getElementById('je-desc').value.trim();
   var ref  = document.getElementById('je-ref').value.trim();
   if (!date || !desc) { toast('Date and description required','err'); return; }
-  var totalDr = 0, totalCr = 0;
-  document.querySelectorAll('[id^="jel-dr-"]').forEach(function(el){totalDr+=parseFloat(el.value)||0;});
-  document.querySelectorAll('[id^="jel-cr-"]').forEach(function(el){totalCr+=parseFloat(el.value)||0;});
-  if (Math.abs(totalDr-totalCr) > 0.01) { toast('Entry not balanced! Dr ≠ Cr','err'); return; }
-  journalEntries.push({
-    id:'je'+Date.now(), date:date, ref:ref||('JE-'+String(journalEntries.length+1).padStart(3,'0')),
-    desc:desc, type:document.getElementById('je-type').value, status:'Posted', dr:totalDr, cr:totalCr
+  var lines = [];
+  document.querySelectorAll('[id^="jel-acc-"]').forEach(function(el) {
+    var idx = el.id.replace('jel-acc-','');
+    var accId = el.value;
+    var dr = parseFloat(document.getElementById('jel-dr-'+idx)?document.getElementById('jel-dr-'+idx).value:0)||0;
+    var cr = parseFloat(document.getElementById('jel-cr-'+idx)?document.getElementById('jel-cr-'+idx).value:0)||0;
+    if (accId && (dr>0||cr>0)) lines.push({accountId:accId, debit:dr, credit:cr});
   });
-  toast('Journal entry posted!');
-  closeMod('je-mod');
-  loadJournal();
-  logAudit('Journal Entry', desc);
+  if (lines.length < 2) { toast('Add at least 2 lines','err'); return; }
+  var totalDr = lines.reduce(function(s,l){return s+l.debit;},0);
+  var totalCr = lines.reduce(function(s,l){return s+l.credit;},0);
+  if (Math.abs(totalDr-totalCr) > 0.01) { toast('Entry not balanced! Dr ≠ Cr','err'); return; }
+  var res = await erpReq('POST', '/api/journal', {
+    date:date, reference:ref, description:desc,
+    type:document.getElementById('je-type').value, lines:lines
+  });
+  if (res && res.success) {
+    toast('Journal entry ' + res.data.entry_no + ' posted!');
+    closeMod('je-mod');
+    loadJournal();
+    logAudit('Journal Entry', desc);
+  } else toast((res&&res.message)||'Failed','err');
 }
 
 // ── ACCOUNTS RECEIVABLE ───────────────────────────────
@@ -981,38 +1066,44 @@ function calcInvoiceTotals() {
   document.getElementById('inv-total').textContent = fmtAmt(subtotal + totalGST);
 }
 
-function saveInvoice(status) {
+async function saveInvoice(status) {
   var partyId = document.getElementById('inv-party').value;
   var date    = document.getElementById('inv-date').value;
   if (!partyId || !date) { toast('Customer and date required','err'); return; }
-  var party = parties.find(function(p){return p.id===partyId;});
-  var n = document.getElementById('line-items').children.length;
-  var subtotal = 0, totalGST = 0;
-  for (var i = 0; i < n; i++) {
-    var qty  = parseFloat(document.getElementById('li-qty-' + i) ? document.getElementById('li-qty-' + i).value : 0)||0;
-    var rate = parseFloat(document.getElementById('li-rate-' + i) ? document.getElementById('li-rate-' + i).value : 0)||0;
-    var gst  = parseFloat(document.getElementById('li-gst-' + i) ? document.getElementById('li-gst-' + i).value : 18)||18;
-    subtotal += qty*rate; totalGST += qty*rate*gst/100;
+  var lines = [];
+  var items = document.getElementById('line-items').children;
+  for (var i = 0; i < items.length; i++) {
+    var dEl = document.getElementById('li-desc-' + i);
+    var qEl = document.getElementById('li-qty-' + i);
+    var rEl = document.getElementById('li-rate-' + i);
+    var gEl = document.getElementById('li-gst-' + i);
+    if (!dEl || !rEl) continue;
+    var rate = parseFloat(rEl.value)||0;
+    if (rate > 0) {
+      lines.push({
+        description: dEl.value||'Service',
+        qty: parseFloat(qEl?qEl.value:1)||1,
+        rate: rate,
+        gstRate: parseFloat(gEl?gEl.value:18)||18
+      });
+    }
   }
-  if (subtotal <= 0) { toast('Add at least one line item','err'); return; }
-  var inv = {
-    id: 'inv'+Date.now(),
-    no: 'PAYPE/2026-27/' + String(invoices.length+1).padStart(3,'0'),
-    party: party ? party.name : partyId,
-    date: date,
-    due: document.getElementById('inv-due').value || date,
-    amount: subtotal,
-    cgst: totalGST/2,
-    sgst: totalGST/2,
-    total: subtotal + totalGST,
-    status: status === 'draft' ? 'Draft' : 'Unpaid',
-    type: 'sales'
-  };
-  invoices.push(inv);
-  toast('Invoice ' + inv.no + ' created!');
-  closeMod('invoice-mod');
-  loadAR();
-  logAudit('Invoice Created', inv.no + ' for ' + inv.party);
+  if (!lines.length) { toast('Add at least one line item','err'); return; }
+  var res = await erpReq('POST', '/api/invoices', {
+    partyId: partyId, type: 'sales', date: date,
+    dueDate: document.getElementById('inv-due').value||null,
+    lines: lines,
+    notes: document.getElementById('inv-notes').value||'',
+    status: status==='draft'?'Draft':'Unpaid'
+  });
+  if (res && res.success) {
+    toast('Invoice ' + res.data.invoice_no + ' created!');
+    closeMod('invoice-mod');
+    loadAR();
+    logAudit('Invoice Created', res.data.invoice_no);
+  } else {
+    toast((res&&res.message)||'Failed to create invoice','err');
+  }
 }
 
 // ── ACCOUNTS PAYABLE ──────────────────────────────────
@@ -1803,12 +1894,7 @@ function exportGSTR1() {
   });
 }
 
-// Override openMod for bill modal
-var _origOpenMod = openMod;
-function openMod(id) {
-  if (id === 'bill-mod') { openBillMod(); return; }
-  _origOpenMod(id);
-}
+
 
 // ── HELPERS ───────────────────────────────────────────
 function fmtAmt(n) { return 'Rs ' + (n||0).toLocaleString('en-IN', {minimumFractionDigits:2,maximumFractionDigits:2}); }
