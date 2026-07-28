@@ -1,0 +1,1309 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>PayPe ERP — AI Business Assistant</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Syne:wght@700;800&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+:root{--navy:#0D1B3E;--teal:#00C2A8;--red:#E63329;--bg:#F0F4F8;--border:#E2E8F0;--gray:#718096;--green:#38A169;--orange:#DD6B20;--purple:#805AD5;}
+body{font-family:'Inter',sans-serif;background:var(--bg);color:#1A202C;font-size:13px;}
+
+/* LOGIN */
+.login-wrap{display:flex;min-height:100vh;}
+.login-left{flex:1;background:linear-gradient(135deg,#0D1B3E,#0a1628,#0d2040);display:flex;flex-direction:column;justify-content:center;padding:60px;position:relative;overflow:hidden;}
+.login-left::before{content:'';position:absolute;top:-100px;right:-100px;width:500px;height:500px;border-radius:50%;background:rgba(0,194,168,.06);}
+.login-left::after{content:'';position:absolute;bottom:-150px;left:-80px;width:400px;height:400px;border-radius:50%;background:rgba(128,90,213,.05);}
+/* AI floating orbs */
+.orb{position:absolute;border-radius:50%;filter:blur(60px);animation:float 6s ease-in-out infinite;}
+.orb1{width:200px;height:200px;background:rgba(0,194,168,.15);top:10%;right:15%;animation-delay:0s;}
+.orb2{width:150px;height:150px;background:rgba(128,90,213,.12);bottom:20%;left:10%;animation-delay:2s;}
+.orb3{width:100px;height:100px;background:rgba(230,51,41,.08);top:50%;right:5%;animation-delay:4s;}
+@keyframes float{0%,100%{transform:translateY(0);}50%{transform:translateY(-20px);}}
+.ll-brand{font-family:'Syne',sans-serif;font-size:32px;font-weight:800;color:white;margin-bottom:4px;position:relative;z-index:1;}
+.ll-brand span{color:var(--teal);}
+.ll-sub{font-size:11px;color:rgba(255,255,255,.35);letter-spacing:2px;text-transform:uppercase;margin-bottom:40px;position:relative;z-index:1;}
+.ll-title{font-size:30px;font-weight:800;color:white;margin-bottom:14px;line-height:1.3;position:relative;z-index:1;}
+.ll-title span{color:var(--teal);}
+.ll-desc{font-size:14px;color:rgba(255,255,255,.55);line-height:1.7;margin-bottom:36px;max-width:420px;position:relative;z-index:1;}
+.ai-features{display:grid;grid-template-columns:1fr 1fr;gap:10px;position:relative;z-index:1;}
+.ai-feat{padding:12px 14px;background:rgba(255,255,255,.05);border-radius:10px;border:1px solid rgba(255,255,255,.07);display:flex;align-items:center;gap:10px;}
+.ai-feat-icon{font-size:18px;flex-shrink:0;}
+.ai-feat-text{font-size:11px;color:rgba(255,255,255,.65);font-weight:500;}
+.ll-stats{display:flex;gap:28px;margin-top:36px;position:relative;z-index:1;}
+.ll-stat-val{font-size:22px;font-weight:800;color:var(--teal);}
+.ll-stat-label{font-size:10px;color:rgba(255,255,255,.35);margin-top:2px;}
+
+/* LOGIN RIGHT */
+.login-right{width:460px;background:white;display:flex;flex-direction:column;justify-content:center;padding:60px 50px;flex-shrink:0;}
+.lr-logo{font-family:'Syne',sans-serif;font-size:22px;font-weight:800;color:var(--navy);margin-bottom:4px;}
+.lr-logo span{color:var(--teal);}
+.lr-badge{display:inline-flex;align-items:center;gap:6px;padding:4px 12px;background:linear-gradient(135deg,rgba(0,194,168,.1),rgba(128,90,213,.1));border-radius:20px;font-size:11px;font-weight:700;color:var(--teal);margin-bottom:24px;border:1px solid rgba(0,194,168,.2);}
+.lr-welcome{font-size:22px;font-weight:800;color:var(--navy);margin-bottom:6px;}
+.lr-sub{font-size:13px;color:var(--gray);margin-bottom:28px;}
+.role-tabs{display:flex;gap:5px;margin-bottom:20px;background:var(--bg);padding:4px;border-radius:10px;}
+.role-tab{flex:1;padding:7px;text-align:center;border-radius:8px;cursor:pointer;font-size:11px;font-weight:600;color:var(--gray);transition:.2s;border:none;background:none;font-family:inherit;}
+.role-tab.on{background:var(--navy);color:white;}
+.ff{display:flex;flex-direction:column;gap:5px;margin-bottom:14px;}
+.ff label{font-size:11px;font-weight:700;color:var(--gray);text-transform:uppercase;letter-spacing:.5px;}
+.ff input{border:1.5px solid var(--border);border-radius:10px;padding:11px 14px;font-family:inherit;font-size:13px;outline:none;transition:.15s;width:100%;}
+.ff input:focus{border-color:var(--teal);box-shadow:0 0 0 3px rgba(0,194,168,.08);}
+.pass-wrap{position:relative;}.pass-wrap input{padding-right:40px;}
+.pass-eye{position:absolute;right:12px;top:50%;transform:translateY(-50%);cursor:pointer;background:none;border:none;font-size:14px;}
+.login-btn{width:100%;padding:13px;background:linear-gradient(135deg,var(--navy),#1a3a7c);color:white;border:none;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;transition:.2s;margin-top:8px;}
+.login-btn:hover{opacity:.9;}
+.login-btn:disabled{opacity:.6;cursor:not-allowed;}
+.login-err{background:#FFF5F5;border:1px solid #FED7D7;color:var(--red);border-radius:8px;padding:10px 14px;font-size:12px;margin-top:10px;display:none;}
+.login-footer{margin-top:24px;padding-top:16px;border-top:1px solid var(--border);text-align:center;font-size:11px;color:var(--gray);}
+
+/* MAIN APP */
+.app{display:none;height:100vh;overflow:hidden;flex-direction:row;}
+.app.on{display:flex;}
+
+/* SIDEBAR */
+.sb{width:230px;background:var(--navy);display:flex;flex-direction:column;flex-shrink:0;overflow-y:auto;}
+.sb::-webkit-scrollbar{width:3px;}.sb::-webkit-scrollbar-thumb{background:rgba(255,255,255,.1);}
+.sb-logo{padding:14px 16px;border-bottom:1px solid rgba(255,255,255,.08);}
+.sb-brand{font-family:'Syne',sans-serif;font-size:17px;font-weight:800;color:white;}
+.sb-brand span{color:var(--teal);}
+.sb-module{font-size:9px;color:var(--purple);font-weight:700;letter-spacing:1px;margin-top:2px;background:rgba(128,90,213,.15);display:inline-block;padding:2px 8px;border-radius:20px;margin-top:4px;}
+.sb-user{font-size:10px;color:rgba(255,255,255,.4);margin-top:4px;}
+.sb-role{display:inline-block;font-size:9px;font-weight:700;padding:2px 7px;border-radius:20px;margin-top:3px;background:rgba(0,194,168,.2);color:var(--teal);}
+.sb-nav{padding:8px 10px;flex:1;}
+.sb-section{font-size:9px;font-weight:700;color:rgba(255,255,255,.25);text-transform:uppercase;letter-spacing:1px;padding:10px 4px 4px;}
+.ni{display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:8px;cursor:pointer;color:rgba(255,255,255,.55);font-size:12px;font-weight:500;transition:.15s;margin-bottom:1px;}
+.ni:hover{background:rgba(255,255,255,.07);color:white;}
+.ni.on{background:rgba(0,194,168,.15);color:var(--teal);font-weight:600;}
+.ni svg{width:15px;height:15px;flex-shrink:0;}
+.ni .ai-badge{margin-left:auto;font-size:9px;font-weight:700;padding:1px 6px;border-radius:20px;background:rgba(128,90,213,.3);color:#B794F4;}
+.sb-bottom{padding:10px;border-top:1px solid rgba(255,255,255,.08);}
+.sb-link{display:flex;align-items:center;gap:8px;padding:7px 10px;border-radius:8px;cursor:pointer;color:rgba(255,255,255,.35);font-size:11px;transition:.15s;text-decoration:none;margin-bottom:2px;}
+.sb-link:hover{background:rgba(255,255,255,.05);color:rgba(255,255,255,.7);}
+.sb-logout{display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:8px;cursor:pointer;color:rgba(255,255,255,.4);font-size:12px;transition:.15s;border:none;background:none;width:100%;font-family:inherit;margin-top:6px;}
+.sb-logout:hover{background:rgba(230,51,41,.1);color:var(--red);}
+
+/* TOPBAR */
+.main{flex:1;display:flex;flex-direction:column;overflow:hidden;}
+.tb{background:white;border-bottom:1px solid var(--border);padding:0 20px;height:54px;display:flex;align-items:center;gap:12px;}
+.tb-menu{background:none;border:none;cursor:pointer;font-size:18px;color:var(--navy);}
+.tb-title{font-family:'Syne',sans-serif;font-size:15px;font-weight:700;color:var(--navy);flex:1;}
+.tb-ai-status{display:flex;align-items:center;gap:6px;padding:5px 12px;background:linear-gradient(135deg,rgba(0,194,168,.08),rgba(128,90,213,.08));border-radius:20px;border:1px solid rgba(0,194,168,.2);font-size:11px;font-weight:600;color:var(--teal);}
+.tb-ai-dot{width:7px;height:7px;border-radius:50%;background:var(--green);animation:pulse 2s infinite;}
+@keyframes pulse{0%,100%{opacity:1;}50%{opacity:.4;}}
+.tb-company{font-size:11px;color:var(--gray);background:var(--bg);padding:4px 12px;border-radius:20px;border:1px solid var(--border);}
+.tb-avatar{width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,var(--navy),var(--purple));color:white;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;cursor:pointer;}
+
+/* CONTENT */
+.content{flex:1;overflow-y:auto;padding:16px;}
+.pg{display:none;}.pg.on{display:block;}
+.ph{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px;}
+.ph h1{font-family:'Syne',sans-serif;font-size:20px;font-weight:800;color:var(--navy);}
+.ph p{font-size:12px;color:var(--gray);margin-top:2px;}
+
+/* CARDS */
+.card{background:white;border-radius:12px;border:1px solid var(--border);margin-bottom:12px;}
+.ch{padding:12px 14px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--bg);}
+.ct{font-size:13px;font-weight:700;color:var(--navy);}
+.cb{padding:14px;}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;}
+
+/* BUTTONS */
+.btn{display:inline-flex;align-items:center;gap:5px;padding:7px 14px;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;border:none;font-family:inherit;transition:.15s;}
+.btp{background:var(--navy);color:white;}.btp:hover{background:#162952;}
+.btt{background:linear-gradient(135deg,var(--teal),#00a896);color:white;}.btt:hover{opacity:.9;}
+.bto{background:var(--bg);color:var(--navy);border:1px solid var(--border);}.bto:hover{background:var(--border);}
+.btai{background:linear-gradient(135deg,#4A1C7C,#805AD5);color:white;}.btai:hover{opacity:.9;}
+.btsm{padding:4px 10px;font-size:11px;}
+
+/* BADGES */
+.b{display:inline-flex;align-items:center;padding:2px 8px;border-radius:20px;font-size:10px;font-weight:700;}
+.bg{background:#F0FFF4;color:var(--green);}
+.br{background:#FFF5F5;color:var(--red);}
+.by{background:#FFFBEB;color:#B7791F;}
+.bt{background:rgba(0,194,168,.1);color:var(--teal);}
+.bn{background:var(--bg);color:var(--gray);}
+.bp{background:#FAF5FF;color:var(--purple);}
+
+/* AI CHAT */
+.chat-wrap{display:flex;flex-direction:column;height:calc(100vh - 140px);background:white;border-radius:12px;border:1px solid var(--border);overflow:hidden;}
+.chat-header{padding:14px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:12px;background:linear-gradient(135deg,var(--navy),#162952);}
+.chat-ai-avatar{width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,var(--teal),#00a896);display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;}
+.chat-ai-name{font-weight:700;color:white;font-size:14px;}
+.chat-ai-status{font-size:11px;color:rgba(255,255,255,.5);margin-top:1px;}
+.chat-context{margin-left:auto;display:flex;gap:6px;}
+.ctx-chip{padding:3px 10px;background:rgba(255,255,255,.1);border-radius:20px;font-size:10px;font-weight:600;color:rgba(255,255,255,.7);border:1px solid rgba(255,255,255,.1);}
+.chat-messages{flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:12px;background:#FAFBFC;}
+.chat-messages::-webkit-scrollbar{width:4px;}.chat-messages::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px;}
+.msg{display:flex;gap:10px;max-width:85%;}
+.msg.user{align-self:flex-end;flex-direction:row-reverse;}
+.msg-avatar{width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0;}
+.msg.ai .msg-avatar{background:linear-gradient(135deg,var(--teal),#00a896);color:white;}
+.msg.user .msg-avatar{background:var(--navy);color:white;}
+.msg-bubble{padding:10px 14px;border-radius:12px;font-size:13px;line-height:1.6;}
+.msg.ai .msg-bubble{background:white;border:1px solid var(--border);border-radius:4px 12px 12px 12px;color:#1A202C;}
+.msg.user .msg-bubble{background:var(--navy);color:white;border-radius:12px 4px 12px 12px;}
+.msg-time{font-size:10px;color:var(--gray);margin-top:4px;text-align:right;}
+.msg.ai .msg-time{text-align:left;}
+.typing{display:flex;gap:4px;padding:12px 14px;background:white;border:1px solid var(--border);border-radius:4px 12px 12px 12px;width:60px;}
+.typing span{width:7px;height:7px;border-radius:50%;background:var(--teal);animation:blink 1.2s infinite;}
+.typing span:nth-child(2){animation-delay:.2s;}
+.typing span:nth-child(3){animation-delay:.4s;}
+@keyframes blink{0%,80%,100%{opacity:.3;}40%{opacity:1;}}
+.chat-input-area{padding:12px 16px;border-top:1px solid var(--border);background:white;}
+.chat-quick{display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap;}
+.quick-btn{padding:5px 12px;background:var(--bg);border:1px solid var(--border);border-radius:20px;font-size:11px;cursor:pointer;font-family:inherit;color:var(--navy);font-weight:500;transition:.15s;white-space:nowrap;}
+.quick-btn:hover{background:rgba(0,194,168,.08);border-color:var(--teal);color:var(--teal);}
+.chat-input-row{display:flex;gap:8px;align-items:flex-end;}
+.chat-input{flex:1;border:1.5px solid var(--border);border-radius:10px;padding:10px 14px;font-family:inherit;font-size:13px;outline:none;resize:none;max-height:100px;transition:.15s;}
+.chat-input:focus{border-color:var(--teal);}
+.chat-send{width:40px;height:40px;border-radius:10px;background:linear-gradient(135deg,var(--navy),#1a3a7c);color:white;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:.15s;flex-shrink:0;}
+.chat-send:hover{opacity:.9;}
+.chat-send:disabled{opacity:.5;cursor:not-allowed;}
+.chat-tools{display:flex;gap:6px;margin-left:auto;}
+.chat-tool-btn{padding:6px;border-radius:8px;background:none;border:1px solid var(--border);cursor:pointer;color:var(--gray);font-size:13px;transition:.15s;}
+.chat-tool-btn:hover{background:var(--bg);color:var(--navy);}
+
+/* AI TOOL CARDS */
+.ai-tool-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px;margin-bottom:16px;}
+.ai-tool-card{background:white;border-radius:14px;padding:18px;border:1px solid var(--border);cursor:pointer;transition:.2s;position:relative;overflow:hidden;}
+.ai-tool-card:hover{border-color:var(--teal);box-shadow:0 4px 20px rgba(0,194,168,.1);transform:translateY(-2px);}
+.ai-tool-card::before{content:'';position:absolute;top:0;right:0;width:80px;height:80px;border-radius:50%;background:var(--grad-color,rgba(0,194,168,.06));transform:translate(20px,-20px);}
+.ai-tool-icon{font-size:28px;margin-bottom:10px;}
+.ai-tool-name{font-size:14px;font-weight:700;color:var(--navy);margin-bottom:4px;}
+.ai-tool-desc{font-size:11px;color:var(--gray);line-height:1.5;}
+.ai-tool-badge{display:inline-block;margin-top:8px;padding:2px 8px;border-radius:20px;font-size:10px;font-weight:700;background:rgba(0,194,168,.1);color:var(--teal);}
+
+/* UPLOAD AREA */
+.upload-area{border:2px dashed var(--border);border-radius:12px;padding:32px;text-align:center;cursor:pointer;transition:.2s;background:var(--bg);}
+.upload-area:hover,.upload-area.drag{border-color:var(--teal);background:rgba(0,194,168,.04);}
+.upload-icon{font-size:36px;margin-bottom:10px;}
+
+/* SPINNER */
+.ld{display:flex;align-items:center;gap:8px;color:var(--gray);padding:30px;justify-content:center;}
+.sp{width:18px;height:18px;border:2px solid var(--border);border-top-color:var(--teal);border-radius:50%;animation:spin .7s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg);}}
+.em{text-align:center;padding:30px;color:var(--gray);}
+
+/* TOAST */
+#toast{position:fixed;bottom:20px;right:20px;z-index:999;display:flex;flex-direction:column;gap:6px;}
+.tst{background:var(--navy);color:white;padding:10px 16px;border-radius:10px;font-size:12px;font-weight:600;box-shadow:0 4px 16px rgba(0,0,0,.2);animation:sIn .3s ease;}
+.tst.err{background:var(--red);}.tst.ok{background:var(--green);}
+@keyframes sIn{from{transform:translateX(100px);opacity:0;}to{transform:translateX(0);opacity:1;}}
+
+/* AI RESULT BOX */
+.ai-result{background:linear-gradient(135deg,rgba(0,194,168,.04),rgba(128,90,213,.04));border:1px solid rgba(0,194,168,.2);border-radius:12px;padding:16px;margin-top:12px;}
+.ai-result-header{display:flex;align-items:center;gap:8px;margin-bottom:10px;font-weight:700;color:var(--navy);font-size:13px;}
+.ai-result-body{font-size:13px;color:#2D3748;line-height:1.7;white-space:pre-wrap;}
+
+/* HISTORY */
+.history-item{padding:10px 12px;border:1px solid var(--border);border-radius:8px;margin-bottom:6px;cursor:pointer;transition:.15s;}
+.history-item:hover{border-color:var(--teal);background:rgba(0,194,168,.02);}
+.history-q{font-size:12px;font-weight:600;color:var(--navy);margin-bottom:3px;}
+.history-time{font-size:10px;color:var(--gray);}
+
+/* MARKDOWN-LIKE FORMATTING IN AI RESPONSES */
+.ai-result-body strong{color:var(--navy);}
+.ai-result-body code{background:var(--bg);padding:1px 6px;border-radius:4px;font-family:monospace;font-size:12px;}
+
+/* TABS */
+.tab-row{display:flex;gap:5px;margin-bottom:14px;background:white;padding:5px;border-radius:10px;border:1px solid var(--border);}
+.tab-btn{flex:1;padding:7px;text-align:center;border-radius:7px;cursor:pointer;font-size:11px;font-weight:600;border:none;background:none;color:var(--gray);font-family:inherit;transition:.15s;}
+.tab-btn.on{background:var(--navy);color:white;}
+
+/* FORM */
+.ff2{display:flex;flex-direction:column;gap:5px;margin-bottom:12px;}
+.ff2 label{font-size:11px;font-weight:700;color:var(--gray);text-transform:uppercase;letter-spacing:.5px;}
+.ff2 input,.ff2 select,.ff2 textarea{border:1.5px solid var(--border);border-radius:8px;padding:8px 11px;font-family:inherit;font-size:13px;outline:none;transition:.15s;width:100%;}
+.ff2 input:focus,.ff2 select:focus,.ff2 textarea:focus{border-color:var(--teal);}
+
+@media(max-width:900px){.login-left{display:none;}.login-right{width:100%;}.g2,.g3{grid-template-columns:1fr;}.sb{position:fixed;left:-230px;z-index:150;height:100vh;transition:.3s;}.sb.open{left:0;}}
+</style>
+</head>
+<body>
+<!-- LOGIN PAGE -->
+<div class="login-wrap" id="login-page">
+  <div class="login-left">
+    <div class="orb orb1"></div><div class="orb orb2"></div><div class="orb orb3"></div>
+    <div class="ll-brand">Pay<span>Pe</span> <span style="opacity:.4;font-size:22px;">ERP</span></div>
+    <div class="ll-sub">AI Business Assistant — Module 7</div>
+    <div class="ll-title">Your <span>AI-Powered</span><br>Business Brain</div>
+    <div class="ll-desc">Ask questions, get journal entries, extract invoices, find GST rates, draft emails — all with Claude AI built into your ERP.</div>
+    <div class="ai-features">
+      <div class="ai-feat"><div class="ai-feat-icon">💬</div><div class="ai-feat-text">AI Business Chat — Ask anything</div></div>
+      <div class="ai-feat"><div class="ai-feat-icon">📒</div><div class="ai-feat-text">AI Bookkeeping — Auto journal</div></div>
+      <div class="ai-feat"><div class="ai-feat-icon">📷</div><div class="ai-feat-text">Invoice OCR — Scan & extract</div></div>
+      <div class="ai-feat"><div class="ai-feat-icon">🔢</div><div class="ai-feat-text">GST Assistant — Rate finder</div></div>
+      <div class="ai-feat"><div class="ai-feat-icon">📧</div><div class="ai-feat-text">Email Drafter — Professional</div></div>
+      <div class="ai-feat"><div class="ai-feat-icon">📊</div><div class="ai-feat-text">Business Insights — Analysis</div></div>
+      <div class="ai-feat"><div class="ai-feat-icon">📦</div><div class="ai-feat-text">Inventory AI — Forecast</div></div>
+      <div class="ai-feat"><div class="ai-feat-icon">🎯</div><div class="ai-feat-text">CRM AI — Lead scoring</div></div>
+    </div>
+    <div class="ll-stats">
+      <div><div class="ll-stat-val">Claude</div><div class="ll-stat-label">AI Model</div></div>
+      <div><div class="ll-stat-val">10+</div><div class="ll-stat-label">AI Tools</div></div>
+      <div><div class="ll-stat-val">∞</div><div class="ll-stat-label">Queries/Day</div></div>
+    </div>
+  </div>
+  <div class="login-right">
+    <div class="lr-logo">Pay<span>Pe</span> AI</div>
+    <div class="lr-badge">🤖 Powered by Claude AI</div>
+    <div class="lr-welcome">Welcome Back 👋</div>
+    <div class="lr-sub">Sign in to your AI Business Assistant</div>
+    <div class="role-tabs">
+      <button class="role-tab on" onclick="setRole('admin',this)">Admin</button>
+      <button class="role-tab" onclick="setRole('manager',this)">Manager</button>
+      <button class="role-tab" onclick="setRole('employee',this)">Employee</button>
+    </div>
+    <div class="ff"><label>Email Address</label><input id="l-email" type="email" value="admin@paype.co.in"></div>
+    <div class="ff"><label>Password</label><div class="pass-wrap"><input id="l-pass" type="password" value="Admin@PayPe2026"><button class="pass-eye" onclick="togglePass()">👁</button></div></div>
+    <button class="login-btn" id="l-btn" onclick="doLogin()">🤖 Sign In to AI Assistant</button>
+    <div class="login-err" id="l-err"></div>
+    <div class="login-footer">
+      <div style="margin-bottom:4px;">admin@paype.co.in / Admin@PayPe2026</div>
+      <div style="font-size:10px;margin-top:4px;">© 2026 PayPe Technologies Pvt. Ltd.</div>
+    </div>
+  </div>
+</div>
+
+<!-- MAIN APP -->
+<div class="app" id="erp-app">
+  <div class="sb" id="sb">
+    <div class="sb-logo">
+      <div class="sb-brand">Pay<span>Pe</span> AI</div>
+      <div class="sb-module">🤖 AI ASSISTANT</div>
+      <div class="sb-user" id="sb-user">Loading...</div>
+      <span class="sb-role" id="sb-role">Admin</span>
+    </div>
+    <div class="sb-nav">
+      <div class="sb-section">AI Tools</div>
+      <div class="ni on" id="ni-dashboard" onclick="go('dashboard',this)">
+        <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+        AI Dashboard
+      </div>
+      <div class="ni" id="ni-chat" onclick="go('chat',this)">
+        <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
+        AI Business Chat <span class="ai-badge">NEW</span>
+      </div>
+      <div class="ni" id="ni-bookkeeping" onclick="go('bookkeeping',this)">
+        <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+        AI Bookkeeping
+      </div>
+      <div class="ni" id="ni-ocr" onclick="go('ocr',this)">
+        <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
+        Invoice OCR
+      </div>
+      <div class="ni" id="ni-gst" onclick="go('gst',this)">
+        <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/></svg>
+        GST & Tax AI
+      </div>
+      <div class="ni" id="ni-email" onclick="go('email',this)">
+        <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+        Email Drafter
+      </div>
+      <div class="ni" id="ni-insights" onclick="go('insights',this)">
+        <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+        Business Insights
+      </div>
+      <div class="ni" id="ni-docs" onclick="go('docs',this)">
+        <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M9 14l6-6m-5.5.5h.01m4.99 5h.01M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16l3.5-2 3.5 2 3.5-2 3.5 2z"/></svg>
+        Document Generator
+      </div>
+      <div class="ni" id="ni-history" onclick="go('history',this)">
+        <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        AI History
+      </div>
+      <div class="sb-section">Other Modules</div>
+      <a class="sb-link" href="https://erp.paype.co.in" target="_blank">📊 Accounting →</a>
+      <a class="sb-link" href="https://doctorramesh5-ops.github.io/paype-erp/inventory.html" target="_blank">📦 Inventory & CRM →</a>
+      <a class="sb-link" href="https://hr.paype.co.in" target="_blank">👥 HRMS →</a>
+    </div>
+    <div class="sb-bottom">
+      <button class="sb-logout" onclick="doLogout()">
+        <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9"/></svg>
+        Sign Out
+      </button>
+    </div>
+  </div>
+
+  <div class="main">
+    <div class="tb">
+      <button class="tb-menu" onclick="document.getElementById('sb').classList.toggle('open')">☰</button>
+      <div class="tb-title" id="tb-title">AI Dashboard</div>
+      <div class="tb-ai-status"><div class="tb-ai-dot"></div>Claude AI Ready</div>
+      <div class="tb-company" id="tb-company">PayPe Technologies</div>
+      <div class="tb-avatar" id="tb-avatar">R</div>
+    </div>
+
+    <div class="content">
+
+      <!-- DASHBOARD -->
+      <div class="pg on" id="pg-dashboard">
+        <div class="ph">
+          <div><h1>🤖 AI Business Assistant</h1><p id="dash-greet">Your intelligent ERP co-pilot</p></div>
+          <button class="btn btai" onclick="go('chat',document.getElementById('ni-chat'))">💬 Start AI Chat</button>
+        </div>
+        <div id="dash-content"></div>
+      </div>
+
+      <!-- AI CHAT -->
+      <div class="pg" id="pg-chat">
+        <div class="ph">
+          <div><h1>💬 AI Business Chat</h1><p>Ask anything about your business</p></div>
+          <button class="btn bto btsm" onclick="clearChat()">🗑 Clear Chat</button>
+        </div>
+        <div class="chat-wrap" id="chat-wrap">
+          <div class="chat-header">
+            <div class="chat-ai-avatar">🤖</div>
+            <div>
+              <div class="chat-ai-name">PayPe AI Assistant</div>
+              <div class="chat-ai-status">Powered by Claude Sonnet · Always ready</div>
+            </div>
+            <div class="chat-context">
+              <span class="ctx-chip">📊 Accounting</span>
+              <span class="ctx-chip">📦 Inventory</span>
+              <span class="ctx-chip">🎯 CRM</span>
+            </div>
+          </div>
+          <div class="chat-messages" id="chat-messages">
+            <div class="msg ai">
+              <div class="msg-avatar">🤖</div>
+              <div>
+                <div class="msg-bubble">👋 Hello! I'm PayPe AI, your intelligent business assistant.<br><br>I can help you with:<br>• Accounting queries & journal entries<br>• GST rate finder & filing help<br>• Business insights & analysis<br>• Email drafting & document creation<br>• Inventory & CRM questions<br><br>What would you like to know today?</div>
+                <div class="msg-time">Just now</div>
+              </div>
+            </div>
+          </div>
+          <div class="chat-input-area">
+            <div class="chat-quick" id="chat-quick">
+              <button class="quick-btn" onclick="quickAsk('What is my total revenue this month?')">📈 Revenue this month</button>
+              <button class="quick-btn" onclick="quickAsk('What is the GST rate for software services?')">🔢 GST for software</button>
+              <button class="quick-btn" onclick="quickAsk('How do I record a salary payment in journal entries?')">📒 Salary journal entry</button>
+              <button class="quick-btn" onclick="quickAsk('What are my top 5 products by stock value?')">📦 Top products</button>
+              <button class="quick-btn" onclick="quickAsk('Explain TDS section 194C in simple terms')">📋 TDS 194C</button>
+              <button class="quick-btn" onclick="quickAsk('Draft a payment reminder email to a customer')">📧 Payment reminder</button>
+            </div>
+            <div class="chat-input-row">
+              <div class="chat-tools">
+                <button class="chat-tool-btn" onclick="go('ocr',document.getElementById('ni-ocr'))" title="Upload Invoice">📷</button>
+                <button class="chat-tool-btn" onclick="clearChat()" title="Clear Chat">🗑</button>
+              </div>
+              <textarea class="chat-input" id="chat-input" placeholder="Ask anything about your business..." rows="1" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendChat();}"></textarea>
+              <button class="chat-send" id="chat-send" onclick="sendChat()">
+                <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- AI BOOKKEEPING -->
+      <div class="pg" id="pg-bookkeeping">
+        <div class="ph"><div><h1>📒 AI Bookkeeping</h1><p>Describe any transaction → get journal entries instantly</p></div></div>
+        <div class="g2">
+          <div>
+            <div class="card">
+              <div class="ch"><div class="ct">Describe Your Transaction</div></div>
+              <div class="cb">
+                <div class="ff2"><label>Transaction Description *</label>
+                  <textarea id="bk-desc" rows="4" placeholder="e.g. Paid Rs 25,000 rent for office in Coimbatore for July 2026. Paid via NEFT from Yes Bank account."></textarea>
+                </div>
+                <div class="ff2"><label>Company Context</label>
+                  <select id="bk-company">
+                    <option value="software">PayPe Technologies — Software Company (GST: 33AAMCP7960K1ZU)</option>
+                    <option value="manufacturing">Manufacturing Company</option>
+                    <option value="trading">Trading Company</option>
+                    <option value="service">Service Company</option>
+                  </select>
+                </div>
+                <div class="ff2"><label>Financial Year</label>
+                  <select id="bk-fy"><option value="2026-27">2026-27</option><option value="2025-26">2025-26</option></select>
+                </div>
+                <div style="display:flex;gap:7px;flex-wrap:wrap;margin-bottom:10px;">
+                  <button class="quick-btn" onclick="setBKExample('Received Rs 50,000 from TechCorp Ltd as advance payment for HRMS implementation project')">Advance receipt</button>
+                  <button class="quick-btn" onclick="setBKExample('Paid Rs 15,000 salary to John (employee) for June 2026 via bank transfer')">Salary payment</button>
+                  <button class="quick-btn" onclick="setBKExample('Purchased laptop for Rs 65,000 plus 18% GST from Dell, paid by cheque')">Asset purchase</button>
+                  <button class="quick-btn" onclick="setBKExample('Received electricity bill of Rs 8,500 for office, will pay next month')">Utility bill</button>
+                </div>
+                <button class="btn btai" style="width:100%;" onclick="generateJE()" id="bk-btn">🤖 Generate Journal Entry</button>
+              </div>
+            </div>
+          </div>
+          <div>
+            <div class="card">
+              <div class="ch"><div class="ct">AI Generated Journal Entry</div><span id="bk-status" class="b bn">Waiting...</span></div>
+              <div class="cb">
+                <div id="bk-result"><div class="em" style="padding:40px 20px;">
+                  <div style="font-size:36px;margin-bottom:10px;">📒</div>
+                  <div style="font-size:14px;font-weight:600;color:var(--navy);">Describe a transaction</div>
+                  <div style="font-size:12px;margin-top:6px;">AI will generate the complete double-entry journal with accounts, amounts, GST, and narration</div>
+                </div></div>
+              </div>
+            </div>
+            <div class="card">
+              <div class="ch"><div class="ct">Recent AI Bookkeeping</div></div>
+              <div class="cb" id="bk-history">
+                <div style="font-size:12px;color:var(--gray);">Your recent journal entries will appear here</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- INVOICE OCR -->
+      <div class="pg" id="pg-ocr">
+        <div class="ph"><div><h1>📷 Invoice OCR</h1><p>Upload invoice image → AI extracts all data automatically</p></div></div>
+        <div class="g2">
+          <div class="card">
+            <div class="ch"><div class="ct">Upload Invoice / Bill</div></div>
+            <div class="cb">
+              <div class="upload-area" id="upload-area" onclick="document.getElementById('ocr-file').click()" ondragover="event.preventDefault();this.classList.add('drag')" ondragleave="this.classList.remove('drag')" ondrop="handleDrop(event)">
+                <div class="upload-icon">📷</div>
+                <div style="font-size:14px;font-weight:700;color:var(--navy);margin-bottom:6px;">Drop invoice here or click to upload</div>
+                <div style="font-size:12px;color:var(--gray);">Supports JPG, PNG, PDF — Max 10MB</div>
+                <div style="margin-top:12px;">
+                  <span class="b bt">JPG</span> <span class="b bt">PNG</span> <span class="b bt">PDF</span> <span class="b bt">WEBP</span>
+                </div>
+              </div>
+              <input type="file" id="ocr-file" accept="image/*,.pdf" style="display:none" onchange="handleOCRFile(event)">
+              <div id="ocr-preview" style="margin-top:12px;display:none;">
+                <img id="ocr-img" style="width:100%;border-radius:8px;border:1px solid var(--border);">
+              </div>
+              <button class="btn btai" style="width:100%;margin-top:12px;" onclick="processOCR()" id="ocr-btn" disabled>🤖 Extract Invoice Data</button>
+              <div style="margin-top:10px;">
+                <div style="font-size:11px;font-weight:700;color:var(--gray);margin-bottom:6px;">TRY SAMPLE INVOICES:</div>
+                <div style="display:flex;gap:6px;flex-wrap:wrap;">
+                  <button class="quick-btn" onclick="loadSampleInvoice('purchase')">Sample Purchase Bill</button>
+                  <button class="quick-btn" onclick="loadSampleInvoice('sales')">Sample Sales Invoice</button>
+                  <button class="quick-btn" onclick="loadSampleInvoice('utility')">Utility Bill</button>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="ch"><div class="ct">Extracted Invoice Data</div><span id="ocr-status" class="b bn">Waiting...</span></div>
+            <div class="cb" id="ocr-result">
+              <div class="em" style="padding:40px 20px;">
+                <div style="font-size:36px;margin-bottom:10px;">🔍</div>
+                <div style="font-size:14px;font-weight:600;color:var(--navy);">Upload an invoice</div>
+                <div style="font-size:12px;margin-top:6px;">AI will extract vendor, amounts, GST, line items and create ready-to-post journal entry</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- GST AI -->
+      <div class="pg" id="pg-gst">
+        <div class="ph"><div><h1>🔢 GST & Tax AI</h1><p>Instant GST rates, filing help, and tax calculations</p></div></div>
+        <div class="g2">
+          <div>
+            <div class="card">
+              <div class="ch"><div class="ct">GST Rate Finder</div></div>
+              <div class="cb">
+                <div class="ff2"><label>Product / Service Description *</label>
+                  <textarea id="gst-query" rows="3" placeholder="e.g. Software as a Service (SaaS) subscription, or Restaurant food delivery, or Construction materials..."></textarea>
+                </div>
+                <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px;">
+                  <button class="quick-btn" onclick="setGSTQuery('Software as a Service (SaaS) cloud subscription')">SaaS Software</button>
+                  <button class="quick-btn" onclick="setGSTQuery('Restaurant food and beverages with AC seating')">Restaurant food</button>
+                  <button class="quick-btn" onclick="setGSTQuery('Mobile phone and accessories')">Mobile phones</button>
+                  <button class="quick-btn" onclick="setGSTQuery('Professional consulting and IT services')">IT consulting</button>
+                  <button class="quick-btn" onclick="setGSTQuery('Construction materials - cement, steel, bricks')">Construction</button>
+                  <button class="quick-btn" onclick="setGSTQuery('Medical equipment and hospital services')">Medical</button>
+                </div>
+                <button class="btn btai" style="width:100%;" onclick="findGSTRate()" id="gst-btn">🔢 Find GST Rate</button>
+              </div>
+            </div>
+            <div class="card">
+              <div class="ch"><div class="ct">GST Calculator</div></div>
+              <div class="cb">
+                <div class="g2">
+                  <div class="ff2"><label>Base Amount (Rs)</label><input id="gst-amount" type="number" placeholder="0.00" oninput="calcGST()"></div>
+                  <div class="ff2"><label>GST Rate</label>
+                    <select id="gst-rate" onchange="calcGST()">
+                      <option value="28">28%</option><option value="18" selected>18%</option>
+                      <option value="12">12%</option><option value="5">5%</option>
+                      <option value="0">0% (Exempt)</option>
+                    </select>
+                  </div>
+                </div>
+                <div style="background:var(--bg);border-radius:10px;padding:12px;">
+                  <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:5px;"><span>CGST (<span id="cgst-rate">9</span>%)</span><span id="cgst-val" style="font-weight:600;">Rs 0.00</span></div>
+                  <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:5px;"><span>SGST (<span id="sgst-rate">9</span>%)</span><span id="sgst-val" style="font-weight:600;">Rs 0.00</span></div>
+                  <div style="display:flex;justify-content:space-between;border-top:1px solid var(--border);padding-top:8px;font-weight:800;"><span>Total</span><span id="gst-total" style="color:var(--navy);font-size:16px;">Rs 0.00</span></div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="card" style="height:fit-content;">
+            <div class="ch"><div class="ct">GST AI Answer</div><span id="gst-status" class="b bn">Waiting...</span></div>
+            <div class="cb" id="gst-result">
+              <div class="em" style="padding:40px 20px;">
+                <div style="font-size:36px;margin-bottom:10px;">🔢</div>
+                <div style="font-size:14px;font-weight:600;color:var(--navy);">Ask a GST question</div>
+                <div style="font-size:12px;margin-top:6px;">Get instant HSN codes, tax rates, ITC eligibility, and filing guidance</div>
+              </div>
+            </div>
+            <div class="ch" style="border-top:1px solid var(--border);"><div class="ct">Filing Calendar</div></div>
+            <div class="cb">
+              <div style="display:flex;flex-direction:column;gap:6px;">
+                <div style="display:flex;justify-content:space-between;padding:8px 10px;background:rgba(230,51,41,.05);border-radius:8px;border:1px solid rgba(230,51,41,.1);">
+                  <span style="font-size:12px;font-weight:600;">GSTR-1 (July 2026)</span>
+                  <span style="font-size:11px;color:var(--red);font-weight:700;">Due: 11 Aug</span>
+                </div>
+                <div style="display:flex;justify-content:space-between;padding:8px 10px;background:rgba(221,107,32,.05);border-radius:8px;border:1px solid rgba(221,107,32,.1);">
+                  <span style="font-size:12px;font-weight:600;">GSTR-3B (July 2026)</span>
+                  <span style="font-size:11px;color:var(--orange);font-weight:700;">Due: 20 Aug</span>
+                </div>
+                <div style="display:flex;justify-content:space-between;padding:8px 10px;background:rgba(56,161,105,.05);border-radius:8px;border:1px solid rgba(56,161,105,.1);">
+                  <span style="font-size:12px;font-weight:600;">TDS Payment (July)</span>
+                  <span style="font-size:11px;color:var(--green);font-weight:700;">Due: 7 Aug</span>
+                </div>
+                <div style="display:flex;justify-content:space-between;padding:8px 10px;background:rgba(56,161,105,.05);border-radius:8px;border:1px solid rgba(56,161,105,.1);">
+                  <span style="font-size:12px;font-weight:600;">Advance Tax (Q2)</span>
+                  <span style="font-size:11px;color:var(--green);font-weight:700;">Due: 15 Sep</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- EMAIL DRAFTER -->
+      <div class="pg" id="pg-email">
+        <div class="ph"><div><h1>📧 AI Email Drafter</h1><p>Generate professional business emails instantly</p></div></div>
+        <div class="g2">
+          <div class="card">
+            <div class="ch"><div class="ct">Email Details</div></div>
+            <div class="cb">
+              <div class="ff2"><label>Email Type *</label>
+                <select id="email-type">
+                  <option value="payment_reminder">💰 Payment Reminder</option>
+                  <option value="invoice_send">📄 Send Invoice</option>
+                  <option value="proposal">📋 Business Proposal</option>
+                  <option value="follow_up">🔔 Lead Follow-up</option>
+                  <option value="welcome">👋 Customer Welcome</option>
+                  <option value="complaint">😟 Handle Complaint</option>
+                  <option value="quotation">💬 Send Quotation</option>
+                  <option value="introduction">🤝 Company Introduction</option>
+                  <option value="collection">⚠️ Overdue Collection</option>
+                  <option value="thanks">🙏 Thank You Email</option>
+                </select>
+              </div>
+              <div class="ff2"><label>Customer / Recipient Name *</label><input id="email-to" placeholder="e.g. Vijay Kumar, TechStart Pvt Ltd"></div>
+              <div class="ff2"><label>Key Details</label><textarea id="email-details" rows="3" placeholder="e.g. Invoice #PAYPE/2026/001, Amount Rs 1,50,000, Due date 15 Aug 2026, overdue by 10 days"></textarea></div>
+              <div class="ff2"><label>Tone</label>
+                <select id="email-tone">
+                  <option value="professional">Professional & Formal</option>
+                  <option value="friendly">Friendly & Warm</option>
+                  <option value="firm">Firm & Direct</option>
+                  <option value="urgent">Urgent</option>
+                </select>
+              </div>
+              <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px;">
+                <button class="quick-btn" onclick="setEmailType('payment_reminder','Mr. Suresh','Invoice PAYPE/2026/045, Amount Rs 2,50,000, Overdue by 15 days')">Payment reminder</button>
+                <button class="quick-btn" onclick="setEmailType('proposal','Ms. Priya Sharma','PayPe ERP software, 3 modules, Annual subscription')">Send proposal</button>
+                <button class="quick-btn" onclick="setEmailType('follow_up','Vijay Kumar','Demo done last week, HRMS implementation quote sent')">Follow-up lead</button>
+                <button class="quick-btn" onclick="setEmailType('welcome','Anita Rajan','Hospital Group, new ERP customer, just signed contract')">Welcome customer</button>
+              </div>
+              <button class="btn btai" style="width:100%;" onclick="draftEmail()" id="email-btn">📧 Draft Email with AI</button>
+            </div>
+          </div>
+          <div class="card">
+            <div class="ch"><div class="ct">Generated Email</div><span id="email-status" class="b bn">Waiting...</span></div>
+            <div class="cb" id="email-result">
+              <div class="em" style="padding:40px 20px;">
+                <div style="font-size:36px;margin-bottom:10px;">📧</div>
+                <div style="font-size:14px;font-weight:600;color:var(--navy);">Fill in the details</div>
+                <div style="font-size:12px;margin-top:6px;">AI will draft a professional email ready to copy and send</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- BUSINESS INSIGHTS -->
+      <div class="pg" id="pg-insights">
+        <div class="ph">
+          <div><h1>📊 Business Insights AI</h1><p>AI analysis of your business performance</p></div>
+          <button class="btn btai" onclick="generateInsights()" id="insights-btn">🤖 Generate Full Report</button>
+        </div>
+        <div id="insights-content"><div class="ld"><div class="sp"></div>Loading insights...</div></div>
+      </div>
+
+      <!-- DOCUMENT GENERATOR -->
+      <div class="pg" id="pg-docs">
+        <div class="ph"><div><h1>📄 AI Document Generator</h1><p>Generate professional business documents instantly</p></div></div>
+        <div class="ai-tool-grid">
+          <div class="ai-tool-card" onclick="generateDoc('purchase_order')" style="--grad-color:rgba(221,107,32,.08);">
+            <div class="ai-tool-icon">🛒</div>
+            <div class="ai-tool-name">Purchase Order</div>
+            <div class="ai-tool-desc">Auto-generate PO with vendor details, items, terms</div>
+            <div class="ai-tool-badge">Generate</div>
+          </div>
+          <div class="ai-tool-card" onclick="generateDoc('nda')" style="--grad-color:rgba(128,90,213,.08);">
+            <div class="ai-tool-icon">🔒</div>
+            <div class="ai-tool-name">NDA Agreement</div>
+            <div class="ai-tool-desc">Non-disclosure agreement for employees or vendors</div>
+            <div class="ai-tool-badge">Generate</div>
+          </div>
+          <div class="ai-tool-card" onclick="generateDoc('service_agreement')" style="--grad-color:rgba(0,194,168,.08);">
+            <div class="ai-tool-icon">🤝</div>
+            <div class="ai-tool-name">Service Agreement</div>
+            <div class="ai-tool-desc">Client service contract with scope and payment terms</div>
+            <div class="ai-tool-badge">Generate</div>
+          </div>
+          <div class="ai-tool-card" onclick="generateDoc('offer_letter')" style="--grad-color:rgba(56,161,105,.08);">
+            <div class="ai-tool-icon">📋</div>
+            <div class="ai-tool-name">Offer Letter</div>
+            <div class="ai-tool-desc">Employee appointment letter with salary breakup</div>
+            <div class="ai-tool-badge">Generate</div>
+          </div>
+          <div class="ai-tool-card" onclick="generateDoc('business_proposal')" style="--grad-color:rgba(230,51,41,.08);">
+            <div class="ai-tool-icon">💼</div>
+            <div class="ai-tool-name">Business Proposal</div>
+            <div class="ai-tool-desc">Detailed proposal with pricing and implementation plan</div>
+            <div class="ai-tool-badge">Generate</div>
+          </div>
+          <div class="ai-tool-card" onclick="generateDoc('credit_note')" style="--grad-color:rgba(13,27,62,.06);">
+            <div class="ai-tool-icon">📝</div>
+            <div class="ai-tool-name">Credit Note</div>
+            <div class="ai-tool-desc">GST-compliant credit note for returns and adjustments</div>
+            <div class="ai-tool-badge">Generate</div>
+          </div>
+        </div>
+        <div id="docs-result" style="display:none;">
+          <div class="card">
+            <div class="ch"><div class="ct" id="docs-title">Generated Document</div>
+              <div style="display:flex;gap:6px;">
+                <button class="btn bto btsm" onclick="copyDoc()">📋 Copy</button>
+                <button class="btn btp btsm" onclick="document.getElementById('docs-result').style.display='none'">✕ Close</button>
+              </div>
+            </div>
+            <div class="cb"><div class="ai-result-body" id="docs-content"></div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- AI HISTORY -->
+      <div class="pg" id="pg-history">
+        <div class="ph">
+          <div><h1>🕐 AI History</h1><p>All your AI interactions</p></div>
+          <button class="btn btr btsm" onclick="clearHistory()">🗑 Clear All</button>
+        </div>
+        <div id="history-content"></div>
+      </div>
+
+    </div>
+  </div>
+</div>
+<div id="toast"></div>
+<script>
+var API_ERP = 'https://erpapi.paype.co.in';
+var TOKEN = localStorage.getItem('erp_token');
+var USER = JSON.parse(localStorage.getItem('erp_user') || 'null');
+var chatHistory = [];
+var aiHistory = JSON.parse(localStorage.getItem('ai_history') || '[]');
+
+// ── COMPANY CONTEXT FOR AI ────────────────────────
+var COMPANY_CONTEXT = {
+  name: 'PayPe Technologies Pvt. Ltd.',
+  gstin: '33AAMCP7960K1ZU',
+  pan: 'AAMCP7960K',
+  tan: 'CHEP24000E',
+  state: 'Tamil Nadu',
+  city: 'Coimbatore',
+  fy: '2026-27',
+  business: 'Software / IT Services',
+  modules: 'HRMS, Accounting, Inventory, CRM'
+};
+
+// ── LOGIN ─────────────────────────────────────────
+function setRole(role, el) {
+  document.querySelectorAll('.role-tab').forEach(function(t){t.classList.remove('on');});
+  el.classList.add('on');
+  var map = {admin:'admin@paype.co.in', manager:'accounts@paype.co.in', employee:'employee@paype.co.in'};
+  document.getElementById('l-email').value = map[role] || '';
+  document.getElementById('l-pass').value = 'Admin@PayPe2026';
+}
+function togglePass(){var i=document.getElementById('l-pass');i.type=i.type==='password'?'text':'password';}
+
+async function doLogin() {
+  var email = document.getElementById('l-email').value.trim();
+  var pass = document.getElementById('l-pass').value.trim();
+  var err = document.getElementById('l-err');
+  var btn = document.getElementById('l-btn');
+  err.style.display = 'none';
+  if (!email || !pass) { err.textContent='Enter email and password'; err.style.display='block'; return; }
+  btn.textContent = '🤖 Signing in...'; btn.disabled = true;
+  try {
+    var res = await fetch(API_ERP + '/api/auth/login', {
+      method: 'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({email, password: pass})
+    });
+    var data = await res.json();
+    if (data.success) {
+      TOKEN = data.token; USER = data.user;
+      localStorage.setItem('erp_token', TOKEN);
+      localStorage.setItem('erp_user', JSON.stringify(USER));
+      COMPANY_CONTEXT.name = USER.company || COMPANY_CONTEXT.name;
+      startApp();
+    } else { err.textContent = data.message || 'Invalid credentials'; err.style.display = 'block'; }
+  } catch(e) { err.textContent = 'Connection error'; err.style.display = 'block'; }
+  btn.textContent = '🤖 Sign In to AI Assistant'; btn.disabled = false;
+}
+document.addEventListener('keydown', function(e){ if(e.key==='Enter' && document.getElementById('login-page').style.display!=='none') doLogin(); });
+
+function startApp() {
+  document.getElementById('login-page').style.display = 'none';
+  document.getElementById('erp-app').classList.add('on');
+  document.getElementById('sb-user').textContent = USER.name || 'User';
+  document.getElementById('tb-avatar').textContent = (USER.name||'U').charAt(0).toUpperCase();
+  document.getElementById('tb-company').textContent = USER.company || 'PayPe Technologies';
+  document.getElementById('sb-role').textContent = {admin:'Admin',manager:'Manager',employee:'Employee'}[USER.role] || USER.role;
+  COMPANY_CONTEXT.name = USER.company || COMPANY_CONTEXT.name;
+  var h = new Date().getHours();
+  document.getElementById('dash-greet').textContent = (h<12?'Good Morning':h<17?'Good Afternoon':'Good Evening') + ', ' + (USER.name||'').split(' ')[0] + '! Your AI assistant is ready.';
+  loadDashboard();
+}
+
+function doLogout() { localStorage.removeItem('erp_token'); localStorage.removeItem('erp_user'); location.reload(); }
+
+function go(name, el) {
+  document.querySelectorAll('.pg').forEach(function(p){p.classList.remove('on');});
+  document.querySelectorAll('.ni').forEach(function(n){n.classList.remove('on');});
+  var pg = document.getElementById('pg-' + name);
+  if(pg) pg.classList.add('on');
+  if(el) el.classList.add('on');
+  document.getElementById('tb-title').textContent = el ? el.textContent.trim() : name;
+  document.getElementById('sb').classList.remove('open');
+  var loaders = {
+    dashboard: loadDashboard, chat: initChat, insights: generateInsights,
+    history: loadHistory, gst: function(){calcGST();}
+  };
+  if(loaders[name]) loaders[name]();
+}
+
+// ── CLAUDE AI CALL ────────────────────────────────
+async function callClaude(prompt, systemPrompt, maxTokens) {
+  maxTokens = maxTokens || 1000;
+  systemPrompt = systemPrompt || buildSystemPrompt();
+  try {
+    var res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-6',
+        max_tokens: maxTokens,
+        system: systemPrompt,
+        messages: [{role: 'user', content: prompt}]
+      })
+    });
+    var data = await res.json();
+    if (data.content && data.content[0]) return data.content[0].text;
+    return 'AI response error: ' + JSON.stringify(data);
+  } catch(e) { return 'Connection error: ' + e.message; }
+}
+
+async function callClaudeWithHistory(messages, systemPrompt) {
+  try {
+    var res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-6',
+        max_tokens: 1000,
+        system: systemPrompt || buildSystemPrompt(),
+        messages: messages
+      })
+    });
+    var data = await res.json();
+    if (data.content && data.content[0]) return data.content[0].text;
+    return 'Error: ' + JSON.stringify(data);
+  } catch(e) { return 'Error: ' + e.message; }
+}
+
+async function callClaudeWithImage(prompt, imageBase64, mediaType) {
+  try {
+    var res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-6',
+        max_tokens: 1500,
+        messages: [{
+          role: 'user',
+          content: [
+            {type: 'image', source: {type: 'base64', media_type: mediaType, data: imageBase64}},
+            {type: 'text', text: prompt}
+          ]
+        }]
+      })
+    });
+    var data = await res.json();
+    if (data.content && data.content[0]) return data.content[0].text;
+    return 'Error: ' + JSON.stringify(data);
+  } catch(e) { return 'Error: ' + e.message; }
+}
+
+function buildSystemPrompt() {
+  return 'You are PayPe AI, an intelligent business assistant for ' + COMPANY_CONTEXT.name + ' based in ' + COMPANY_CONTEXT.city + ', ' + COMPANY_CONTEXT.state + ', India. ' +
+    'GSTIN: ' + COMPANY_CONTEXT.gstin + ' | Business Type: ' + COMPANY_CONTEXT.business + ' | FY: ' + COMPANY_CONTEXT.fy + '. ' +
+    'You help with Indian accounting (double-entry), GST (CGST/SGST/IGST), TDS, income tax, inventory management, CRM, and business operations. ' +
+    'Always use Indian Rupees (Rs/₹). Use Indian date format DD-MM-YYYY. Reference Indian tax laws (CGST Act, Income Tax Act 1961). ' +
+    'Be concise, practical, and business-focused. When giving journal entries, use proper debit/credit format.';
+}
+
+function saveToHistory(type, query, response) {
+  var entry = {
+    id: Date.now(),
+    type: type,
+    query: query.substring(0, 100),
+    response: response.substring(0, 200),
+    time: new Date().toLocaleString('en-IN'),
+    user: USER ? USER.name : 'Unknown'
+  };
+  aiHistory.unshift(entry);
+  if (aiHistory.length > 50) aiHistory = aiHistory.slice(0, 50);
+  localStorage.setItem('ai_history', JSON.stringify(aiHistory));
+}
+
+// ── DASHBOARD ─────────────────────────────────────
+function loadDashboard() {
+  var c = document.getElementById('dash-content');
+  var h = '<div class="ai-tool-grid">';
+  var tools = [
+    {icon:'💬',name:'AI Business Chat',desc:'Ask anything about your business, accounting, or operations',page:'chat',color:'rgba(0,194,168,.08)'},
+    {icon:'📒',name:'AI Bookkeeping',desc:'Describe a transaction and get instant journal entries',page:'bookkeeping',color:'rgba(128,90,213,.08)'},
+    {icon:'📷',name:'Invoice OCR',desc:'Upload invoice image and extract all data automatically',page:'ocr',color:'rgba(221,107,32,.08)'},
+    {icon:'🔢',name:'GST & Tax AI',desc:'Find HSN codes, GST rates, ITC eligibility instantly',page:'gst',color:'rgba(56,161,105,.08)'},
+    {icon:'📧',name:'Email Drafter',desc:'Generate professional business emails in seconds',page:'email',color:'rgba(230,51,41,.08)'},
+    {icon:'📊',name:'Business Insights',desc:'AI analysis of your revenue, costs, and growth trends',page:'insights',color:'rgba(13,27,62,.06)'},
+    {icon:'📄',name:'Document Generator',desc:'Create POs, NDAs, service agreements, offer letters',page:'docs',color:'rgba(0,194,168,.06)'},
+    {icon:'🕐',name:'AI History',desc:'View all your past AI queries and responses',page:'history',color:'rgba(128,90,213,.06)'},
+  ];
+  tools.forEach(function(t) {
+    h += '<div class="ai-tool-card" onclick="go(\''+t.page+'\',document.getElementById(\'ni-'+t.page+'\'))" style="--grad-color:'+t.color+';">';
+    h += '<div class="ai-tool-icon">'+t.icon+'</div>';
+    h += '<div class="ai-tool-name">'+t.name+'</div>';
+    h += '<div class="ai-tool-desc">'+t.desc+'</div>';
+    h += '<div class="ai-tool-badge">Open Tool →</div></div>';
+  });
+  h += '</div>';
+
+  // Quick stats
+  h += '<div class="g3">';
+  h += '<div class="card"><div class="cb" style="text-align:center;padding:20px;"><div style="font-size:32px;margin-bottom:8px;">'+aiHistory.length+'</div><div style="font-size:12px;color:var(--gray);">AI Queries Made</div></div></div>';
+  h += '<div class="card"><div class="cb" style="text-align:center;padding:20px;"><div style="font-size:32px;margin-bottom:8px;">🤖</div><div style="font-size:12px;color:var(--gray);">Claude Sonnet 4.6 Active</div></div></div>';
+  h += '<div class="card"><div class="cb" style="text-align:center;padding:20px;"><div style="font-size:32px;margin-bottom:8px;">∞</div><div style="font-size:12px;color:var(--gray);">Queries Available</div></div></div>';
+  h += '</div>';
+
+  // Recent history
+  if (aiHistory.length > 0) {
+    h += '<div class="card"><div class="ch"><div class="ct">Recent AI Activity</div><button class="btn bto btsm" onclick="go(\'history\',document.getElementById(\'ni-history\'))">View All</button></div><div class="cb">';
+    aiHistory.slice(0, 5).forEach(function(item) {
+      var typeIcons = {chat:'💬',bookkeeping:'📒',ocr:'📷',gst:'🔢',email:'📧',insights:'📊',docs:'📄'};
+      h += '<div class="history-item" onclick="go(\''+item.type+'\',document.getElementById(\'ni-'+item.type+'\'))">';
+      h += '<div class="history-q">'+(typeIcons[item.type]||'🤖')+' '+item.query+'</div>';
+      h += '<div class="history-time">'+item.time+' • '+item.type.charAt(0).toUpperCase()+item.type.slice(1)+'</div></div>';
+    });
+    h += '</div></div>';
+  }
+  c.innerHTML = h;
+}
+
+// ── AI CHAT ───────────────────────────────────────
+function initChat() {
+  var input = document.getElementById('chat-input');
+  if (input) { input.style.height = 'auto'; input.addEventListener('input', function(){ this.style.height='auto'; this.style.height=Math.min(this.scrollHeight,100)+'px'; }); }
+}
+
+function quickAsk(text) {
+  document.getElementById('chat-input').value = text;
+  sendChat();
+}
+
+async function sendChat() {
+  var input = document.getElementById('chat-input');
+  var text = input.value.trim();
+  if (!text) return;
+  input.value = '';
+  input.style.height = 'auto';
+  document.getElementById('chat-quick').style.display = 'none';
+
+  addMessage('user', text);
+  var typing = addTyping();
+  document.getElementById('chat-send').disabled = true;
+
+  chatHistory.push({role: 'user', content: text});
+  var response = await callClaudeWithHistory(chatHistory, buildSystemPrompt());
+  chatHistory.push({role: 'assistant', content: response});
+
+  removeTyping(typing);
+  addMessage('ai', response);
+  document.getElementById('chat-send').disabled = false;
+  saveToHistory('chat', text, response);
+}
+
+function addMessage(role, text) {
+  var msgs = document.getElementById('chat-messages');
+  var div = document.createElement('div');
+  div.className = 'msg ' + role;
+  var time = new Date().toLocaleTimeString('en-IN', {hour:'2-digit', minute:'2-digit'});
+  var initials = role === 'ai' ? '🤖' : (USER ? USER.name.charAt(0).toUpperCase() : 'U');
+  var formatted = text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>').replace(/`(.*?)`/g, '<code>$1</code>').replace(/\n/g, '<br>');
+  div.innerHTML = '<div class="msg-avatar">'+initials+'</div><div><div class="msg-bubble">'+formatted+'</div><div class="msg-time">'+time+'</div></div>';
+  msgs.appendChild(div);
+  msgs.scrollTop = msgs.scrollHeight;
+  return div;
+}
+
+function addTyping() {
+  var msgs = document.getElementById('chat-messages');
+  var div = document.createElement('div');
+  div.className = 'msg ai';
+  div.id = 'typing-indicator';
+  div.innerHTML = '<div class="msg-avatar">🤖</div><div><div class="typing"><span></span><span></span><span></span></div></div>';
+  msgs.appendChild(div);
+  msgs.scrollTop = msgs.scrollHeight;
+  return div;
+}
+
+function removeTyping(el) { if(el && el.parentNode) el.parentNode.removeChild(el); }
+
+function clearChat() {
+  chatHistory = [];
+  var msgs = document.getElementById('chat-messages');
+  msgs.innerHTML = '<div class="msg ai"><div class="msg-avatar">🤖</div><div><div class="msg-bubble">Chat cleared! How can I help you?</div></div></div>';
+  document.getElementById('chat-quick').style.display = 'flex';
+}
+
+// ── AI BOOKKEEPING ────────────────────────────────
+function setBKExample(text) { document.getElementById('bk-desc').value = text; }
+
+async function generateJE() {
+  var desc = document.getElementById('bk-desc').value.trim();
+  if (!desc) { toast('Please describe the transaction', 'err'); return; }
+  var btn = document.getElementById('bk-btn');
+  btn.textContent = '🤖 Generating...'; btn.disabled = true;
+  document.getElementById('bk-status').textContent = 'Processing...';
+  document.getElementById('bk-status').className = 'b by';
+
+  var prompt = 'Generate a complete double-entry journal entry for this transaction:\n\n' + desc +
+    '\n\nCompany: ' + COMPANY_CONTEXT.name + ' | FY: ' + COMPANY_CONTEXT.fy + ' | State: ' + COMPANY_CONTEXT.state +
+    '\n\nProvide:\n1. Journal Entry table with Account Name, Debit (Rs), Credit (Rs)\n2. Narration\n3. GST treatment if applicable\n4. Which accounts to use\n5. Important notes\n\nUse proper Indian accounting standards. Format clearly.';
+
+  var result = await callClaude(prompt, null, 1200);
+
+  var formatted = result.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>').replace(/`(.*?)`/g, '<code>$1</code>').replace(/\n/g, '<br>');
+  document.getElementById('bk-result').innerHTML =
+    '<div class="ai-result"><div class="ai-result-header">🤖 AI Generated Journal Entry</div><div class="ai-result-body">' + formatted + '</div></div>' +
+    '<div style="display:flex;gap:7px;margin-top:10px;"><button class="btn bto btsm" onclick="copyText(\'bk-result\')">📋 Copy</button><button class="btn btp btsm">Post to ERP →</button></div>';
+
+  document.getElementById('bk-status').textContent = '✓ Done';
+  document.getElementById('bk-status').className = 'b bg';
+  btn.textContent = '🤖 Generate Journal Entry'; btn.disabled = false;
+  saveToHistory('bookkeeping', desc, result);
+
+  // Add to history sidebar
+  var hist = document.getElementById('bk-history');
+  hist.innerHTML = '<div class="history-item"><div class="history-q">'+desc.substring(0,60)+'...</div><div class="history-time">Just now</div></div>' + hist.innerHTML;
+}
+
+// ── INVOICE OCR ───────────────────────────────────
+var ocrImageData = null;
+var ocrMediaType = 'image/jpeg';
+
+function handleDrop(event) {
+  event.preventDefault();
+  document.getElementById('upload-area').classList.remove('drag');
+  var file = event.dataTransfer.files[0];
+  if (file) processFile(file);
+}
+
+function handleOCRFile(event) {
+  var file = event.target.files[0];
+  if (file) processFile(file);
+}
+
+function processFile(file) {
+  ocrMediaType = file.type || 'image/jpeg';
+  var reader = new FileReader();
+  reader.onload = function(e) {
+    ocrImageData = e.target.result.split(',')[1];
+    var preview = document.getElementById('ocr-preview');
+    var img = document.getElementById('ocr-img');
+    if (file.type.startsWith('image/')) {
+      img.src = e.target.result;
+      preview.style.display = 'block';
+    }
+    document.getElementById('ocr-btn').disabled = false;
+    document.getElementById('ocr-status').textContent = 'Ready';
+    document.getElementById('ocr-status').className = 'b bt';
+    toast('Invoice loaded! Click Extract to process.', 'ok');
+  };
+  reader.readAsDataURL(file);
+}
+
+function loadSampleInvoice(type) {
+  var samples = {
+    purchase: 'PURCHASE BILL\nVendor: ABC Supplies Pvt Ltd\nBill No: ABC/2026/1234\nDate: 15-07-2026\nItems:\n1. Office Chairs x5 @ Rs 8,500 = Rs 42,500\n2. Computer Tables x2 @ Rs 12,000 = Rs 24,000\nSubtotal: Rs 66,500\nCGST 9%: Rs 5,985\nSGST 9%: Rs 5,985\nTotal: Rs 78,470\nGSTIN: 33ABCDE1234F1Z5',
+    sales: 'SALES INVOICE\nPayPe Technologies Pvt Ltd\nInvoice: PAYPE/2026-27/042\nDate: 20-07-2026\nBill To: TechStart Pvt Ltd, Chennai\nService: HRMS Software License - Annual\nAmount: Rs 1,20,000\nCGST 9%: Rs 10,800\nSGST 9%: Rs 10,800\nTotal: Rs 1,41,600\nPayment Terms: 30 days',
+    utility: 'ELECTRICITY BILL\nTNEB (Tamil Nadu Electricity Board)\nConsumer No: 1234567890\nBilling Period: June 2026\nUnits Consumed: 850 units\nAmount: Rs 7,650\nFixed Charges: Rs 850\nTotal: Rs 8,500\nDue Date: 05-08-2026\nAddress: PayPe Technologies, Coimbatore'
+  };
+  var sampleText = samples[type] || samples.purchase;
+  // Create a text-based "invoice" to process
+  ocrImageData = null;
+  document.getElementById('ocr-btn').disabled = false;
+  document.getElementById('ocr-status').textContent = 'Sample Loaded';
+  document.getElementById('ocr-status').className = 'b bt';
+  document.getElementById('ocr-preview').style.display = 'none';
+  // Store sample text for processing
+  window.sampleInvoiceText = sampleText;
+  toast(type.charAt(0).toUpperCase()+type.slice(1)+' sample invoice loaded!', 'ok');
+}
+
+async function processOCR() {
+  var btn = document.getElementById('ocr-btn');
+  btn.textContent = '🤖 Extracting...'; btn.disabled = true;
+  document.getElementById('ocr-status').textContent = 'Processing...';
+  document.getElementById('ocr-status').className = 'b by';
+
+  var prompt = 'Extract all data from this invoice/bill and provide:\n1. Vendor/Supplier details (name, GSTIN, address)\n2. Invoice number and date\n3. Line items (description, quantity, rate, amount)\n4. Tax breakdown (CGST, SGST, IGST)\n5. Total amounts\n6. Payment terms\n7. Ready-to-post journal entry for this transaction\n\nFormat the output clearly with sections. Company receiving this: ' + COMPANY_CONTEXT.name;
+
+  var result;
+  if (ocrImageData) {
+    result = await callClaudeWithImage(prompt, ocrImageData, ocrMediaType);
+  } else if (window.sampleInvoiceText) {
+    result = await callClaude(prompt + '\n\nINVOICE TEXT:\n' + window.sampleInvoiceText);
+    window.sampleInvoiceText = null;
+  } else {
+    result = 'No invoice data available. Please upload an invoice or select a sample.';
+  }
+
+  var formatted = result.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>').replace(/`(.*?)`/g, '<code>$1</code>').replace(/\n/g, '<br>');
+  document.getElementById('ocr-result').innerHTML =
+    '<div class="ai-result"><div class="ai-result-header">🤖 Extracted Invoice Data</div><div class="ai-result-body">' + formatted + '</div></div>' +
+    '<div style="display:flex;gap:7px;margin-top:10px;"><button class="btn bto btsm" onclick="copyText(\'ocr-result\')">📋 Copy</button><button class="btn btp btsm">Post to ERP →</button></div>';
+
+  document.getElementById('ocr-status').textContent = '✓ Extracted';
+  document.getElementById('ocr-status').className = 'b bg';
+  btn.textContent = '🤖 Extract Invoice Data'; btn.disabled = false;
+  saveToHistory('ocr', 'Invoice OCR extraction', result);
+}
+
+// ── GST AI ────────────────────────────────────────
+function setGSTQuery(text) { document.getElementById('gst-query').value = text; findGSTRate(); }
+
+function calcGST() {
+  var amount = parseFloat(document.getElementById('gst-amount').value) || 0;
+  var rate = parseFloat(document.getElementById('gst-rate').value) || 18;
+  var gst = amount * rate / 100;
+  var half = rate / 2;
+  document.getElementById('cgst-rate').textContent = half;
+  document.getElementById('sgst-rate').textContent = half;
+  document.getElementById('cgst-val').textContent = fmt(gst/2);
+  document.getElementById('sgst-val').textContent = fmt(gst/2);
+  document.getElementById('gst-total').textContent = fmt(amount + gst);
+}
+
+async function findGSTRate() {
+  var query = document.getElementById('gst-query').value.trim();
+  if (!query) { toast('Enter a product or service description', 'err'); return; }
+  var btn = document.getElementById('gst-btn');
+  btn.textContent = '🔢 Finding...'; btn.disabled = true;
+  document.getElementById('gst-status').textContent = 'Searching...';
+  document.getElementById('gst-status').className = 'b by';
+
+  var prompt = 'For Indian GST purposes, provide complete information about: "' + query + '"\n\n' +
+    'Include:\n1. Applicable GST rate (with HSN/SAC code)\n2. CGST rate and SGST rate\n3. Whether ITC is available\n4. Any exemptions or special conditions\n5. Related HSN/SAC codes\n6. Example calculation with Rs 1,00,000 base amount\n7. Filing in which GSTR return (GSTR-1, GSTR-3B)\n\nBe specific to Indian GST law as of 2026.';
+
+  var result = await callClaude(prompt, null, 800);
+  var formatted = result.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>').replace(/`(.*?)`/g, '<code>$1</code>').replace(/\n/g, '<br>');
+  document.getElementById('gst-result').innerHTML =
+    '<div class="ai-result"><div class="ai-result-header">🔢 GST Rate Information</div><div class="ai-result-body">' + formatted + '</div></div>';
+
+  document.getElementById('gst-status').textContent = '✓ Found';
+  document.getElementById('gst-status').className = 'b bg';
+  btn.textContent = '🔢 Find GST Rate'; btn.disabled = false;
+  saveToHistory('gst', query, result);
+}
+
+// ── EMAIL DRAFTER ─────────────────────────────────
+function setEmailType(type, to, details) {
+  document.getElementById('email-type').value = type;
+  document.getElementById('email-to').value = to;
+  document.getElementById('email-details').value = details;
+}
+
+async function draftEmail() {
+  var type = document.getElementById('email-type').value;
+  var to = document.getElementById('email-to').value.trim();
+  var details = document.getElementById('email-details').value.trim();
+  var tone = document.getElementById('email-tone').value;
+  if (!to) { toast('Enter recipient name', 'err'); return; }
+
+  var btn = document.getElementById('email-btn');
+  btn.textContent = '📧 Drafting...'; btn.disabled = true;
+  document.getElementById('email-status').textContent = 'Writing...';
+  document.getElementById('email-status').className = 'b by';
+
+  var typeLabels = {payment_reminder:'payment reminder',invoice_send:'invoice sending',proposal:'business proposal',follow_up:'sales follow-up',welcome:'customer welcome',complaint:'complaint resolution',quotation:'quotation',introduction:'company introduction',collection:'overdue collection',thanks:'thank you'};
+  var prompt = 'Draft a professional ' + (typeLabels[type]||type) + ' email from ' + COMPANY_CONTEXT.name + ' to ' + to + '.\n\n' +
+    'Details: ' + (details || 'Standard ' + type + ' email') + '\n' +
+    'Tone: ' + tone + '\nCompany: ' + COMPANY_CONTEXT.name + ', ' + COMPANY_CONTEXT.city + '\n' +
+    'Include: Subject line, greeting, body, professional closing, company signature with GSTIN ' + COMPANY_CONTEXT.gstin + '.\n' +
+    'Keep it concise, professional, and culturally appropriate for Indian business context.';
+
+  var result = await callClaude(prompt, null, 600);
+  var formatted = result.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>').replace(/\n/g, '<br>');
+  document.getElementById('email-result').innerHTML =
+    '<div class="ai-result"><div class="ai-result-header">📧 Generated Email</div><div class="ai-result-body">' + formatted + '</div></div>' +
+    '<div style="display:flex;gap:7px;margin-top:10px;"><button class="btn bto btsm" onclick="copyText(\'email-result\')">📋 Copy Email</button><button class="btn btai btsm" onclick="draftEmail()">🔄 Regenerate</button></div>';
+
+  document.getElementById('email-status').textContent = '✓ Ready';
+  document.getElementById('email-status').className = 'b bg';
+  btn.textContent = '📧 Draft Email with AI'; btn.disabled = false;
+  saveToHistory('email', type + ' to ' + to, result);
+}
+
+// ── BUSINESS INSIGHTS ─────────────────────────────
+async function generateInsights() {
+  var btn = document.getElementById('insights-btn');
+  var c = document.getElementById('insights-content');
+  if(btn) { btn.textContent = '🤖 Generating...'; btn.disabled = true; }
+  c.innerHTML = '<div class="ld"><div class="sp"></div>AI is analysing your business...</div>';
+
+  // Fetch real ERP data
+  var erpData = {};
+  try {
+    if (TOKEN) {
+      var headers = {'Authorization': 'Bearer ' + TOKEN};
+      var [dashRes, gstRes] = await Promise.all([
+        fetch(API_ERP + '/api/dashboard', {headers}).then(function(r){return r.json();}),
+        fetch(API_ERP + '/api/gst/summary?month=' + (new Date().getMonth()+1) + '&year=' + new Date().getFullYear(), {headers}).then(function(r){return r.json();})
+      ]);
+      if (dashRes.success) erpData.dashboard = dashRes.data;
+      if (gstRes.success) erpData.gst = gstRes.data;
+    }
+  } catch(e) { console.log('ERP data fetch error:', e); }
+
+  var dataContext = erpData.dashboard ?
+    'Revenue: Rs ' + (erpData.dashboard.revenue||0).toLocaleString('en-IN') +
+    ' | AR: Rs ' + (erpData.dashboard.receivable||0).toLocaleString('en-IN') +
+    ' | AP: Rs ' + (erpData.dashboard.payable||0).toLocaleString('en-IN') +
+    (erpData.gst ? ' | GST Payable: Rs ' + (erpData.gst.netPayable||0).toLocaleString('en-IN') : '') : 'ERP data not available';
+
+  var prompt = 'Provide a comprehensive business insights report for ' + COMPANY_CONTEXT.name + ' (' + COMPANY_CONTEXT.business + ').\n\n' +
+    'Current Data: ' + dataContext + '\n' +
+    'FY: ' + COMPANY_CONTEXT.fy + ' | Location: ' + COMPANY_CONTEXT.city + ', ' + COMPANY_CONTEXT.state + '\n\n' +
+    'Provide:\n1. Executive Summary (3-4 key points)\n2. Revenue Analysis & Growth Opportunities\n3. Cash Flow & Working Capital Tips\n4. Tax Optimization Suggestions (GST, TDS, Income Tax)\n5. Cost Reduction Opportunities\n6. Top 5 Action Items for next 30 days\n7. Industry benchmarks for Indian software/IT companies\n\nBe specific, practical, and actionable for a ' + COMPANY_CONTEXT.city + '-based business.';
+
+  var result = await callClaude(prompt, null, 1500);
+
+  // Build a nice insights page
+  var sections = result.split('\n\n');
+  var formatted = result.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>').replace(/`(.*?)`/g, '<code>$1</code>').replace(/\n/g, '<br>');
+
+  var h = '';
+  if (erpData.dashboard) {
+    h += '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px;margin-bottom:14px;">';
+    var d = erpData.dashboard;
+    var kpis = [
+      {v:fmt(d.revenue||0),l:'Total Revenue',c:'var(--green)'},
+      {v:fmt(d.receivable||0),l:'Accounts Receivable',c:'var(--orange)'},
+      {v:fmt(d.payable||0),l:'Accounts Payable',c:'var(--red)'},
+      {v:erpData.gst?fmt(erpData.gst.netPayable||0):'--',l:'GST Payable',c:'var(--purple)'}
+    ];
+    kpis.forEach(function(k){
+      h += '<div style="background:white;border-radius:12px;padding:14px;border:1px solid var(--border);">';
+      h += '<div style="font-size:18px;font-weight:800;color:'+k.c+';">'+k.v+'</div>';
+      h += '<div style="font-size:11px;color:var(--gray);margin-top:3px;">'+k.l+'</div></div>';
+    });
+    h += '</div>';
+  }
+
+  h += '<div class="card"><div class="ch"><div class="ct">🤖 AI Business Analysis — ' + new Date().toLocaleDateString('en-IN') + '</div>';
+  h += '<button class="btn bto btsm" onclick="copyText(\'insights-content\')">📋 Copy Report</button></div>';
+  h += '<div class="cb"><div class="ai-result-body">' + formatted + '</div></div></div>';
+
+  c.innerHTML = h;
+  if(btn) { btn.textContent = '🔄 Refresh Insights'; btn.disabled = false; }
+  saveToHistory('insights', 'Business insights report', result);
+}
+
+// ── DOCUMENT GENERATOR ────────────────────────────
+async function generateDoc(type) {
+  var prompts = {
+    purchase_order: 'Generate a professional Purchase Order for ' + COMPANY_CONTEXT.name + ' (GSTIN: ' + COMPANY_CONTEXT.gstin + '). Include PO number PO/2026-27/001, vendor details, 3 sample line items with HSN codes, delivery terms, payment terms, and signature block. Format it professionally.',
+    nda: 'Generate a standard Non-Disclosure Agreement (NDA) for ' + COMPANY_CONTEXT.name + ' based in ' + COMPANY_CONTEXT.city + ', ' + COMPANY_CONTEXT.state + '. Include standard clauses for Indian law jurisdiction, confidentiality obligations, term of 2 years, and remedies. Professional legal format.',
+    service_agreement: 'Generate a Service Agreement template for ' + COMPANY_CONTEXT.name + ' providing software services. Include scope of work, payment terms (monthly retainer), intellectual property, SLA, termination clause, and governing law (Tamil Nadu courts). Indian law compliant.',
+    offer_letter: 'Generate an Employment Offer Letter from ' + COMPANY_CONTEXT.name + '. Include designation: Software Developer, CTC: Rs 6,00,000 p.a., joining date, salary breakup (Basic 50%, HRA 40%, Special Allowance 10%), probation 6 months, leave policy. Professional format with company letterhead details.',
+    business_proposal: 'Generate a comprehensive Business Proposal from ' + COMPANY_CONTEXT.name + ' for ERP software implementation. Include executive summary, proposed solution (HRMS + Accounting + Inventory modules), implementation timeline (3 months), pricing (Rs 2,99,000 + GST), team, and call to action. Professional format.',
+    credit_note: 'Generate a GST-compliant Credit Note from ' + COMPANY_CONTEXT.name + ' (GSTIN: ' + COMPANY_CONTEXT.gstin + '). Include credit note number CN/2026-27/001, original invoice reference, reason for credit, item details with HSN code, CGST/SGST breakdown, and authorized signature. Format per GST rules.'
+  };
+
+  var titles = {
+    purchase_order:'Purchase Order', nda:'NDA Agreement', service_agreement:'Service Agreement',
+    offer_letter:'Offer Letter', business_proposal:'Business Proposal', credit_note:'Credit Note'
+  };
+
+  toast('🤖 Generating ' + (titles[type]||type) + '...');
+  var result = await callClaude(prompts[type] || 'Generate a ' + type + ' document for ' + COMPANY_CONTEXT.name, null, 1500);
+
+  document.getElementById('docs-title').textContent = '📄 ' + (titles[type]||type);
+  document.getElementById('docs-content').innerHTML = result.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>').replace(/\n/g, '<br>');
+  document.getElementById('docs-result').style.display = 'block';
+  document.getElementById('docs-result').scrollIntoView({behavior:'smooth'});
+  saveToHistory('docs', titles[type]||type, result);
+}
+
+function copyDoc() {
+  var text = document.getElementById('docs-content').innerText;
+  navigator.clipboard.writeText(text).then(function(){ toast('Document copied!', 'ok'); });
+}
+
+// ── AI HISTORY ────────────────────────────────────
+function loadHistory() {
+  var c = document.getElementById('history-content');
+  if (!aiHistory.length) {
+    c.innerHTML = '<div class="card"><div class="em" style="padding:40px;"><div style="font-size:36px;margin-bottom:10px;">🕐</div><div style="font-size:14px;font-weight:600;color:var(--navy);">No AI history yet</div><div style="font-size:12px;margin-top:6px;">Your AI queries will appear here</div></div></div>';
+    return;
+  }
+  var typeIcons = {chat:'💬',bookkeeping:'📒',ocr:'📷',gst:'🔢',email:'📧',insights:'📊',docs:'📄'};
+  var typeColors = {chat:'var(--teal)',bookkeeping:'var(--purple)',ocr:'var(--orange)',gst:'var(--green)',email:'var(--red)',insights:'var(--navy)',docs:'var(--teal)'};
+  var h = '<div class="card"><div class="ch"><div class="ct">AI Query History ('+aiHistory.length+')</div></div><div class="cb">';
+  aiHistory.forEach(function(item) {
+    h += '<div class="history-item">';
+    h += '<div style="display:flex;align-items:center;gap:8px;margin-bottom:5px;">';
+    h += '<span style="font-size:16px;">'+(typeIcons[item.type]||'🤖')+'</span>';
+    h += '<span style="font-size:11px;font-weight:700;color:'+(typeColors[item.type]||'var(--navy)')+';text-transform:uppercase;">'+item.type+'</span>';
+    h += '<span style="margin-left:auto;font-size:10px;color:var(--gray);">'+item.time+'</span></div>';
+    h += '<div class="history-q">'+item.query+'</div>';
+    h += '<div style="font-size:11px;color:var(--gray);margin-top:4px;">'+item.response+'...</div></div>';
+  });
+  h += '</div></div>';
+  c.innerHTML = h;
+}
+
+function clearHistory() {
+  if (!confirm('Clear all AI history?')) return;
+  aiHistory = [];
+  localStorage.removeItem('ai_history');
+  loadHistory();
+  toast('History cleared!', 'ok');
+}
+
+// ── HELPERS ───────────────────────────────────────
+function fmt(n){ return 'Rs ' + (n||0).toLocaleString('en-IN', {minimumFractionDigits:2, maximumFractionDigits:2}); }
+function toast(msg, type){ var t=document.createElement('div'); t.className='tst'+(type==='err'?' err':type==='ok'?' ok':''); t.textContent=msg; document.getElementById('toast').appendChild(t); setTimeout(function(){t.remove();},3000); }
+function copyText(containerId){
+  var text = document.getElementById(containerId).innerText;
+  navigator.clipboard.writeText(text).then(function(){ toast('Copied!', 'ok'); }).catch(function(){ toast('Copy failed', 'err'); });
+}
+
+// AUTO LOGIN
+if (TOKEN && USER) { startApp(); }
+</script></body></html>
