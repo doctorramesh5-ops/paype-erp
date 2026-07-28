@@ -314,7 +314,230 @@ app.get('/api/health', async (req, res) => {
           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)`,
           [coId,'Yes Bank - Current Account','Yes Bank','136727000000112','YESB0001367','YESBINBB','Vadavalli, Coimbatore',4850000,'Current']);
 
-        console.log('✅ Default company, user and data seeded!');
+  
+      // ── INVENTORY TABLES ──────────────────────────────
+      const inv_migrations = [
+        `CREATE TABLE IF NOT EXISTS products (
+          id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+          company_id UUID REFERENCES erp_companies(id) ON DELETE CASCADE,
+          name VARCHAR(200) NOT NULL,
+          sku VARCHAR(100),
+          hsn VARCHAR(20),
+          category VARCHAR(100),
+          unit VARCHAR(30) DEFAULT 'Nos',
+          sale_price NUMERIC(15,2) DEFAULT 0,
+          cost_price NUMERIC(15,2) DEFAULT 0,
+          stock NUMERIC(10,2) DEFAULT 0,
+          reorder_level NUMERIC(10,2) DEFAULT 10,
+          description TEXT,
+          barcode VARCHAR(100),
+          is_active BOOLEAN DEFAULT true,
+          created_at TIMESTAMPTZ DEFAULT NOW()
+        )`,
+        `CREATE TABLE IF NOT EXISTS warehouses (
+          id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+          company_id UUID REFERENCES erp_companies(id) ON DELETE CASCADE,
+          name VARCHAR(200) NOT NULL,
+          location VARCHAR(300),
+          manager VARCHAR(200),
+          is_active BOOLEAN DEFAULT true,
+          created_at TIMESTAMPTZ DEFAULT NOW()
+        )`,
+        `CREATE TABLE IF NOT EXISTS stock_movements (
+          id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+          company_id UUID REFERENCES erp_companies(id) ON DELETE CASCADE,
+          product_id UUID REFERENCES products(id),
+          warehouse_id UUID REFERENCES warehouses(id),
+          type VARCHAR(20) NOT NULL,
+          qty NUMERIC(10,2) NOT NULL,
+          rate NUMERIC(15,2) DEFAULT 0,
+          reference VARCHAR(100),
+          notes TEXT,
+          date DATE NOT NULL,
+          created_by UUID REFERENCES erp_users(id),
+          created_at TIMESTAMPTZ DEFAULT NOW()
+        )`,
+        `CREATE TABLE IF NOT EXISTS purchase_orders (
+          id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+          company_id UUID REFERENCES erp_companies(id) ON DELETE CASCADE,
+          po_no VARCHAR(50),
+          vendor_id UUID REFERENCES parties(id),
+          vendor_name VARCHAR(200),
+          date DATE NOT NULL,
+          expected_date DATE,
+          status VARCHAR(30) DEFAULT 'Draft',
+          subtotal NUMERIC(15,2) DEFAULT 0,
+          cgst NUMERIC(15,2) DEFAULT 0,
+          sgst NUMERIC(15,2) DEFAULT 0,
+          total NUMERIC(15,2) DEFAULT 0,
+          notes TEXT,
+          created_by UUID REFERENCES erp_users(id),
+          created_at TIMESTAMPTZ DEFAULT NOW()
+        )`,
+        `CREATE TABLE IF NOT EXISTS purchase_order_lines (
+          id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+          po_id UUID REFERENCES purchase_orders(id) ON DELETE CASCADE,
+          product_id UUID REFERENCES products(id),
+          description TEXT,
+          qty NUMERIC(10,2) DEFAULT 1,
+          rate NUMERIC(15,2) DEFAULT 0,
+          gst_rate NUMERIC(5,2) DEFAULT 18,
+          amount NUMERIC(15,2) DEFAULT 0,
+          received_qty NUMERIC(10,2) DEFAULT 0
+        )`,
+        `CREATE TABLE IF NOT EXISTS sales_orders (
+          id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+          company_id UUID REFERENCES erp_companies(id) ON DELETE CASCADE,
+          so_no VARCHAR(50),
+          customer_id UUID REFERENCES parties(id),
+          customer_name VARCHAR(200),
+          date DATE NOT NULL,
+          delivery_date DATE,
+          status VARCHAR(30) DEFAULT 'Draft',
+          subtotal NUMERIC(15,2) DEFAULT 0,
+          cgst NUMERIC(15,2) DEFAULT 0,
+          sgst NUMERIC(15,2) DEFAULT 0,
+          total NUMERIC(15,2) DEFAULT 0,
+          notes TEXT,
+          created_by UUID REFERENCES erp_users(id),
+          created_at TIMESTAMPTZ DEFAULT NOW()
+        )`,
+        `CREATE TABLE IF NOT EXISTS sales_order_lines (
+          id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+          so_id UUID REFERENCES sales_orders(id) ON DELETE CASCADE,
+          product_id UUID REFERENCES products(id),
+          description TEXT,
+          qty NUMERIC(10,2) DEFAULT 1,
+          rate NUMERIC(15,2) DEFAULT 0,
+          gst_rate NUMERIC(5,2) DEFAULT 18,
+          amount NUMERIC(15,2) DEFAULT 0
+        )`,
+        // ── CRM TABLES ──────────────────────────────────
+        `CREATE TABLE IF NOT EXISTS leads (
+          id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+          company_id UUID REFERENCES erp_companies(id) ON DELETE CASCADE,
+          name VARCHAR(200) NOT NULL,
+          company_name VARCHAR(200),
+          email VARCHAR(200),
+          phone VARCHAR(20),
+          source VARCHAR(50),
+          status VARCHAR(30) DEFAULT 'New',
+          value NUMERIC(15,2) DEFAULT 0,
+          assigned_to UUID REFERENCES erp_users(id),
+          notes TEXT,
+          created_at TIMESTAMPTZ DEFAULT NOW()
+        )`,
+        `CREATE TABLE IF NOT EXISTS opportunities (
+          id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+          company_id UUID REFERENCES erp_companies(id) ON DELETE CASCADE,
+          lead_id UUID REFERENCES leads(id),
+          title VARCHAR(200) NOT NULL,
+          value NUMERIC(15,2) DEFAULT 0,
+          stage VARCHAR(50) DEFAULT 'Prospect',
+          probability NUMERIC(5,2) DEFAULT 10,
+          close_date DATE,
+          assigned_to UUID REFERENCES erp_users(id),
+          notes TEXT,
+          created_at TIMESTAMPTZ DEFAULT NOW()
+        )`,
+        `CREATE TABLE IF NOT EXISTS quotations (
+          id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+          company_id UUID REFERENCES erp_companies(id) ON DELETE CASCADE,
+          quote_no VARCHAR(50),
+          lead_id UUID REFERENCES leads(id),
+          customer_id UUID REFERENCES parties(id),
+          customer_name VARCHAR(200),
+          date DATE NOT NULL,
+          valid_until DATE,
+          status VARCHAR(30) DEFAULT 'Draft',
+          subtotal NUMERIC(15,2) DEFAULT 0,
+          cgst NUMERIC(15,2) DEFAULT 0,
+          sgst NUMERIC(15,2) DEFAULT 0,
+          total NUMERIC(15,2) DEFAULT 0,
+          notes TEXT,
+          created_by UUID REFERENCES erp_users(id),
+          created_at TIMESTAMPTZ DEFAULT NOW()
+        )`,
+        `CREATE TABLE IF NOT EXISTS quotation_lines (
+          id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+          quotation_id UUID REFERENCES quotations(id) ON DELETE CASCADE,
+          product_id UUID REFERENCES products(id),
+          description TEXT,
+          qty NUMERIC(10,2) DEFAULT 1,
+          rate NUMERIC(15,2) DEFAULT 0,
+          gst_rate NUMERIC(5,2) DEFAULT 18,
+          amount NUMERIC(15,2) DEFAULT 0
+        )`,
+        `CREATE TABLE IF NOT EXISTS crm_tasks (
+          id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+          company_id UUID REFERENCES erp_companies(id) ON DELETE CASCADE,
+          ref_type VARCHAR(30),
+          ref_id UUID,
+          title VARCHAR(300) NOT NULL,
+          due_date DATE,
+          priority VARCHAR(20) DEFAULT 'Medium',
+          status VARCHAR(30) DEFAULT 'Open',
+          assigned_to UUID REFERENCES erp_users(id),
+          notes TEXT,
+          created_at TIMESTAMPTZ DEFAULT NOW()
+        )`,
+        `CREATE TABLE IF NOT EXISTS crm_activities (
+          id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+          company_id UUID REFERENCES erp_companies(id) ON DELETE CASCADE,
+          ref_type VARCHAR(30),
+          ref_id UUID,
+          type VARCHAR(50),
+          notes TEXT,
+          date TIMESTAMPTZ DEFAULT NOW(),
+          user_id UUID REFERENCES erp_users(id)
+        )`,
+      ];
+      for (const sql of inv_migrations) {
+        try { await db(sql); } catch(e3) { console.log('Inv/CRM migration:', e3.message.slice(0,60)); }
+      }
+
+      // Seed default warehouse if none
+      const wh = await db('SELECT id FROM warehouses WHERE company_id=$1 LIMIT 1', [coId]);
+      if (!wh.rows.length) {
+        await db(`INSERT INTO warehouses (company_id,name,location,manager) VALUES ($1,$2,$3,$4)`,
+          [coId, 'Main Warehouse', 'Coimbatore, Tamil Nadu', 'Ramesh Muthuvel']);
+        await db(`INSERT INTO warehouses (company_id,name,location,manager) VALUES ($1,$2,$3,$4)`,
+          [coId, 'Secondary Store', 'Coimbatore, Tamil Nadu', 'Store Manager']);
+      }
+
+      // Seed sample products if none
+      const prd = await db('SELECT id FROM products WHERE company_id=$1 LIMIT 1', [coId]);
+      if (!prd.rows.length) {
+        const sampleProducts = [
+          ['PayPe HRMS Software', 'SW-001', '998313', 'Software', 'License', 9999, 0, 999, 5],
+          ['PayPe ERP Software', 'SW-002', '998313', 'Software', 'License', 14999, 0, 500, 5],
+          ['Laptop - Dell', 'HW-001', '84713090', 'Hardware', 'Nos', 65000, 58000, 10, 2],
+          ['Office Chair', 'FN-001', '94013000', 'Furniture', 'Nos', 8500, 6000, 15, 3],
+          ['A4 Paper Ream', 'ST-001', '48023900', 'Stationery', 'Packet', 350, 280, 100, 20],
+        ];
+        for (const [name, sku, hsn, cat, unit, sale, cost, stock, reorder] of sampleProducts) {
+          await db(`INSERT INTO products (company_id,name,sku,hsn,category,unit,sale_price,cost_price,stock,reorder_level)
+            VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)`,
+            [coId, name, sku, hsn, cat, unit, sale, cost, stock, reorder]);
+        }
+      }
+
+      // Seed sample leads if none
+      const ld = await db('SELECT id FROM leads WHERE company_id=$1 LIMIT 1', [coId]);
+      if (!ld.rows.length) {
+        const sampleLeads = [
+          ['Vijay Kumar', 'TechStart Pvt Ltd', 'vijay@techstart.in', '9876543210', 'Website', 'Qualified', 250000],
+          ['Priya Sharma', 'Retail Solutions', 'priya@retail.in', '9123456789', 'Referral', 'New', 150000],
+          ['Suresh Babu', 'Manufacturing Co', 'suresh@mfg.in', '9988776655', 'Cold Call', 'Contacted', 500000],
+          ['Anita Rajan', 'Hospital Group', 'anita@hospital.in', '9345678901', 'Exhibition', 'Proposal', 750000],
+        ];
+        for (const [name, company, email, phone, source, status, value] of sampleLeads) {
+          await db(`INSERT INTO leads (company_id,name,company_name,email,phone,source,status,value) VALUES ($1,$2,$3,$4,$5,$6,$7,$8)`,
+            [coId, name, company, email, phone, source, status, value]);
+        }
+      }
+
+      console.log('✅ Default company, user and data seeded!');
       }
     } catch(e) {
       dbStatus = 'error: ' + e.message;
@@ -751,6 +974,325 @@ app.get('/api/setup', async (req, res) => {
       }
     }
     res.json({ success: true, results });
+  } catch(e) { res.status(500).json({ success: false, message: e.message }); }
+});
+
+
+
+// ══════════════════════════════════════════════════════
+// ── INVENTORY API ────────────────────────────────────
+// ══════════════════════════════════════════════════════
+
+// PRODUCTS
+app.get('/api/inventory/products', auth, async (req, res) => {
+  try {
+    const r = await db('SELECT * FROM products WHERE company_id=$1 AND is_active=true ORDER BY name', [req.user.company_id]);
+    res.json({ success: true, data: r.rows });
+  } catch(e) { res.status(500).json({ success: false, message: e.message }); }
+});
+
+app.post('/api/inventory/products', auth, async (req, res) => {
+  try {
+    const { name, sku, hsn, category, unit, salePrice, costPrice, stock, reorderLevel, description, barcode } = req.body;
+    if (!name) return res.status(400).json({ success: false, message: 'Product name required' });
+    const r = await db(`INSERT INTO products (company_id,name,sku,hsn,category,unit,sale_price,cost_price,stock,reorder_level,description,barcode)
+      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12) RETURNING *`,
+      [req.user.company_id, name, sku||null, hsn||null, category||null, unit||'Nos',
+       parseFloat(salePrice)||0, parseFloat(costPrice)||0, parseFloat(stock)||0,
+       parseFloat(reorderLevel)||10, description||null, barcode||null]);
+    res.status(201).json({ success: true, data: r.rows[0], message: 'Product added!' });
+  } catch(e) { res.status(500).json({ success: false, message: e.message }); }
+});
+
+app.put('/api/inventory/products/:id', auth, async (req, res) => {
+  try {
+    const { name, sku, hsn, category, unit, salePrice, costPrice, reorderLevel, description } = req.body;
+    await db(`UPDATE products SET name=$1,sku=$2,hsn=$3,category=$4,unit=$5,sale_price=$6,cost_price=$7,reorder_level=$8,description=$9 WHERE id=$10 AND company_id=$11`,
+      [name, sku, hsn, category, unit, parseFloat(salePrice)||0, parseFloat(costPrice)||0, parseFloat(reorderLevel)||10, description, req.params.id, req.user.company_id]);
+    res.json({ success: true, message: 'Product updated!' });
+  } catch(e) { res.status(500).json({ success: false, message: e.message }); }
+});
+
+// WAREHOUSES
+app.get('/api/inventory/warehouses', auth, async (req, res) => {
+  try {
+    const r = await db('SELECT * FROM warehouses WHERE company_id=$1 AND is_active=true ORDER BY name', [req.user.company_id]);
+    res.json({ success: true, data: r.rows });
+  } catch(e) { res.status(500).json({ success: false, message: e.message }); }
+});
+
+app.post('/api/inventory/warehouses', auth, async (req, res) => {
+  try {
+    const { name, location, manager } = req.body;
+    if (!name) return res.status(400).json({ success: false, message: 'Warehouse name required' });
+    const r = await db(`INSERT INTO warehouses (company_id,name,location,manager) VALUES ($1,$2,$3,$4) RETURNING *`,
+      [req.user.company_id, name, location||null, manager||null]);
+    res.status(201).json({ success: true, data: r.rows[0], message: 'Warehouse added!' });
+  } catch(e) { res.status(500).json({ success: false, message: e.message }); }
+});
+
+// STOCK MOVEMENTS
+app.get('/api/inventory/stock-movements', auth, async (req, res) => {
+  try {
+    const r = await db(`SELECT sm.*, p.name AS product_name, p.sku, w.name AS warehouse_name
+      FROM stock_movements sm
+      LEFT JOIN products p ON p.id=sm.product_id
+      LEFT JOIN warehouses w ON w.id=sm.warehouse_id
+      WHERE sm.company_id=$1 ORDER BY sm.created_at DESC LIMIT 100`, [req.user.company_id]);
+    res.json({ success: true, data: r.rows });
+  } catch(e) { res.status(500).json({ success: false, message: e.message }); }
+});
+
+app.post('/api/inventory/stock-movements', auth, async (req, res) => {
+  try {
+    const { productId, warehouseId, type, qty, rate, reference, notes, date } = req.body;
+    if (!productId || !type || !qty) return res.status(400).json({ success: false, message: 'Product, type and qty required' });
+    const q = parseFloat(qty);
+    const stockChange = ['stock-in','purchase-receive','transfer-in'].includes(type) ? q : -q;
+    // Update product stock
+    await db('UPDATE products SET stock = stock + $1 WHERE id=$2 AND company_id=$3', [stockChange, productId, req.user.company_id]);
+    const r = await db(`INSERT INTO stock_movements (company_id,product_id,warehouse_id,type,qty,rate,reference,notes,date,created_by)
+      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) RETURNING *`,
+      [req.user.company_id, productId, warehouseId||null, type, q, parseFloat(rate)||0, reference||null, notes||null, date||new Date().toISOString().split('T')[0], req.user.id]);
+    res.status(201).json({ success: true, data: r.rows[0], message: 'Stock movement recorded!' });
+  } catch(e) { res.status(500).json({ success: false, message: e.message }); }
+});
+
+// PURCHASE ORDERS
+app.get('/api/inventory/purchase-orders', auth, async (req, res) => {
+  try {
+    const r = await db(`SELECT po.*, p.name AS vendor_name_full FROM purchase_orders po LEFT JOIN parties p ON p.id=po.vendor_id WHERE po.company_id=$1 ORDER BY po.created_at DESC`, [req.user.company_id]);
+    res.json({ success: true, data: r.rows });
+  } catch(e) { res.status(500).json({ success: false, message: e.message }); }
+});
+
+app.post('/api/inventory/purchase-orders', auth, async (req, res) => {
+  try {
+    const { vendorId, date, expectedDate, lines, notes } = req.body;
+    if (!vendorId || !date || !lines || !lines.length) return res.status(400).json({ success: false, message: 'Vendor, date and lines required' });
+    let sub=0, cgst=0, sgst=0;
+    lines.forEach(function(l) { const amt=(parseFloat(l.qty)||1)*(parseFloat(l.rate)||0); const gst=amt*(parseFloat(l.gstRate)||18)/100; sub+=amt; cgst+=gst/2; sgst+=gst/2; });
+    const count = await db('SELECT COUNT(*) FROM purchase_orders WHERE company_id=$1', [req.user.company_id]);
+    const poNo = 'PO/2026-27/' + String(parseInt(count.rows[0].count)+1).padStart(4,'0');
+    const vendor = await db('SELECT name FROM parties WHERE id=$1', [vendorId]);
+    const r = await db(`INSERT INTO purchase_orders (company_id,po_no,vendor_id,vendor_name,date,expected_date,subtotal,cgst,sgst,total,notes,created_by)
+      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12) RETURNING *`,
+      [req.user.company_id, poNo, vendorId, vendor.rows[0]?.name, date, expectedDate||null, sub, cgst, sgst, sub+cgst+sgst, notes||null, req.user.id]);
+    const po = r.rows[0];
+    for (const l of lines) {
+      const amt=(parseFloat(l.qty)||1)*(parseFloat(l.rate)||0);
+      await db(`INSERT INTO purchase_order_lines (po_id,product_id,description,qty,rate,gst_rate,amount) VALUES ($1,$2,$3,$4,$5,$6,$7)`,
+        [po.id, l.productId||null, l.description||null, parseFloat(l.qty)||1, parseFloat(l.rate)||0, parseFloat(l.gstRate)||18, amt]);
+    }
+    res.status(201).json({ success: true, data: po, message: 'Purchase Order '+poNo+' created!' });
+  } catch(e) { res.status(500).json({ success: false, message: e.message }); }
+});
+
+app.put('/api/inventory/purchase-orders/:id/status', auth, async (req, res) => {
+  try {
+    await db('UPDATE purchase_orders SET status=$1 WHERE id=$2 AND company_id=$3', [req.body.status, req.params.id, req.user.company_id]);
+    res.json({ success: true, message: 'PO status updated!' });
+  } catch(e) { res.status(500).json({ success: false, message: e.message }); }
+});
+
+// SALES ORDERS
+app.get('/api/inventory/sales-orders', auth, async (req, res) => {
+  try {
+    const r = await db(`SELECT so.*, p.name AS customer_name_full FROM sales_orders so LEFT JOIN parties p ON p.id=so.customer_id WHERE so.company_id=$1 ORDER BY so.created_at DESC`, [req.user.company_id]);
+    res.json({ success: true, data: r.rows });
+  } catch(e) { res.status(500).json({ success: false, message: e.message }); }
+});
+
+app.post('/api/inventory/sales-orders', auth, async (req, res) => {
+  try {
+    const { customerId, date, deliveryDate, lines, notes } = req.body;
+    if (!customerId || !date || !lines || !lines.length) return res.status(400).json({ success: false, message: 'Customer, date and lines required' });
+    let sub=0, cgst=0, sgst=0;
+    lines.forEach(function(l) { const amt=(parseFloat(l.qty)||1)*(parseFloat(l.rate)||0); const gst=amt*(parseFloat(l.gstRate)||18)/100; sub+=amt; cgst+=gst/2; sgst+=gst/2; });
+    const count = await db('SELECT COUNT(*) FROM sales_orders WHERE company_id=$1', [req.user.company_id]);
+    const soNo = 'SO/2026-27/' + String(parseInt(count.rows[0].count)+1).padStart(4,'0');
+    const customer = await db('SELECT name FROM parties WHERE id=$1', [customerId]);
+    const r = await db(`INSERT INTO sales_orders (company_id,so_no,customer_id,customer_name,date,delivery_date,subtotal,cgst,sgst,total,notes,created_by)
+      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12) RETURNING *`,
+      [req.user.company_id, soNo, customerId, customer.rows[0]?.name, date, deliveryDate||null, sub, cgst, sgst, sub+cgst+sgst, notes||null, req.user.id]);
+    const so = r.rows[0];
+    for (const l of lines) {
+      const amt=(parseFloat(l.qty)||1)*(parseFloat(l.rate)||0);
+      await db(`INSERT INTO sales_order_lines (so_id,product_id,description,qty,rate,gst_rate,amount) VALUES ($1,$2,$3,$4,$5,$6,$7)`,
+        [so.id, l.productId||null, l.description||null, parseFloat(l.qty)||1, parseFloat(l.rate)||0, parseFloat(l.gstRate)||18, amt]);
+    }
+    res.status(201).json({ success: true, data: so, message: 'Sales Order '+soNo+' created!' });
+  } catch(e) { res.status(500).json({ success: false, message: e.message }); }
+});
+
+// INVENTORY REPORTS
+app.get('/api/inventory/reports', auth, async (req, res) => {
+  try {
+    const [products, movements, lowStock] = await Promise.all([
+      db('SELECT COUNT(*) AS total, SUM(stock*cost_price) AS stock_value FROM products WHERE company_id=$1 AND is_active=true', [req.user.company_id]),
+      db("SELECT COUNT(*) AS total FROM stock_movements WHERE company_id=$1 AND date >= NOW()-INTERVAL '30 days'", [req.user.company_id]),
+      db('SELECT * FROM products WHERE company_id=$1 AND stock <= reorder_level AND is_active=true ORDER BY stock ASC LIMIT 10', [req.user.company_id]),
+    ]);
+    res.json({ success: true, data: {
+      totalProducts: parseInt(products.rows[0].total)||0,
+      stockValue: parseFloat(products.rows[0].stock_value)||0,
+      movementsThisMonth: parseInt(movements.rows[0].total)||0,
+      lowStockProducts: lowStock.rows,
+    }});
+  } catch(e) { res.status(500).json({ success: false, message: e.message }); }
+});
+
+// ══════════════════════════════════════════════════════
+// ── CRM API ──────────────────────────────────────────
+// ══════════════════════════════════════════════════════
+
+// LEADS
+app.get('/api/crm/leads', auth, async (req, res) => {
+  try {
+    const { status } = req.query;
+    let q = 'SELECT l.*, u.name AS assigned_name FROM leads l LEFT JOIN erp_users u ON u.id=l.assigned_to WHERE l.company_id=$1';
+    const params = [req.user.company_id];
+    if (status) { params.push(status); q += ' AND l.status=$' + params.length; }
+    q += ' ORDER BY l.created_at DESC';
+    const r = await db(q, params);
+    res.json({ success: true, data: r.rows });
+  } catch(e) { res.status(500).json({ success: false, message: e.message }); }
+});
+
+app.post('/api/crm/leads', auth, async (req, res) => {
+  try {
+    const { name, companyName, email, phone, source, status, value, notes } = req.body;
+    if (!name) return res.status(400).json({ success: false, message: 'Lead name required' });
+    const r = await db(`INSERT INTO leads (company_id,name,company_name,email,phone,source,status,value,assigned_to,notes)
+      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) RETURNING *`,
+      [req.user.company_id, name, companyName||null, email||null, phone||null, source||'Website', status||'New', parseFloat(value)||0, req.user.id, notes||null]);
+    res.status(201).json({ success: true, data: r.rows[0], message: 'Lead added!' });
+  } catch(e) { res.status(500).json({ success: false, message: e.message }); }
+});
+
+app.put('/api/crm/leads/:id', auth, async (req, res) => {
+  try {
+    const { name, companyName, email, phone, source, status, value, notes } = req.body;
+    await db(`UPDATE leads SET name=$1,company_name=$2,email=$3,phone=$4,source=$5,status=$6,value=$7,notes=$8 WHERE id=$9 AND company_id=$10`,
+      [name, companyName, email, phone, source, status, parseFloat(value)||0, notes, req.params.id, req.user.company_id]);
+    res.json({ success: true, message: 'Lead updated!' });
+  } catch(e) { res.status(500).json({ success: false, message: e.message }); }
+});
+
+// OPPORTUNITIES
+app.get('/api/crm/opportunities', auth, async (req, res) => {
+  try {
+    const r = await db(`SELECT o.*, l.name AS lead_name, l.company_name, u.name AS assigned_name
+      FROM opportunities o LEFT JOIN leads l ON l.id=o.lead_id LEFT JOIN erp_users u ON u.id=o.assigned_to
+      WHERE o.company_id=$1 ORDER BY o.created_at DESC`, [req.user.company_id]);
+    res.json({ success: true, data: r.rows });
+  } catch(e) { res.status(500).json({ success: false, message: e.message }); }
+});
+
+app.post('/api/crm/opportunities', auth, async (req, res) => {
+  try {
+    const { leadId, title, value, stage, probability, closeDate, notes } = req.body;
+    if (!title) return res.status(400).json({ success: false, message: 'Title required' });
+    const r = await db(`INSERT INTO opportunities (company_id,lead_id,title,value,stage,probability,close_date,assigned_to,notes)
+      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9) RETURNING *`,
+      [req.user.company_id, leadId||null, title, parseFloat(value)||0, stage||'Prospect', parseFloat(probability)||10, closeDate||null, req.user.id, notes||null]);
+    res.status(201).json({ success: true, data: r.rows[0], message: 'Opportunity added!' });
+  } catch(e) { res.status(500).json({ success: false, message: e.message }); }
+});
+
+app.put('/api/crm/opportunities/:id', auth, async (req, res) => {
+  try {
+    const { title, value, stage, probability, closeDate, notes } = req.body;
+    await db(`UPDATE opportunities SET title=$1,value=$2,stage=$3,probability=$4,close_date=$5,notes=$6 WHERE id=$7 AND company_id=$8`,
+      [title, parseFloat(value)||0, stage, parseFloat(probability)||10, closeDate, notes, req.params.id, req.user.company_id]);
+    res.json({ success: true, message: 'Opportunity updated!' });
+  } catch(e) { res.status(500).json({ success: false, message: e.message }); }
+});
+
+// QUOTATIONS
+app.get('/api/crm/quotations', auth, async (req, res) => {
+  try {
+    const r = await db(`SELECT q.*, l.name AS lead_name FROM quotations q LEFT JOIN leads l ON l.id=q.lead_id WHERE q.company_id=$1 ORDER BY q.created_at DESC`, [req.user.company_id]);
+    res.json({ success: true, data: r.rows });
+  } catch(e) { res.status(500).json({ success: false, message: e.message }); }
+});
+
+app.post('/api/crm/quotations', auth, async (req, res) => {
+  try {
+    const { leadId, customerId, customerName, date, validUntil, lines, notes } = req.body;
+    if (!date || !lines || !lines.length) return res.status(400).json({ success: false, message: 'Date and lines required' });
+    let sub=0, cgst=0, sgst=0;
+    lines.forEach(function(l) { const amt=(parseFloat(l.qty)||1)*(parseFloat(l.rate)||0); const gst=amt*(parseFloat(l.gstRate)||18)/100; sub+=amt; cgst+=gst/2; sgst+=gst/2; });
+    const count = await db('SELECT COUNT(*) FROM quotations WHERE company_id=$1', [req.user.company_id]);
+    const qNo = 'QT/2026-27/' + String(parseInt(count.rows[0].count)+1).padStart(4,'0');
+    const r = await db(`INSERT INTO quotations (company_id,quote_no,lead_id,customer_id,customer_name,date,valid_until,subtotal,cgst,sgst,total,notes,created_by)
+      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13) RETURNING *`,
+      [req.user.company_id, qNo, leadId||null, customerId||null, customerName||null, date, validUntil||null, sub, cgst, sgst, sub+cgst+sgst, notes||null, req.user.id]);
+    const qt = r.rows[0];
+    for (const l of lines) {
+      const amt=(parseFloat(l.qty)||1)*(parseFloat(l.rate)||0);
+      await db(`INSERT INTO quotation_lines (quotation_id,product_id,description,qty,rate,gst_rate,amount) VALUES ($1,$2,$3,$4,$5,$6,$7)`,
+        [qt.id, l.productId||null, l.description||null, parseFloat(l.qty)||1, parseFloat(l.rate)||0, parseFloat(l.gstRate)||18, amt]);
+    }
+    res.status(201).json({ success: true, data: qt, message: 'Quotation '+qNo+' created!' });
+  } catch(e) { res.status(500).json({ success: false, message: e.message }); }
+});
+
+// TASKS
+app.get('/api/crm/tasks', auth, async (req, res) => {
+  try {
+    const r = await db(`SELECT t.*, u.name AS assigned_name FROM crm_tasks t LEFT JOIN erp_users u ON u.id=t.assigned_to WHERE t.company_id=$1 ORDER BY t.due_date ASC NULLS LAST, t.created_at DESC`, [req.user.company_id]);
+    res.json({ success: true, data: r.rows });
+  } catch(e) { res.status(500).json({ success: false, message: e.message }); }
+});
+
+app.post('/api/crm/tasks', auth, async (req, res) => {
+  try {
+    const { title, refType, refId, dueDate, priority, notes } = req.body;
+    if (!title) return res.status(400).json({ success: false, message: 'Title required' });
+    const r = await db(`INSERT INTO crm_tasks (company_id,ref_type,ref_id,title,due_date,priority,assigned_to,notes)
+      VALUES ($1,$2,$3,$4,$5,$6,$7,$8) RETURNING *`,
+      [req.user.company_id, refType||'general', refId||null, title, dueDate||null, priority||'Medium', req.user.id, notes||null]);
+    res.status(201).json({ success: true, data: r.rows[0], message: 'Task added!' });
+  } catch(e) { res.status(500).json({ success: false, message: e.message }); }
+});
+
+app.put('/api/crm/tasks/:id/status', auth, async (req, res) => {
+  try {
+    await db('UPDATE crm_tasks SET status=$1 WHERE id=$2 AND company_id=$3', [req.body.status, req.params.id, req.user.company_id]);
+    res.json({ success: true, message: 'Task updated!' });
+  } catch(e) { res.status(500).json({ success: false, message: e.message }); }
+});
+
+// CRM PIPELINE
+app.get('/api/crm/pipeline', auth, async (req, res) => {
+  try {
+    const stages = ['Prospect', 'Qualified', 'Proposal', 'Negotiation', 'Won', 'Lost'];
+    const r = await db('SELECT stage, COUNT(*) AS count, SUM(value) AS total_value FROM opportunities WHERE company_id=$1 GROUP BY stage', [req.user.company_id]);
+    const pipeline = stages.map(function(stage) {
+      const found = r.rows.find(function(row) { return row.stage === stage; });
+      return { stage, count: parseInt(found?.count||0), totalValue: parseFloat(found?.total_value||0) };
+    });
+    const allOpps = await db('SELECT o.*, l.name AS lead_name, l.company_name FROM opportunities o LEFT JOIN leads l ON l.id=o.lead_id WHERE o.company_id=$1 ORDER BY o.value DESC', [req.user.company_id]);
+    res.json({ success: true, data: { pipeline, opportunities: allOpps.rows } });
+  } catch(e) { res.status(500).json({ success: false, message: e.message }); }
+});
+
+// CRM REPORTS
+app.get('/api/crm/reports', auth, async (req, res) => {
+  try {
+    const [leads, opps, quotes, tasks] = await Promise.all([
+      db('SELECT status, COUNT(*) AS count, SUM(value) AS total FROM leads WHERE company_id=$1 GROUP BY status', [req.user.company_id]),
+      db('SELECT stage, COUNT(*) AS count, SUM(value) AS total FROM opportunities WHERE company_id=$1 GROUP BY stage', [req.user.company_id]),
+      db("SELECT COUNT(*) AS total, SUM(total) AS value FROM quotations WHERE company_id=$1 AND status!='Rejected'", [req.user.company_id]),
+      db("SELECT status, COUNT(*) AS count FROM crm_tasks WHERE company_id=$1 GROUP BY status", [req.user.company_id]),
+    ]);
+    res.json({ success: true, data: {
+      leads: leads.rows,
+      opportunities: opps.rows,
+      quotations: quotes.rows[0],
+      tasks: tasks.rows,
+    }});
   } catch(e) { res.status(500).json({ success: false, message: e.message }); }
 });
 
