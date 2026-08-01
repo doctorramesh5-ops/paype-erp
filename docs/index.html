@@ -1118,7 +1118,7 @@ async function loadPayments(filter, el) {
   c2.innerHTML = '<div class="ld"><div class="sp"></div>Loading...</div>';
 
   if (filter === 'stats') {
-    var res = await api('/api/payments/stats');
+    var res = await req('GET','/api/payments/stats');
     if (!res.success) { c2.innerHTML = '<div class="em"><h3>Error loading stats</h3></div>'; return; }
     var d = res.data;
     var h = '<div class="g3" style="margin-bottom:16px;">';
@@ -1145,7 +1145,7 @@ async function loadPayments(filter, el) {
   }
 
   var url = '/api/payments/subscriptions';
-  var res = await api(url);
+  var res = await req('GET',url);
   if (!res.success) { c2.innerHTML = '<div class="em"><h3>Error</h3><p>'+res.message+'</p></div>'; return; }
   var subs = res.data;
   if (filter !== 'all') subs = subs.filter(function(s){return s.status===filter;});
@@ -1181,20 +1181,20 @@ async function loadPayments(filter, el) {
 async function markPaid(id) {
   var today = new Date().toISOString().split('T')[0];
   var nextDue = new Date(); nextDue.setMonth(nextDue.getMonth()+1);
-  var res = await api('/api/payments/subscriptions/'+id, 'PUT', {status:'Paid', paidDate:today, nextDueDate:nextDue.toISOString().split('T')[0]});
+  var res = await req('GET','/api/payments/subscriptions/'+id, 'PUT', {status:'Paid', paidDate:today, nextDueDate:nextDue.toISOString().split('T')[0]});
   if (res.success) { toast('Marked as Paid!','ok'); loadPayments('all'); }
   else toast(res.message,'err');
 }
 
 async function markOverdue(id) {
-  var res = await api('/api/payments/subscriptions/'+id, 'PUT', {status:'Overdue'});
+  var res = await req('GET','/api/payments/subscriptions/'+id, 'PUT', {status:'Overdue'});
   if (res.success) { toast('Marked as Overdue','ok'); loadPayments('all'); }
   else toast(res.message,'err');
 }
 
 async function deleteSubscription(id) {
   if (!confirm('Delete this subscription record?')) return;
-  var res = await api('/api/payments/subscriptions/'+id, 'DELETE');
+  var res = await req('GET','/api/payments/subscriptions/'+id, 'DELETE');
   if (res.success) { toast('Deleted!','ok'); loadPayments('all'); }
   else toast(res.message,'err');
 }
@@ -1219,7 +1219,7 @@ async function saveSubscription() {
     transactionId: document.getElementById('sub-txn').value.trim()||undefined,
     notes: document.getElementById('sub-notes').value.trim()||undefined
   };
-  var res = await api('/api/payments/subscriptions', 'POST', body);
+  var res = await req('GET','/api/payments/subscriptions', 'POST', body);
   if (res.success) {
     toast('Customer added!','ok');
     closeModal('addSubscription');
@@ -1228,7 +1228,7 @@ async function saveSubscription() {
 }
 
 function exportPaymentCSV() {
-  api('/api/payments/subscriptions').then(function(res) {
+  req('GET','/api/payments/subscriptions').then(function(res) {
     if (!res.success) { toast('Export failed','err'); return; }
     var csv = 'Customer,Company,Email,Mobile,Plan,Payment Type,Amount,Status,Due Date,Paid Date,Transaction ID\n';
     res.data.forEach(function(s) {
