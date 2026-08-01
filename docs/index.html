@@ -220,6 +220,8 @@ tr:hover td{background:#FAFBFC;}
       <div class="ni" id="ni-coa" onclick="go('coa',this)"><svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M4 6h16M4 10h16M4 14h16M4 18h16"/></svg>Chart of Accounts</div>
       <div class="ni" id="ni-parties" onclick="go('parties',this)"><svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>Parties</div>
       <div class="ni" id="ni-assets" onclick="go('assets',this)"><svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v16"/></svg>Fixed Assets</div>
+      <div class="sb-section">Payments</div>
+      <div class="ni" id="ni-payments" onclick="go('payments',this)"><svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/><line x1="6" y1="15" x2="10" y2="15"/></svg>Payment Management</div>
       <div class="sb-section">Reports</div>
       <div class="ni" id="ni-reports" onclick="go('reports',this)"><svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>Financial Reports</div>
       <div class="ni" id="ni-audit" onclick="go('audit',this)"><svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>Audit Trail</div>
@@ -244,6 +246,20 @@ tr:hover td{background:#FAFBFC;}
     </div>
     <div class="content">
       <div class="pg on" id="pg-dashboard"><div class="ph"><div><h1>📊 Dashboard</h1><p id="dash-sub">FY 2026-27</p></div><div style="display:flex;gap:7px;"><button class="btn bto" onclick="go('reports',document.getElementById('ni-reports'))">Reports</button><button class="btn btp" onclick="openModal('invoice')">+ New Invoice</button></div></div><div id="dash-content"><div class="ld"><div class="sp"></div>Loading...</div></div></div>
+      <div class="pg" id="pg-payments">
+        <div class="ph">
+          <div><h1>💳 Payment Management</h1><p>SaaS subscriptions & customer payments</p></div>
+          <button class="btn btp" onclick="openAddSubscription()">+ Add Customer</button>
+        </div>
+        <div class="tab-row">
+          <button class="tab-btn on" onclick="loadPayments('all',this)">All</button>
+          <button class="tab-btn" onclick="loadPayments('Paid',this)">Paid</button>
+          <button class="tab-btn" onclick="loadPayments('Unpaid',this)">Unpaid</button>
+          <button class="tab-btn" onclick="loadPayments('Overdue',this)">Overdue</button>
+          <button class="tab-btn" onclick="loadPayments('stats',this)">Stats</button>
+        </div>
+        <div id="payments-content"><div class="ld"><div class="sp"></div>Loading...</div></div>
+      </div>
       <div class="pg" id="pg-journal"><div class="ph"><div><h1>📝 Journal Entries</h1><p>Double-entry bookkeeping</p></div><button class="btn btp mgr-btn" onclick="openModal('journal')">+ New Entry</button></div><div id="je-content"><div class="ld"><div class="sp"></div>Loading...</div></div></div>
       <div class="pg" id="pg-ar"><div class="ph"><div><h1>💰 Accounts Receivable</h1><p>Sales invoices & collections</p></div><button class="btn btp" onclick="openModal('invoice')">+ New Invoice</button></div><div class="tab-row"><button class="tab-btn on" onclick="loadAR('all',this)">All</button><button class="tab-btn" onclick="loadAR('Unpaid',this)">Unpaid</button><button class="tab-btn" onclick="loadAR('Paid',this)">Paid</button><button class="tab-btn" onclick="loadAR('Overdue',this)">Overdue</button></div><div id="ar-content"><div class="ld"><div class="sp"></div>Loading...</div></div></div>
       <div class="pg" id="pg-ap"><div class="ph"><div><h1>🧾 Accounts Payable</h1><p>Purchase bills & payments</p></div><button class="btn btp mgr-btn" onclick="openModal('bill')">+ New Bill</button></div><div id="ap-content"><div class="ld"><div class="sp"></div>Loading...</div></div></div>
@@ -514,6 +530,7 @@ function go(name,el){
   var pg=document.getElementById('pg-'+name);
   if(pg)pg.classList.add('on');
   if(el)el.classList.add('on');
+  if(name==='payments') loadPayments('all');
   document.getElementById('tb-title').textContent=el?el.textContent.trim():name;
   document.getElementById('notif-panel').classList.remove('on');
   document.getElementById('sb').classList.remove('open');
@@ -1095,6 +1112,143 @@ function loadUsers(){
 }
 
 // SETTINGS
+async function loadPayments(filter, el) {
+  if(el){document.querySelectorAll('#pg-payments .tab-btn').forEach(function(b){b.classList.remove('on');});el.classList.add('on');}
+  var c2 = document.getElementById('payments-content');
+  c2.innerHTML = '<div class="ld"><div class="sp"></div>Loading...</div>';
+
+  if (filter === 'stats') {
+    var res = await api('/api/payments/stats');
+    if (!res.success) { c2.innerHTML = '<div class="em"><h3>Error loading stats</h3></div>'; return; }
+    var d = res.data;
+    var h = '<div class="g3" style="margin-bottom:16px;">';
+    h += '<div class="kcard"><div class="kv" style="color:var(--teal);">'+d.subscriptions.total+'</div><div class="kl">Total Customers</div></div>';
+    h += '<div class="kcard"><div class="kv" style="color:var(--green);">'+d.subscriptions.paid+'</div><div class="kl">Paid</div></div>';
+    h += '<div class="kcard"><div class="kv" style="color:var(--red);">'+d.subscriptions.unpaid+'</div><div class="kl">Unpaid</div></div>';
+    h += '<div class="kcard"><div class="kv" style="color:#B7791F;">'+d.subscriptions.overdue+'</div><div class="kl">Overdue</div></div>';
+    h += '<div class="kcard"><div class="kv" style="color:var(--green);">Rs '+Number(d.subscriptions.revenue).toLocaleString('en-IN')+'</div><div class="kl">Total Revenue</div></div>';
+    h += '<div class="kcard"><div class="kv" style="color:var(--navy);">'+d.parties+'</div><div class="kl">ERP Parties</div></div>';
+    h += '</div>';
+    h += '<div class="card"><div class="ch"><div class="ct">Revenue by Plan</div></div><div class="cb">';
+    h += '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;">';
+    var plans = ['Starter','Growth','Business','Enterprise'];
+    var planClrs = {Starter:'#00C2A8',Growth:'#805AD5',Business:'#D69E2E',Enterprise:'#E63329'};
+    plans.forEach(function(p) {
+      h += '<div style="background:rgba(0,0,0,.03);border-radius:10px;padding:14px;text-align:center;">';
+      h += '<div style="font-size:11px;font-weight:700;color:'+planClrs[p]+';text-transform:uppercase;margin-bottom:8px;">'+p+'</div>';
+      h += '<div style="font-size:22px;font-weight:900;color:var(--navy);">--</div>';
+      h += '<div style="font-size:11px;color:var(--gray);">customers</div></div>';
+    });
+    h += '</div></div></div>';
+    c2.innerHTML = h;
+    return;
+  }
+
+  var url = '/api/payments/subscriptions';
+  var res = await api(url);
+  if (!res.success) { c2.innerHTML = '<div class="em"><h3>Error</h3><p>'+res.message+'</p></div>'; return; }
+  var subs = res.data;
+  if (filter !== 'all') subs = subs.filter(function(s){return s.status===filter;});
+  if (!subs.length) {
+    c2.innerHTML = '<div class="card"><div class="cb"><div class="em"><h3>No records found</h3><p>Add customers to track payments</p><button class="btn btp" onclick="openAddSubscription()" style="margin-top:12px;">+ Add Customer</button></div></div></div>';
+    return;
+  }
+  var h = '<div class="card"><div class="ch"><div class="ct">Customer Subscriptions ('+subs.length+')</div><button class="btn bto btsm" onclick="exportPaymentCSV()">Export CSV</button></div><div class="tw"><table><thead><tr><th>Customer</th><th>Plan</th><th>Payment Type</th><th>Amount</th><th>Status</th><th>Due Date</th><th>Paid Date</th><th>Action</th></tr></thead><tbody>';
+  subs.forEach(function(s) {
+    var sc = s.status==='Paid'?'bg':s.status==='Overdue'?'br':'by';
+    var ptClr = s.payment_type==='Monthly'?'bt':s.payment_type==='Yearly'?'bg':s.payment_type==='EMI'?'bp':'by';
+    h += '<tr>';
+    h += '<td><div style="font-weight:600;">'+s.customer_name+'</div>';
+    if (s.customer_company) h += '<div style="font-size:11px;color:var(--gray);">'+s.customer_company+'</div>';
+    if (s.customer_email) h += '<div style="font-size:11px;color:var(--gray);">'+s.customer_email+'</div>';
+    h += '</td>';
+    h += '<td><span class="b bn">'+s.plan+'</span></td>';
+    h += '<td><span class="b '+ptClr+'">'+s.payment_type+'</span></td>';
+    h += '<td style="font-weight:600;">Rs '+Number(s.amount||0).toLocaleString('en-IN')+'</td>';
+    h += '<td><span class="b '+sc+'">'+s.status+'</span></td>';
+    h += '<td>'+(s.due_date?new Date(s.due_date).toLocaleDateString('en-IN'):'--')+'</td>';
+    h += '<td>'+(s.paid_date?new Date(s.paid_date).toLocaleDateString('en-IN'):'--')+'</td>';
+    h += '<td><div style="display:flex;gap:4px;">';
+    if (s.status !== 'Paid') h += '<button class="btn btg btsm" data-id="'+s.id+'" onclick="markPaid(this.dataset.id)">Mark Paid</button>';
+    if (s.status === 'Unpaid') h += '<button class="btn btr btsm" data-id="'+s.id+'" onclick="markOverdue(this.dataset.id)">Overdue</button>';
+    h += '<button class="btn bto btsm" data-id="'+s.id+'" onclick="deleteSubscription(this.dataset.id)">&#x2715;</button>';
+    h += '</div></td></tr>';
+  });
+  h += '</tbody></table></div></div>';
+  c2.innerHTML = h;
+}
+
+async function markPaid(id) {
+  var today = new Date().toISOString().split('T')[0];
+  var nextDue = new Date(); nextDue.setMonth(nextDue.getMonth()+1);
+  var res = await api('/api/payments/subscriptions/'+id, 'PUT', {status:'Paid', paidDate:today, nextDueDate:nextDue.toISOString().split('T')[0]});
+  if (res.success) { toast('Marked as Paid!','ok'); loadPayments('all'); }
+  else toast(res.message,'err');
+}
+
+async function markOverdue(id) {
+  var res = await api('/api/payments/subscriptions/'+id, 'PUT', {status:'Overdue'});
+  if (res.success) { toast('Marked as Overdue','ok'); loadPayments('all'); }
+  else toast(res.message,'err');
+}
+
+async function deleteSubscription(id) {
+  if (!confirm('Delete this subscription record?')) return;
+  var res = await api('/api/payments/subscriptions/'+id, 'DELETE');
+  if (res.success) { toast('Deleted!','ok'); loadPayments('all'); }
+  else toast(res.message,'err');
+}
+
+async function saveSubscription() {
+  var name = document.getElementById('sub-name').value.trim();
+  if (!name) { toast('Customer name required','err'); return; }
+  var plan = document.getElementById('sub-plan').value;
+  var defaultAmounts = {Starter:2999, Growth:7999, Business:19999, Enterprise:0};
+  var body = {
+    customerName: name,
+    customerCompany: document.getElementById('sub-company').value.trim()||undefined,
+    customerEmail: document.getElementById('sub-email').value.trim()||undefined,
+    customerMobile: document.getElementById('sub-mobile').value.trim()||undefined,
+    plan: plan,
+    paymentType: document.getElementById('sub-type').value,
+    amount: parseFloat(document.getElementById('sub-amount').value)||defaultAmounts[plan]||0,
+    status: document.getElementById('sub-status').value,
+    dueDate: document.getElementById('sub-due').value||undefined,
+    paidDate: document.getElementById('sub-paid').value||undefined,
+    paymentMethod: document.getElementById('sub-method').value||undefined,
+    transactionId: document.getElementById('sub-txn').value.trim()||undefined,
+    notes: document.getElementById('sub-notes').value.trim()||undefined
+  };
+  var res = await api('/api/payments/subscriptions', 'POST', body);
+  if (res.success) {
+    toast('Customer added!','ok');
+    closeModal('addSubscription');
+    loadPayments('all');
+  } else toast(res.message||'Failed','err');
+}
+
+function exportPaymentCSV() {
+  api('/api/payments/subscriptions').then(function(res) {
+    if (!res.success) { toast('Export failed','err'); return; }
+    var csv = 'Customer,Company,Email,Mobile,Plan,Payment Type,Amount,Status,Due Date,Paid Date,Transaction ID
+';
+    res.data.forEach(function(s) {
+      csv += [s.customer_name, s.customer_company||'', s.customer_email||'', s.customer_mobile||'', s.plan, s.payment_type, s.amount, s.status, s.due_date||'', s.paid_date||'', s.transaction_id||''].join(',') + '
+';
+    });
+    var blob = new Blob([csv],{type:'text/csv'});
+    var a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'PayPe_Subscriptions_'+new Date().toLocaleDateString('en-IN').replace(/\//g,'-')+'.csv';
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    toast('Exported!','ok');
+  });
+}
+
+function openAddSubscription() {
+  openModal('addSubscription');
+}
+
 function loadSettings(){
   var themes=[{name:'Navy Blue',p:'#0D1B3E',a:'#00C2A8'},{name:'Deep Purple',p:'#4A1C7C',a:'#9F7AEA'},{name:'Forest Green',p:'#1A3D2B',a:'#48BB78'},{name:'Charcoal',p:'#1A202C',a:'#63B3ED'},{name:'Crimson',p:'#7B1F1F',a:'#FC8181'},{name:'Ocean Blue',p:'#1A365D',a:'#4299E1'}];
   var h='<div class="card"><div class="ch"><div class="ct">🎨 Theme</div></div><div class="cb"><div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:10px;">';
@@ -1117,4 +1271,31 @@ function toast(msg,type){var t=document.createElement('div');t.className='tst'+(
 if(TOKEN&&USER){ROLE=USER.role||'employee';startApp();}
 </script>
 <script src="paype-chatbot.js"></script>
+
+<div class="ov" id="modal-addSubscription" onclick="if(event.target===this)closeModal('addSubscription')">
+  <div class="mo" style="max-width:600px;">
+    <div class="mh"><div class="mt">Add Customer Subscription</div><button class="mx" onclick="closeModal('addSubscription')">&#x2715;</button></div>
+    <div class="mb">
+      <div class="g2">
+        <div class="ff2"><label>Customer Name *</label><input id="sub-name" placeholder="Full name"></div>
+        <div class="ff2"><label>Company</label><input id="sub-company" placeholder="Company name"></div>
+        <div class="ff2"><label>Email</label><input id="sub-email" type="email" placeholder="email@example.com"></div>
+        <div class="ff2"><label>Mobile</label><input id="sub-mobile" placeholder="+91 XXXXX XXXXX"></div>
+        <div class="ff2"><label>Plan</label><select id="sub-plan"><option value="Starter">Starter - Rs 2,999/mo</option><option value="Growth">Growth - Rs 7,999/mo</option><option value="Business">Business - Rs 19,999/mo</option><option value="Enterprise">Enterprise - Custom</option></select></div>
+        <div class="ff2"><label>Payment Type</label><select id="sub-type"><option value="Monthly">Monthly</option><option value="Yearly">Yearly</option><option value="EMI">EMI</option><option value="BNPL">Buy Now Pay Later</option><option value="Full">Full Payment</option></select></div>
+        <div class="ff2"><label>Amount (Rs)</label><input id="sub-amount" type="number" placeholder="2999"></div>
+        <div class="ff2"><label>Status</label><select id="sub-status"><option value="Unpaid">Unpaid</option><option value="Paid">Paid</option><option value="Overdue">Overdue</option></select></div>
+        <div class="ff2"><label>Due Date</label><input id="sub-due" type="date"></div>
+        <div class="ff2"><label>Paid Date</label><input id="sub-paid" type="date"></div>
+        <div class="ff2"><label>Payment Method</label><select id="sub-method"><option value="">Select</option><option value="Razorpay">Razorpay</option><option value="UPI">UPI</option><option value="Bank Transfer">Bank Transfer</option><option value="Cash">Cash</option><option value="Cheque">Cheque</option></select></div>
+        <div class="ff2"><label>Transaction ID</label><input id="sub-txn" placeholder="Payment reference"></div>
+      </div>
+      <div class="ff2"><label>Notes</label><textarea id="sub-notes" rows="2" placeholder="Additional notes..."></textarea></div>
+    </div>
+    <div class="mf">
+      <button class="btn bto" onclick="closeModal('addSubscription')">Cancel</button>
+      <button class="btn btp" onclick="saveSubscription()">Save Customer</button>
+    </div>
+  </div>
+</div>
 </body></html>
