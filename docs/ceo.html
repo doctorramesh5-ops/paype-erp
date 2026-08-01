@@ -257,6 +257,10 @@ tr:hover td{background:rgba(0,194,168,.02);}
           <div class="ch"><div class="ct">🔢 GST Overview</div></div>
           <div class="cb" id="fin-gst"></div>
         </div>
+            <div class="card">
+              <div class="card-h"><span>💳 SaaS Subscriptions</span></div>
+              <div id="fin-payments"><div class="em" style="padding:20px;">Loading...</div></div>
+            </div>
       </div>
       <div class="g2">
         <div class="card">
@@ -592,6 +596,23 @@ async function loadFinance(){
       `;
     }
   } catch(e){ document.getElementById('fin-gst').innerHTML='<div class="em">GST data unavailable</div>'; }
+
+  // SaaS Payment Summary
+  try {
+    var ps = await erpApi('/api/payments/stats');
+    if (ps.success) {
+      var pd = ps.data.subscriptions;
+      var payEl = document.getElementById('fin-payments');
+      if (payEl) {
+        payEl.innerHTML = 
+          '<div class="stat-row"><span>Total Customers</span><span style="font-weight:700;">'+pd.total+'</span></div>' +
+          '<div class="stat-row"><span style="color:var(--green);">Paid</span><span style="font-weight:700;color:var(--green);">'+pd.paid+'</span></div>' +
+          '<div class="stat-row"><span style="color:var(--red);">Unpaid</span><span style="font-weight:700;color:var(--red);">'+pd.unpaid+'</span></div>' +
+          '<div class="stat-row"><span style="color:#B7791F;">Overdue</span><span style="font-weight:700;color:#B7791F;">'+pd.overdue+'</span></div>' +
+          '<div class="stat-row" style="border-top:2px solid var(--border);padding-top:10px;"><span style="font-weight:700;">Total Revenue</span><span style="font-weight:800;font-size:15px;color:var(--green);">'+fmtN(pd.revenue)+'</span></div>';
+      }
+    }
+  } catch(e) {}
 
   // Expense chart
   try {
