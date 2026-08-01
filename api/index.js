@@ -1627,6 +1627,104 @@ app.get('/api/procurement/dashboard', auth, async (req, res) => {
 });
 
 
+// ── CUSTOMER PAYMENT MANAGEMENT ────────────────────────
+
+// Get all subscription customers (SaaS)
+app.get('/api/payments/subscriptions', auth, async (req, res) => {
+  try {
+    // Create table if not exists
+    await db(`CREATE TABLE IF NOT EXISTS saas_subscriptions (
+      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      company_id UUID REFERENCES companies(id),
+      customer_name VARCHAR(200) NOT NULL,
+      customer_email VARCHAR(200),
+      customer_mobile VARCHAR(20),
+      customer_company VARCHAR(200),
+      plan VARCHAR(50) DEFAULT 'Starter',
+      payment_type VARCHAR(50) DEFAULT 'Monthly',
+      amount DECIMAL(12,2) DEFAULT 0,
+      status VARCHAR(50) DEFAULT 'Unpaid',
+      due_date DATE,
+      paid_date DATE,
+      next_due_date DATE,
+      payment_method VARCHAR(50),
+      transaction_id VARCHAR(200),
+      notes TEXT,
+      created_at TIMESTAMP DEFAULT NOW(),
+      updated_at TIMESTAMP DEFAULT NOW()
+    )`);
+    const r = await db('SELECT * FROM saas_subscriptions WHERE company_id=$1 ORDER BY created_at DESC', [req.user.company_id]);
+    res.json({ success: true, data: r.rows });
+  } catch(e) { res.status(500).json({ success: false, message: e.message }); }
+});
+
+// Add subscription customer
+app.post('/api/payments/subscriptions', auth, async (req, res) => {
+  try {
+    const { customerName, customerEmail, customerMobile, customerCompany, plan, paymentType, amount, status, dueDate, paidDate, nextDueDate, paymentMethod, transactionId, notes } = req.body;
+    if (!customerName) return res.status(400).json({ success: false, message: 'Customer name required' });
+    const r = await db(`INSERT INTO saas_subscriptions 
+      (company_id, customer_name, customer_email, customer_mobile, customer_company, plan, payment_type, amount, status, due_date, paid_date, next_due_date, payment_method, transaction_id, notes)
+      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15) RETURNING *`,
+      [req.user.company_id, customerName, customerEmail||null, customerMobile||null, customerCompany||null, plan||'Starter', paymentType||'Monthly', amount||0, status||'Unpaid', dueDate||null, paidDate||null, nextDueDate||null, paymentMethod||null, transactionId||null, notes||null]);
+    res.status(201).json({ success: true, data: r.rows[0], message: 'Subscription added' });
+  } catch(e) { res.status(500).json({ success: false, message: e.message }); }
+});
+
+// Update subscription status
+app.put('/api/payments/subscriptions/:id', auth, async (req, res) => {
+  try {
+    const { status, paidDate, nextDueDate, paymentMethod, transactionId, notes, amount, plan, paymentType } = req.body;
+    await db(`UPDATE saas_subscriptions SET 
+      status=COALESCE($1,status), paid_date=COALESCE($2,paid_date), next_due_date=COALESCE($3,next_due_date),
+      payment_method=COALESCE($4,payment_method), transaction_id=COALESCE($5,transaction_id),
+      notes=COALESCE($6,notes), amount=COALESCE($7,amount), plan=COALESCE($8,plan),
+      payment_type=COALESCE($9,payment_type), updated_at=NOW()
+      WHERE id=$10 AND company_id=$11`,
+      [status||null, paidDate||null, nextDueDate||null, paymentMethod||null, transactionId||null, notes||null, amount||null, plan||null, paymentType||null, req.params.id, req.user.company_id]);
+    res.json({ success: true, message: 'Subscription updated' });
+  } catch(e) { res.status(500).json({ success: false, message: e.message }); }
+});
+
+// Delete subscription
+app.delete('/api/payments/subscriptions/:id', auth, async (req, res) => {
+  try {
+    await db('DELETE FROM saas_subscriptions WHERE id=$1 AND company_id=$2', [req.params.id, req.user.company_id]);
+    res.json({ success: true, message: 'Deleted' });
+  } catch(e) { res.status(500).json({ success: false, message: e.message }); }
+});
+
+// Get payment summary stats
+app.get('/api/payments/stats', auth, async (req, res) => {
+  try {
+    await db(`CREATE TABLE IF NOT EXISTS saas_subscriptions (
+      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      company_id UUID REFERENCES companies(id),
+      customer_name VARCHAR(200), customer_email VARCHAR(200),
+      customer_mobile VARCHAR(20), customer_company VARCHAR(200),
+      plan VARCHAR(50) DEFAULT 'Starter', payment_type VARCHAR(50) DEFAULT 'Monthly',
+      amount DECIMAL(12,2) DEFAULT 0, status VARCHAR(50) DEFAULT 'Unpaid',
+      due_date DATE, paid_date DATE, next_due_date DATE,
+      payment_method VARCHAR(50), transaction_id VARCHAR(200), notes TEXT,
+      created_at TIMESTAMP DEFAULT NOW(), updated_at TIMESTAMP DEFAULT NOW()
+    )`);
+    const [total, paid, unpaid, overdue, revenue, parties, invoices] = await Promise.all([
+      db('SELECT COUNT(*) as cnt FROM saas_subscriptions WHERE company_id=$1', [req.user.company_id]),
+      db("SELECT COUNT(*) as cnt FROM saas_subscriptions WHERE company_id=$1 AND status='Paid'", [req.user.company_id]),
+      db("SELECT COUNT(*) as cnt FROM saas_subscriptions WHERE company_id=$1 AND status='Unpaid'", [req.user.company_id]),
+      db("SELECT COUNT(*) as cnt FROM saas_subscriptions WHERE company_id=$1 AND status='Overdue'", [req.user.company_id]),
+      db("SELECT COALESCE(SUM(amount),0) as total FROM saas_subscriptions WHERE company_id=$1 AND status='Paid'", [req.user.company_id]),
+      db('SELECT COUNT(*) as cnt FROM parties WHERE company_id=$1', [req.user.company_id]),
+      db("SELECT COUNT(*) as cnt, COALESCE(SUM(total_amount),0) as total FROM invoices WHERE company_id=$1 AND status='Unpaid'", [req.user.company_id]),
+    ]);
+    res.json({ success: true, data: {
+      subscriptions: { total: parseInt(total.rows[0].cnt), paid: parseInt(paid.rows[0].cnt), unpaid: parseInt(unpaid.rows[0].cnt), overdue: parseInt(overdue.rows[0].cnt), revenue: parseFloat(revenue.rows[0].total) },
+      parties: parseInt(parties.rows[0].cnt),
+      unpaidInvoices: { count: parseInt(invoices.rows[0].cnt), amount: parseFloat(invoices.rows[0].total) }
+    }});
+  } catch(e) { res.status(500).json({ success: false, message: e.message }); }
+});
+
 // ── 404 & ERROR ────────────────────────────────────────
 app.use(function(req, res) { res.status(404).json({ success: false, message: 'Endpoint not found' }); });
 app.use(function(err, req, res, next) { res.status(500).json({ success: false, message: err.message }); });

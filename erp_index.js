@@ -1,4 +1,41 @@
 const express = require('express');
+
+// ── RATE LIMITING ─────────────────────────────────
+const rateMap = new Map();
+function rateLimit(maxReq, windowMs) {
+  return function(req, res, next) {
+    const ip = req.headers['x-forwarded-for'] || req.socket.remoteAddress || 'unknown';
+    const key = ip + ':' + req.path;
+    const now = Date.now();
+    const windowStart = now - windowMs;
+    if (!rateMap.has(key)) rateMap.set(key, []);
+    const requests = rateMap.get(key).filter(function(t) { return t > windowStart; });
+    requests.push(now);
+    rateMap.set(key, requests);
+    if (requests.length > maxReq) {
+      return res.status(429).json({ success: false, message: 'Too many requests. Please try again later.' });
+    }
+    next();
+  };
+}
+
+// ── SECURITY MIDDLEWARE ───────────────────────────
+function securityHeaders(req, res, next) {
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('X-Frame-Options', 'DENY');
+  res.setHeader('X-XSS-Protection', '1; mode=block');
+  res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
+  next();
+}
+
+// ── INPUT SANITIZER ───────────────────────────────
+function sanitize(str) {
+  if (typeof str !== 'string') return str;
+  return str.replace(/<script[^>]*>.*?<\/script>/gi, '')
+            .replace(/<[^>]+>/g, '')
+            .trim()
+            .slice(0, 1000);
+}
 const cors = require('cors');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
@@ -535,6 +572,102 @@ app.get('/api/health', async (req, res) => {
           await db(`INSERT INTO leads (company_id,name,company_name,email,phone,source,status,value) VALUES ($1,$2,$3,$4,$5,$6,$7,$8)`,
             [coId, name, company, email, phone, source, status, value]);
         }
+      }
+
+
+      // ── PROCUREMENT TABLES ────────────────────────────
+      const proc_migrations = [
+        `CREATE TABLE IF NOT EXISTS vendors (
+          id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+          company_id UUID REFERENCES erp_companies(id) ON DELETE CASCADE,
+          party_id UUID REFERENCES parties(id),
+          name VARCHAR(200) NOT NULL,
+          category VARCHAR(100) DEFAULT 'General',
+          payment_terms INTEGER DEFAULT 30,
+          bank_name VARCHAR(100),
+          account_no VARCHAR(50),
+          ifsc VARCHAR(20),
+          rating NUMERIC(3,1) DEFAULT 5.0,
+          notes TEXT,
+          is_active BOOLEAN DEFAULT true,
+          created_at TIMESTAMPTZ DEFAULT NOW()
+        )`,
+        `CREATE TABLE IF NOT EXISTS rfq (
+          id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+          company_id UUID REFERENCES erp_companies(id) ON DELETE CASCADE,
+          rfq_no VARCHAR(50),
+          title VARCHAR(300) NOT NULL,
+          required_date DATE,
+          status VARCHAR(30) DEFAULT 'Open',
+          notes TEXT,
+          created_by UUID REFERENCES erp_users(id),
+          created_at TIMESTAMPTZ DEFAULT NOW()
+        )`,
+        `CREATE TABLE IF NOT EXISTS rfq_lines (
+          id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+          rfq_id UUID REFERENCES rfq(id) ON DELETE CASCADE,
+          description TEXT,
+          qty NUMERIC(10,2) DEFAULT 1,
+          unit VARCHAR(30) DEFAULT 'Nos',
+          specifications TEXT
+        )`,
+        `CREATE TABLE IF NOT EXISTS rfq_vendors (
+          id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+          rfq_id UUID REFERENCES rfq(id) ON DELETE CASCADE,
+          vendor_id UUID REFERENCES vendors(id),
+          status VARCHAR(30) DEFAULT 'Sent',
+          quoted_amount NUMERIC(15,2),
+          quoted_date DATE
+        )`,
+        `CREATE TABLE IF NOT EXISTS purchase_approvals (
+          id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+          company_id UUID REFERENCES erp_companies(id) ON DELETE CASCADE,
+          po_id UUID REFERENCES purchase_orders(id),
+          amount NUMERIC(15,2) DEFAULT 0,
+          justification TEXT,
+          status VARCHAR(30) DEFAULT 'Pending',
+          remarks TEXT,
+          requested_by UUID REFERENCES erp_users(id),
+          approved_by UUID REFERENCES erp_users(id),
+          approved_at TIMESTAMPTZ,
+          created_at TIMESTAMPTZ DEFAULT NOW()
+        )`,
+        `CREATE TABLE IF NOT EXISTS grn (
+          id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+          company_id UUID REFERENCES erp_companies(id) ON DELETE CASCADE,
+          grn_no VARCHAR(50),
+          po_id UUID REFERENCES purchase_orders(id),
+          received_date DATE,
+          quality_status VARCHAR(30) DEFAULT 'Accepted',
+          notes TEXT,
+          created_by UUID REFERENCES erp_users(id),
+          created_at TIMESTAMPTZ DEFAULT NOW()
+        )`,
+        `CREATE TABLE IF NOT EXISTS grn_lines (
+          id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+          grn_id UUID REFERENCES grn(id) ON DELETE CASCADE,
+          product_id UUID REFERENCES products(id),
+          description TEXT,
+          ordered_qty NUMERIC(10,2) DEFAULT 0,
+          received_qty NUMERIC(10,2) DEFAULT 0,
+          rejected_qty NUMERIC(10,2) DEFAULT 0
+        )`,
+        `CREATE TABLE IF NOT EXISTS vendor_payments (
+          id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+          company_id UUID REFERENCES erp_companies(id) ON DELETE CASCADE,
+          vendor_id UUID REFERENCES parties(id),
+          amount NUMERIC(15,2) NOT NULL,
+          payment_date DATE NOT NULL,
+          mode VARCHAR(30) DEFAULT 'NEFT',
+          reference VARCHAR(100),
+          bill_id UUID REFERENCES invoices(id),
+          notes TEXT,
+          created_by UUID REFERENCES erp_users(id),
+          created_at TIMESTAMPTZ DEFAULT NOW()
+        )`,
+      ];
+      for (const sql of proc_migrations) {
+        try { await db(sql); } catch(e4) { console.log('Proc migration:', e4.message.slice(0,60)); }
       }
 
       console.log('✅ Default company, user and data seeded!');
@@ -1292,6 +1425,203 @@ app.get('/api/crm/reports', auth, async (req, res) => {
       opportunities: opps.rows,
       quotations: quotes.rows[0],
       tasks: tasks.rows,
+    }});
+  } catch(e) { res.status(500).json({ success: false, message: e.message }); }
+});
+
+
+
+// ══════════════════════════════════════════════════════
+// ── MODULE 5: PROCUREMENT API ─────────────────────────
+// ══════════════════════════════════════════════════════
+
+// ── PROCUREMENT MIGRATIONS ────────────────────────────
+// (Added in health check auto-migrate section)
+
+// VENDORS
+app.get('/api/procurement/vendors', auth, async (req, res) => {
+  try {
+    const r = await db(`SELECT v.*, 
+      COUNT(DISTINCT po.id) AS po_count,
+      COALESCE(SUM(po.total),0) AS total_business
+      FROM vendors v
+      LEFT JOIN purchase_orders po ON po.vendor_id = v.party_id
+      WHERE v.company_id=$1
+      GROUP BY v.id ORDER BY v.name`, [req.user.company_id]);
+    res.json({ success: true, data: r.rows });
+  } catch(e) { res.status(500).json({ success: false, message: e.message }); }
+});
+
+app.post('/api/procurement/vendors', auth, async (req, res) => {
+  try {
+    const { name, gstin, pan, email, mobile, address, category, paymentTerms, bankName, accountNo, ifsc, rating, notes } = req.body;
+    if (!name) return res.status(400).json({ success: false, message: 'Vendor name required' });
+    // Create party first
+    const party = await db(`INSERT INTO parties (company_id,type,name,gstin,pan,email,mobile,address,state)
+      VALUES ($1,'vendor',$2,$3,$4,$5,$6,$7,'TN') RETURNING id`,
+      [req.user.company_id, name, gstin||null, pan||null, email||null, mobile||null, address||null]);
+    const partyId = party.rows[0].id;
+    const r = await db(`INSERT INTO vendors (company_id,party_id,name,category,payment_terms,bank_name,account_no,ifsc,rating,notes)
+      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) RETURNING *`,
+      [req.user.company_id, partyId, name, category||'General', paymentTerms||30, bankName||null, accountNo||null, ifsc||null, parseFloat(rating)||5, notes||null]);
+    res.status(201).json({ success: true, data: r.rows[0], message: 'Vendor added!' });
+  } catch(e) { res.status(500).json({ success: false, message: e.message }); }
+});
+
+app.put('/api/procurement/vendors/:id', auth, async (req, res) => {
+  try {
+    const { category, paymentTerms, bankName, accountNo, ifsc, rating, notes, isActive } = req.body;
+    await db(`UPDATE vendors SET category=$1,payment_terms=$2,bank_name=$3,account_no=$4,ifsc=$5,rating=$6,notes=$7,is_active=$8 WHERE id=$9 AND company_id=$10`,
+      [category, paymentTerms, bankName, accountNo, ifsc, parseFloat(rating)||5, notes, isActive!==false, req.params.id, req.user.company_id]);
+    res.json({ success: true, message: 'Vendor updated!' });
+  } catch(e) { res.status(500).json({ success: false, message: e.message }); }
+});
+
+// RFQ
+app.get('/api/procurement/rfq', auth, async (req, res) => {
+  try {
+    const r = await db(`SELECT r.*, u.name AS created_by_name FROM rfq r
+      LEFT JOIN erp_users u ON u.id=r.created_by
+      WHERE r.company_id=$1 ORDER BY r.created_at DESC`, [req.user.company_id]);
+    res.json({ success: true, data: r.rows });
+  } catch(e) { res.status(500).json({ success: false, message: e.message }); }
+});
+
+app.post('/api/procurement/rfq', auth, async (req, res) => {
+  try {
+    const { title, requiredDate, lines, vendorIds, notes } = req.body;
+    if (!title || !lines || !lines.length) return res.status(400).json({ success: false, message: 'Title and items required' });
+    const count = await db('SELECT COUNT(*) FROM rfq WHERE company_id=$1', [req.user.company_id]);
+    const rfqNo = 'RFQ/2026-27/' + String(parseInt(count.rows[0].count)+1).padStart(4,'0');
+    const r = await db(`INSERT INTO rfq (company_id,rfq_no,title,required_date,status,notes,created_by)
+      VALUES ($1,$2,$3,$4,'Open',$5,$6) RETURNING *`,
+      [req.user.company_id, rfqNo, title, requiredDate||null, notes||null, req.user.id]);
+    const rfq = r.rows[0];
+    for (const l of lines) {
+      await db(`INSERT INTO rfq_lines (rfq_id,description,qty,unit,specifications) VALUES ($1,$2,$3,$4,$5)`,
+        [rfq.id, l.description, parseFloat(l.qty)||1, l.unit||'Nos', l.specifications||null]);
+    }
+    if (vendorIds && vendorIds.length) {
+      for (const vid of vendorIds) {
+        await db(`INSERT INTO rfq_vendors (rfq_id,vendor_id,status) VALUES ($1,$2,'Sent')`, [rfq.id, vid]);
+      }
+    }
+    res.status(201).json({ success: true, data: rfq, message: 'RFQ '+rfqNo+' created!' });
+  } catch(e) { res.status(500).json({ success: false, message: e.message }); }
+});
+
+// PURCHASE APPROVALS
+app.get('/api/procurement/approvals', auth, async (req, res) => {
+  try {
+    const r = await db(`SELECT pa.*, po.po_no, po.total, po.vendor_name, u.name AS requested_by_name
+      FROM purchase_approvals pa
+      LEFT JOIN purchase_orders po ON po.id=pa.po_id
+      LEFT JOIN erp_users u ON u.id=pa.requested_by
+      WHERE pa.company_id=$1 ORDER BY pa.created_at DESC`, [req.user.company_id]);
+    res.json({ success: true, data: r.rows });
+  } catch(e) { res.status(500).json({ success: false, message: e.message }); }
+});
+
+app.post('/api/procurement/approvals', auth, async (req, res) => {
+  try {
+    const { poId, amount, justification } = req.body;
+    if (!poId) return res.status(400).json({ success: false, message: 'PO required' });
+    const r = await db(`INSERT INTO purchase_approvals (company_id,po_id,amount,justification,status,requested_by)
+      VALUES ($1,$2,$3,$4,'Pending',$5) RETURNING *`,
+      [req.user.company_id, poId, parseFloat(amount)||0, justification||null, req.user.id]);
+    res.status(201).json({ success: true, data: r.rows[0], message: 'Approval request submitted!' });
+  } catch(e) { res.status(500).json({ success: false, message: e.message }); }
+});
+
+app.put('/api/procurement/approvals/:id', auth, async (req, res) => {
+  try {
+    if (!['admin','manager'].includes(req.user.role)) return res.status(403).json({ success: false, message: 'Manager or Admin required' });
+    const { status, remarks } = req.body;
+    await db(`UPDATE purchase_approvals SET status=$1,remarks=$2,approved_by=$3,approved_at=NOW() WHERE id=$4 AND company_id=$5`,
+      [status, remarks||null, req.user.id, req.params.id, req.user.company_id]);
+    if (status === 'Approved') {
+      const ap = await db('SELECT po_id FROM purchase_approvals WHERE id=$1', [req.params.id]);
+      if (ap.rows[0]) await db("UPDATE purchase_orders SET status='Approved' WHERE id=$1", [ap.rows[0].po_id]);
+    }
+    res.json({ success: true, message: 'Approval '+status+'!' });
+  } catch(e) { res.status(500).json({ success: false, message: e.message }); }
+});
+
+// GRN
+app.get('/api/procurement/grn', auth, async (req, res) => {
+  try {
+    const r = await db(`SELECT g.*, po.po_no, po.vendor_name FROM grn g
+      LEFT JOIN purchase_orders po ON po.id=g.po_id
+      WHERE g.company_id=$1 ORDER BY g.created_at DESC`, [req.user.company_id]);
+    res.json({ success: true, data: r.rows });
+  } catch(e) { res.status(500).json({ success: false, message: e.message }); }
+});
+
+app.post('/api/procurement/grn', auth, async (req, res) => {
+  try {
+    const { poId, receivedDate, lines, qualityStatus, notes } = req.body;
+    if (!poId) return res.status(400).json({ success: false, message: 'PO required' });
+    const count = await db('SELECT COUNT(*) FROM grn WHERE company_id=$1', [req.user.company_id]);
+    const grnNo = 'GRN/2026-27/' + String(parseInt(count.rows[0].count)+1).padStart(4,'0');
+    const r = await db(`INSERT INTO grn (company_id,grn_no,po_id,received_date,quality_status,notes,created_by)
+      VALUES ($1,$2,$3,$4,$5,$6,$7) RETURNING *`,
+      [req.user.company_id, grnNo, poId, receivedDate||new Date().toISOString().split('T')[0], qualityStatus||'Accepted', notes||null, req.user.id]);
+    const grn = r.rows[0];
+    if (lines && lines.length) {
+      for (const l of lines) {
+        await db(`INSERT INTO grn_lines (grn_id,product_id,description,ordered_qty,received_qty,rejected_qty) VALUES ($1,$2,$3,$4,$5,$6)`,
+          [grn.id, l.productId||null, l.description||null, parseFloat(l.orderedQty)||0, parseFloat(l.receivedQty)||0, parseFloat(l.rejectedQty)||0]);
+        // Update stock if accepted
+        if (l.productId && qualityStatus !== 'Rejected') {
+          await db('UPDATE products SET stock=stock+$1 WHERE id=$2 AND company_id=$3',
+            [parseFloat(l.receivedQty)||0, l.productId, req.user.company_id]);
+        }
+      }
+    }
+    await db("UPDATE purchase_orders SET status='Received' WHERE id=$1", [poId]);
+    res.status(201).json({ success: true, data: grn, message: 'GRN '+grnNo+' created!' });
+  } catch(e) { res.status(500).json({ success: false, message: e.message }); }
+});
+
+// VENDOR PAYMENTS
+app.get('/api/procurement/payments', auth, async (req, res) => {
+  try {
+    const r = await db(`SELECT vp.*, p.name AS vendor_name FROM vendor_payments vp
+      LEFT JOIN parties p ON p.id=vp.vendor_id
+      WHERE vp.company_id=$1 ORDER BY vp.payment_date DESC`, [req.user.company_id]);
+    res.json({ success: true, data: r.rows });
+  } catch(e) { res.status(500).json({ success: false, message: e.message }); }
+});
+
+app.post('/api/procurement/payments', auth, async (req, res) => {
+  try {
+    const { vendorId, amount, paymentDate, mode, reference, billId, notes } = req.body;
+    if (!vendorId || !amount) return res.status(400).json({ success: false, message: 'Vendor and amount required' });
+    const r = await db(`INSERT INTO vendor_payments (company_id,vendor_id,amount,payment_date,mode,reference,bill_id,notes,created_by)
+      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9) RETURNING *`,
+      [req.user.company_id, vendorId, parseFloat(amount), paymentDate||new Date().toISOString().split('T')[0],
+       mode||'NEFT', reference||null, billId||null, notes||null, req.user.id]);
+    if (billId) await db("UPDATE invoices SET status='Paid' WHERE id=$1", [billId]);
+    res.status(201).json({ success: true, data: r.rows[0], message: 'Payment recorded!' });
+  } catch(e) { res.status(500).json({ success: false, message: e.message }); }
+});
+
+// PROCUREMENT DASHBOARD
+app.get('/api/procurement/dashboard', auth, async (req, res) => {
+  try {
+    const [vendors, rfqs, approvals, grns, payments] = await Promise.all([
+      db('SELECT COUNT(*) AS total, COUNT(*) FILTER(WHERE is_active=true) AS active FROM vendors WHERE company_id=$1', [req.user.company_id]),
+      db("SELECT COUNT(*) AS total, COUNT(*) FILTER(WHERE status='Open') AS open FROM rfq WHERE company_id=$1", [req.user.company_id]),
+      db("SELECT COUNT(*) AS total, COUNT(*) FILTER(WHERE status='Pending') AS pending FROM purchase_approvals WHERE company_id=$1", [req.user.company_id]),
+      db('SELECT COUNT(*) AS total FROM grn WHERE company_id=$1', [req.user.company_id]),
+      db('SELECT COALESCE(SUM(amount),0) AS total FROM vendor_payments WHERE company_id=$1', [req.user.company_id]),
+    ]);
+    res.json({ success: true, data: {
+      vendors: vendors.rows[0],
+      rfqs: rfqs.rows[0],
+      approvals: approvals.rows[0],
+      grns: grns.rows[0],
+      totalPayments: parseFloat(payments.rows[0].total)||0,
     }});
   } catch(e) { res.status(500).json({ success: false, message: e.message }); }
 });

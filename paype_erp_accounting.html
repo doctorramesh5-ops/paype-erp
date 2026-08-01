@@ -191,7 +191,7 @@ tr:hover td{background:#FAFBFC;}
     <button class="login-btn" id="l-btn" onclick="doLogin()">Sign In to ERP</button>
     <div class="login-err" id="l-err"></div>
     <div class="login-footer">
-      <div style="margin-bottom:6px;">Default: admin@paype.co.in / Admin@PayPe2026</div>
+      <div style="margin-bottom:6px;">Default: admin@paype.co.in </div>
       <div style="margin-top:8px;font-size:10px;">© 2026 PayPe Technologies Pvt. Ltd. | GST: 33AAMCP7960K1ZU</div>
     </div>
   </div>
@@ -438,7 +438,7 @@ function setRole(role,el){
   el.classList.add('on');
   var map={admin:'admin@paype.co.in',manager:'accounts@paype.co.in',employee:'employee@paype.co.in'};
   document.getElementById('l-email').value=map[role]||'';
-  document.getElementById('l-pass').value='Admin@PayPe2026';
+  document.getElementById('l-pass').value='';
 }
 function togglePass(){var i=document.getElementById('l-pass');i.type=i.type==='password'?'text':'password';}
 async function doLogin(){

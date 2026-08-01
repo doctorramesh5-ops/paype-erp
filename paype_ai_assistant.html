@@ -256,15 +256,15 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:#1A202C;font-size
       <button class="role-tab" onclick="setRole('manager',this)">Manager</button>
       <button class="role-tab" onclick="setRole('employee',this)">Employee</button>
     </div>
-    <div class="ff"><label>Email Address</label><input id="l-email" type="email" value="admin@paype.co.in"></div>
-    <div class="ff"><label>Password</label><div class="pass-wrap"><input id="l-pass" type="password" value="Admin@PayPe2026"><button class="pass-eye" onclick="togglePass()">👁</button></div></div>
+    <div class="ff"><label>Email Address</label><input id="l-email" type="email" value=""></div>
+    <div class="ff"><label>Password</label><div class="pass-wrap"><input id="l-pass" type="password" value=""><button class="pass-eye" onclick="togglePass()">👁</button></div></div>
     <button class="login-btn" id="l-btn" onclick="doLogin()">🤖 Sign In to AI Assistant</button>
     <div class="login-err" id="l-err"></div>
     <div class="login-footer">
       <div style="font-size:10px;font-weight:700;color:var(--gray);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;">Default Credentials</div>
-      <div style="margin-bottom:3px;"><strong>Admin:</strong> admin@paype.co.in / Admin@PayPe2026</div>
-      <div style="margin-bottom:3px;"><strong>Manager:</strong> accounts@paype.co.in / Manager@PayPe2026</div>
-      <div style="margin-bottom:8px;"><strong>Employee:</strong> employee@paype.co.in / Employee@PayPe2026</div>
+      <div style="margin-bottom:3px;"><strong>Admin:</strong> admin@paype.co.in </div>
+      <div style="margin-bottom:3px;"><strong>Manager:</strong> accounts@paype.co.in </div>
+      <div style="margin-bottom:8px;"><strong>Employee:</strong> employee@paype.co.in </div>
       <div style="font-size:10px;color:rgba(0,0,0,.3);">© 2026 PayPe Technologies Pvt. Ltd.</div>
     </div>
   </div>
@@ -752,7 +752,7 @@ function setRole(role, el) {
   document.querySelectorAll('.role-tab').forEach(function(t){t.classList.remove('on');});
   el.classList.add('on');
   var emailMap = {admin:'admin@paype.co.in', manager:'accounts@paype.co.in', employee:'employee@paype.co.in'};
-  var passMap  = {admin:'Admin@PayPe2026',   manager:'Manager@PayPe2026',    employee:'Employee@PayPe2026'};
+  var passMap  = {admin:'',   manager:'',    employee:''};
   document.getElementById('l-email').value = emailMap[role] || '';
   document.getElementById('l-pass').value  = passMap[role]  || '';
 }
