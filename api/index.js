@@ -1715,12 +1715,12 @@ app.get('/api/payments/stats', auth, async (req, res) => {
       db("SELECT COUNT(*) as cnt FROM saas_subscriptions WHERE company_id=$1 AND status='Overdue'", [req.user.company_id]),
       db("SELECT COALESCE(SUM(amount),0) as total FROM saas_subscriptions WHERE company_id=$1 AND status='Paid'", [req.user.company_id]),
       db('SELECT COUNT(*) as cnt FROM parties WHERE company_id=$1', [req.user.company_id]),
-      db("SELECT COUNT(*) as cnt, COALESCE(SUM(total_amount),0) as total FROM invoices WHERE company_id=$1 AND status='Unpaid'", [req.user.company_id]),
+      db("SELECT COUNT(*) as cnt FROM invoices WHERE company_id=$1 AND status='Unpaid'", [req.user.company_id]),
     ]);
     res.json({ success: true, data: {
       subscriptions: { total: parseInt(total.rows[0].cnt), paid: parseInt(paid.rows[0].cnt), unpaid: parseInt(unpaid.rows[0].cnt), overdue: parseInt(overdue.rows[0].cnt), revenue: parseFloat(revenue.rows[0].total) },
       parties: parseInt(parties.rows[0].cnt),
-      unpaidInvoices: { count: parseInt(invoices.rows[0].cnt), amount: parseFloat(invoices.rows[0].total) }
+      unpaidInvoices: { count: parseInt(invoices.rows[0].cnt), amount: 0 }
     }});
   } catch(e) { res.status(500).json({ success: false, message: e.message }); }
 });
