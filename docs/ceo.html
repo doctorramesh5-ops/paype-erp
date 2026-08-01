@@ -398,7 +398,7 @@ async function doLogin(){
       try {
         var hr=await fetch(HR_API+'/api/auth/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username:email,password:pass})});
         var hd=await hr.json();
-        if(hd.success) { HR_TOK=hd.data?.accessToken||hd.token; localStorage.setItem('hr_token',HR_TOK); }
+        if(hd.success) { HR_TOK=(hd.data && hd.data.accessToken)||hd.token; localStorage.setItem('hr_token',HR_TOK); }
       } catch(e){}
       startApp();
     } else { err.textContent=data.message||'Invalid credentials'; err.style.display='block'; }
