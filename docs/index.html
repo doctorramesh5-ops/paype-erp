@@ -1230,11 +1230,9 @@ async function saveSubscription() {
 function exportPaymentCSV() {
   api('/api/payments/subscriptions').then(function(res) {
     if (!res.success) { toast('Export failed','err'); return; }
-    var csv = 'Customer,Company,Email,Mobile,Plan,Payment Type,Amount,Status,Due Date,Paid Date,Transaction ID
-';
+    var csv = 'Customer,Company,Email,Mobile,Plan,Payment Type,Amount,Status,Due Date,Paid Date,Transaction ID\n';
     res.data.forEach(function(s) {
-      csv += [s.customer_name, s.customer_company||'', s.customer_email||'', s.customer_mobile||'', s.plan, s.payment_type, s.amount, s.status, s.due_date||'', s.paid_date||'', s.transaction_id||''].join(',') + '
-';
+      csv += [s.customer_name, s.customer_company||'', s.customer_email||'', s.customer_mobile||'', s.plan, s.payment_type, s.amount, s.status, s.due_date||'', s.paid_date||'', s.transaction_id||''].join(',') + '';
     });
     var blob = new Blob([csv],{type:'text/csv'});
     var a = document.createElement('a');
