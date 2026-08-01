@@ -1635,7 +1635,7 @@ app.get('/api/payments/subscriptions', auth, async (req, res) => {
     // Create table if not exists
     await db(`CREATE TABLE IF NOT EXISTS saas_subscriptions (
       id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-      company_id UUID REFERENCES companies(id),
+      company_id UUID REFERENCES erp_companies(id),
       customer_name VARCHAR(200) NOT NULL,
       customer_email VARCHAR(200),
       customer_mobile VARCHAR(20),
@@ -1699,7 +1699,7 @@ app.get('/api/payments/stats', auth, async (req, res) => {
   try {
     await db(`CREATE TABLE IF NOT EXISTS saas_subscriptions (
       id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-      company_id UUID REFERENCES companies(id),
+      company_id UUID REFERENCES erp_companies(id),
       customer_name VARCHAR(200), customer_email VARCHAR(200),
       customer_mobile VARCHAR(20), customer_company VARCHAR(200),
       plan VARCHAR(50) DEFAULT 'Starter', payment_type VARCHAR(50) DEFAULT 'Monthly',
@@ -1723,6 +1723,48 @@ app.get('/api/payments/stats', auth, async (req, res) => {
       unpaidInvoices: { count: parseInt(invoices.rows[0].cnt), amount: parseFloat(invoices.rows[0].total) }
     }});
   } catch(e) { res.status(500).json({ success: false, message: e.message }); }
+});
+
+// ── RAZORPAY PAYMENT WEBHOOK ──────────────────────────
+app.post('/api/payments/razorpay-webhook', async (req, res) => {
+  try {
+    const { razorpay_payment_id, razorpay_order_id, plan, amount, customerName, customerEmail, customerMobile, customerCompany, paymentType } = req.body;
+    
+    // Create table if not exists
+    await db(`CREATE TABLE IF NOT EXISTS saas_subscriptions (
+      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      company_id UUID REFERENCES erp_companies(id),
+      customer_name VARCHAR(200), customer_email VARCHAR(200),
+      customer_mobile VARCHAR(20), customer_company VARCHAR(200),
+      plan VARCHAR(50) DEFAULT 'Starter', payment_type VARCHAR(50) DEFAULT 'Monthly',
+      amount DECIMAL(12,2) DEFAULT 0, status VARCHAR(50) DEFAULT 'Unpaid',
+      due_date DATE, paid_date DATE, next_due_date DATE,
+      payment_method VARCHAR(50), transaction_id VARCHAR(200), notes TEXT,
+      created_at TIMESTAMP DEFAULT NOW(), updated_at TIMESTAMP DEFAULT NOW()
+    )`);
+
+    // Get default company (PayPe Technologies)
+    const comp = await db('SELECT id FROM erp_companies LIMIT 1');
+    const companyId = comp.rows[0] ? comp.rows[0].id : null;
+
+    if (companyId) {
+      // Calculate next due date
+      var nextDue = new Date();
+      if (paymentType === 'Yearly') nextDue.setFullYear(nextDue.getFullYear()+1);
+      else if (paymentType === 'Monthly' || paymentType === 'EMI') nextDue.setMonth(nextDue.getMonth()+1);
+      else nextDue.setFullYear(nextDue.getFullYear()+1);
+
+      await db(`INSERT INTO saas_subscriptions 
+        (company_id, customer_name, customer_email, customer_mobile, customer_company, plan, payment_type, amount, status, paid_date, next_due_date, payment_method, transaction_id)
+        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,'Paid',NOW(),$9,'Razorpay',$10)`,
+        [companyId, customerName||'Unknown', customerEmail||null, customerMobile||null, customerCompany||null, 
+         plan||'Starter', paymentType||'Monthly', (amount/100)||0, nextDue.toISOString().split('T')[0], razorpay_payment_id||null]);
+    }
+    res.json({ success: true, message: 'Payment recorded' });
+  } catch(e) { 
+    console.error('Webhook error:', e.message);
+    res.json({ success: false, message: e.message }); 
+  }
 });
 
 // ── 404 & ERROR ────────────────────────────────────────
