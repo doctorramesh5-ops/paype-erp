@@ -150,7 +150,63 @@ tr:hover td{background:#FAFBFC;}
 .alert-info{background:rgba(0,194,168,.08);border:1px solid rgba(0,194,168,.2);}
 .alert-warn{background:#FFFBEB;border:1px solid #F6D860;color:#92400E;}
 @media(max-width:900px){.login-left{display:none;}.login-right{width:100%;}.g2,.g3{grid-template-columns:1fr;}.sb{position:fixed;left:-220px;z-index:150;height:100vh;transition:.3s;}.sb.open{left:0;}}
+
+/* LANDING PAGE */
+.lp{display:block;}
+.lp-nav{background:var(--navy);padding:14px 48px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;}
+.lp-brand{font-family:'Syne',sans-serif;font-size:20px;font-weight:900;color:white;}
+.lp-brand span{color:var(--teal);}
+.lp-nav-links{display:flex;gap:18px;align-items:center;}
+.lp-nav-links a{font-size:12px;color:rgba(255,255,255,.6);text-decoration:none;}
+.lp-nav-btn{background:var(--teal);color:var(--navy);border:none;padding:8px 18px;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;}
+.lp-hero{background:linear-gradient(135deg,var(--navy),#1a3a6e);padding:70px 48px;text-align:center;color:white;}
+.lp-hero-badge{font-size:11px;letter-spacing:3px;color:var(--teal);text-transform:uppercase;margin-bottom:12px;}
+.lp-hero-title{font-family:'Syne',sans-serif;font-size:40px;font-weight:900;line-height:1.1;margin-bottom:14px;}
+.lp-hero-title span{color:var(--teal);}
+.lp-hero-desc{font-size:15px;color:rgba(255,255,255,.6);max-width:580px;margin:0 auto 28px;line-height:1.7;}
+.lp-hero-btns{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;}
+.lp-btn-primary{background:linear-gradient(135deg,var(--teal),#009E8A);color:white;border:none;padding:13px 30px;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;}
+.lp-btn-sec{background:rgba(255,255,255,.1);color:white;border:1px solid rgba(255,255,255,.2);padding:13px 30px;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;}
+.lp-stats{display:flex;gap:40px;justify-content:center;margin-top:44px;flex-wrap:wrap;}
+.lp-stat-v{font-family:'Syne',sans-serif;font-size:28px;font-weight:900;color:var(--teal);}
+.lp-stat-l{font-size:12px;color:rgba(255,255,255,.5);}
+.lp-section{padding:55px 48px;}
+.lp-section-title{font-family:'Syne',sans-serif;font-size:28px;font-weight:900;color:var(--navy);margin-bottom:8px;text-align:center;}
+.lp-section-sub{font-size:13px;color:var(--gray);text-align:center;margin-bottom:36px;}
+.lp-modules{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;max-width:1100px;margin:0 auto;}
+.lp-mod{background:white;border-radius:14px;padding:18px;border:1px solid var(--border);box-shadow:0 2px 8px rgba(0,0,0,.05);}
+.lp-mod-icon{font-size:28px;margin-bottom:10px;}
+.lp-mod-name{font-size:13px;font-weight:700;color:var(--navy);margin-bottom:6px;}
+.lp-mod-desc{font-size:11px;color:var(--gray);line-height:1.6;}
+.lp-pricing{padding:55px 48px;background:#F7FAFC;}
+.lp-price-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;max-width:1100px;margin:0 auto;}
+.lp-pc{background:white;border-radius:16px;border:1px solid var(--border);padding:22px;box-shadow:0 2px 10px rgba(0,0,0,.05);}
+.lp-pc.pop{border-color:var(--teal);box-shadow:0 4px 20px rgba(0,194,168,.15);position:relative;}
+.lp-pc-badge{position:absolute;top:-11px;left:50%;transform:translateX(-50%);background:var(--teal);color:var(--navy);font-size:10px;font-weight:700;padding:3px 12px;border-radius:20px;}
+.lp-pc-plan{font-size:11px;font-weight:700;color:var(--gray);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;}
+.lp-pc-price{font-family:'Syne',sans-serif;font-size:26px;font-weight:900;color:var(--navy);}
+.lp-pc-period{font-size:12px;font-weight:400;color:var(--gray);}
+.lp-pc-desc{font-size:12px;color:var(--gray);margin:8px 0 16px;}
+.lp-pc-features{font-size:12px;line-height:2.2;margin-bottom:16px;color:#4A5568;}
+.lp-pc-btn{width:100%;padding:11px;border:none;border-radius:9px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;}
+.lp-pc-btn-teal{background:linear-gradient(135deg,var(--teal),#009E8A);color:white;}
+.lp-pc-btn-navy{background:var(--navy);color:white;}
+.lp-pc-btn-purple{background:var(--purple);color:white;}
+.lp-pc-btn-gold{background:#D97706;color:white;}
+.lp-pc-btn-outline{background:transparent;border:1.5px solid var(--border);color:var(--navy);}
+.lp-demo{background:white;padding:40px 48px;border-top:1px solid var(--border);}
+.lp-demo-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;max-width:800px;margin:0 auto;}
+.lp-demo-card{background:#F7FAFC;border-radius:12px;padding:18px;border:1px solid var(--border);}
+.lp-footer{background:var(--navy);padding:36px 48px;color:white;}
+.lp-footer-grid{display:grid;grid-template-columns:2fr 1fr 1fr;gap:32px;max-width:1100px;margin:0 auto;}
+.lp-tw{position:fixed;bottom:20px;right:20px;z-index:9999;display:flex;flex-direction:column;gap:6px;}
+.lp-tst{background:var(--navy);color:white;padding:10px 15px;border-radius:9px;font-size:12px;font-weight:500;opacity:0;transform:translateY(10px);transition:.3s;}
+.lp-tst.show{opacity:1;transform:translateY(0);}
+.lp-tst.ok{background:#38A169;}
+.lp-tst.err{background:var(--red);}
+@media(max-width:768px){.lp-modules{grid-template-columns:1fr 1fr;}.lp-price-grid{grid-template-columns:1fr 1fr;}.lp-nav{padding:14px 20px;}.lp-hero{padding:50px 20px;}.lp-hero-title{font-size:26px;}.lp-section{padding:40px 20px;}.lp-pricing{padding:40px 20px;}}
 </style>
+<script src="https://checkout.razorpay.com/v1/checkout.js"></script>
 </head>
 <body>
 <!-- LOGIN PAGE -->
@@ -1296,4 +1352,47 @@ if(TOKEN&&USER){ROLE=USER.role||'employee';startApp();}
     </div>
   </div>
 </div>
+<script>
+function showERPLogin(){
+  document.getElementById('lp').style.display='none';
+  document.getElementById('erp-login-wrap').style.display='flex';
+}
+function autofillDemo(){
+  showERPLogin();
+  setTimeout(function(){
+    var em=document.getElementById('lemail')||document.querySelector('input[type=email]');
+    var pw=document.getElementById('lpass')||document.querySelector('input[type=password]');
+    if(em)em.value='admin@paype.co.in';
+    if(pw)pw.value='Admin@PayPe2026';
+    lpToast('Demo credentials filled! Click Login.','ok');
+  },400);
+}
+function buyERP(plan,amount){
+  var opts={
+    key:'rzp_live_Si0jGc1i23NVWo',
+    amount:amount*100,
+    currency:'INR',
+    name:'PayPe Technologies Pvt. Ltd.',
+    description:'PayPe ERP — '+plan+' Plan',
+    handler:function(r){
+      fetch('https://erpapi.paype.co.in/api/payments/razorpay-webhook',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({razorpay_payment_id:r.razorpay_payment_id,plan:'ERP '+plan,amount:amount*100,paymentType:'Monthly'})}).catch(function(){});
+      alert('Payment successful!\nPlan: ERP '+plan+'\nTransaction ID: '+r.razorpay_payment_id+'\n\nWelcome to PayPe ERP! Our team will email your credentials to you shortly.\n\nContact: admin@paype.co.in');
+      lpToast('Payment done! Check your email for credentials.','ok');
+    },
+    prefill:{name:'',email:'',contact:''},
+    notes:{plan:'ERP '+plan},
+    theme:{color:'#00C2A8'}
+  };
+  new Razorpay(opts).open();
+}
+function lpToast(msg,type){
+  var tw=document.getElementById('lp-tw');
+  var t=document.createElement('div');
+  t.className='lp-tst'+(type==='ok'?' ok':type==='err'?' err':'');
+  t.textContent=msg;
+  tw.appendChild(t);
+  setTimeout(function(){t.classList.add('show');},10);
+  setTimeout(function(){t.classList.remove('show');setTimeout(function(){t.remove();},300);},3500);
+}
+</script>
 </body></html>
