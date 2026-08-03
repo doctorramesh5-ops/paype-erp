@@ -209,8 +209,127 @@ tr:hover td{background:#FAFBFC;}
 <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
 </head>
 <body>
+<div id="lp">
+  <div class="lp-nav">
+    <div class="lp-brand">Pay<span>Pe</span> <span style="opacity:.4;font-size:14px;">ERP</span></div>
+    <div class="lp-nav-links">
+      <a href="#modules">Modules</a>
+      <a href="#pricing">Pricing</a>
+      <a href="#demo">Demo</a>
+      <a href="https://signup.paype.co.in">Sign Up</a>
+      <a href="https://hr.paype.co.in">HRMS</a>
+      <a href="https://social.paype.co.in">Social Hub</a>
+    </div>
+    <button class="lp-nav-btn" onclick="showERPLogin()">Login →</button>
+  </div>
+  <div class="lp-hero">
+    <div class="lp-hero-badge">AI-Powered Business ERP</div>
+    <div class="lp-hero-title">Run Your Entire Business<br><span>From One Dashboard</span></div>
+    <div class="lp-hero-desc">Accounting, Inventory, Procurement, CRM, Payroll, AI Assistant — all built for Indian SMEs.</div>
+    <div class="lp-hero-btns">
+      <button class="lp-btn-primary" onclick="document.getElementById('pricing').scrollIntoView({behavior:'smooth'})">🚀 Start Free Trial — 14 Days</button>
+      <button class="lp-btn-sec" onclick="showERPLogin()">Login to ERP →</button>
+    </div>
+    <div class="lp-stats">
+      <div><div class="lp-stat-v">8+</div><div class="lp-stat-l">Modules</div></div>
+      <div><div class="lp-stat-v">AI</div><div class="lp-stat-l">Powered</div></div>
+      <div><div class="lp-stat-v">14</div><div class="lp-stat-l">Day Free Trial</div></div>
+      <div><div class="lp-stat-v">GST</div><div class="lp-stat-l">Ready</div></div>
+    </div>
+  </div>
+  <div class="lp-section" id="modules">
+    <div class="lp-section-title">Complete ERP Modules</div>
+    <div class="lp-section-sub">Everything your business needs in one platform</div>
+    <div class="lp-modules">
+      <div class="lp-mod"><div class="lp-mod-icon">💰</div><div class="lp-mod-name">Accounting & Finance</div><div class="lp-mod-desc">Income & Expense, P&L, Balance Sheet, GST Reports, Tax Filing</div></div>
+      <div class="lp-mod"><div class="lp-mod-icon">📦</div><div class="lp-mod-name">Inventory Management</div><div class="lp-mod-desc">Stock tracking, Warehouse, Low stock alerts, Item catalog</div></div>
+      <div class="lp-mod"><div class="lp-mod-icon">🛒</div><div class="lp-mod-name">Procurement</div><div class="lp-mod-desc">Purchase Orders, RFQ, Vendor Management, GRN, Approvals</div></div>
+      <div class="lp-mod"><div class="lp-mod-icon">🎯</div><div class="lp-mod-name">CRM</div><div class="lp-mod-desc">Lead Management, Customer tracking, Sales pipeline, Follow-ups</div></div>
+      <div class="lp-mod"><div class="lp-mod-icon">📊</div><div class="lp-mod-name">CEO Dashboard</div><div class="lp-mod-desc">Live KPIs, Revenue charts, Team performance, Business overview</div></div>
+      <div class="lp-mod"><div class="lp-mod-icon">🤖</div><div class="lp-mod-name">AI Assistant</div><div class="lp-mod-desc">AI powered — answers queries, generates reports, business insights</div></div>
+      <div class="lp-mod"><div class="lp-mod-icon">💳</div><div class="lp-mod-name">Payment Management</div><div class="lp-mod-desc">Subscriptions, Vendor payments, Auto reconciliation, Reports</div></div>
+      <div class="lp-mod"><div class="lp-mod-icon">👥</div><div class="lp-mod-name">Multi-User Access</div><div class="lp-mod-desc">Role-based access, Admin/Manager/Employee, Audit logs</div></div>
+    </div>
+  </div>
+  <div class="lp-pricing" id="pricing">
+    <div class="lp-section-title">Simple, Transparent Pricing</div>
+    <div class="lp-section-sub">All plans include 14-day free trial. No credit card required.</div>
+    <div class="lp-price-grid">
+      <div class="lp-pc">
+        <div class="lp-pc-plan">Starter</div>
+        <div class="lp-pc-price">Rs 2,999<span class="lp-pc-period">/mo</span></div>
+        <div class="lp-pc-desc">For small businesses</div>
+        <div class="lp-pc-features">✅ Accounting & Finance<br>✅ Inventory (Basic)<br>✅ AI Assistant<br>✅ Email Support<br>❌ CRM<br>❌ Procurement</div>
+        <button class="lp-pc-btn lp-pc-btn-outline" onclick="buyERP('Starter',2999)">Start Free Trial</button>
+      </div>
+      <div class="lp-pc pop">
+        <div class="lp-pc-badge">POPULAR</div>
+        <div class="lp-pc-plan" style="color:var(--teal);">Growth</div>
+        <div class="lp-pc-price">Rs 7,999<span class="lp-pc-period">/mo</span></div>
+        <div class="lp-pc-desc">For growing businesses</div>
+        <div class="lp-pc-features">✅ Everything in Starter<br>✅ CRM Full<br>✅ Procurement<br>✅ CEO Dashboard<br>✅ Payment Management<br>✅ Priority Support</div>
+        <button class="lp-pc-btn lp-pc-btn-teal" onclick="buyERP('Growth',7999)">Start Free Trial</button>
+      </div>
+      <div class="lp-pc">
+        <div class="lp-pc-plan" style="color:var(--purple);">Business</div>
+        <div class="lp-pc-price">Rs 19,999<span class="lp-pc-period">/mo</span></div>
+        <div class="lp-pc-desc">For large teams</div>
+        <div class="lp-pc-features">✅ Everything in Growth<br>✅ Unlimited users<br>✅ Advanced Analytics<br>✅ API Access<br>✅ White Label<br>✅ Dedicated Support</div>
+        <button class="lp-pc-btn lp-pc-btn-navy" onclick="buyERP('Business',19999)">Start Free Trial</button>
+      </div>
+      <div class="lp-pc" style="background:linear-gradient(135deg,var(--navy),#1a2d5a);">
+        <div class="lp-pc-plan" style="color:var(--teal);">Enterprise</div>
+        <div class="lp-pc-price" style="color:white;">Custom</div>
+        <div class="lp-pc-desc" style="color:rgba(255,255,255,.5);">For large enterprises</div>
+        <div class="lp-pc-features" style="color:rgba(255,255,255,.7);">✅ Everything in Business<br>✅ Custom development<br>✅ On-premise option<br>✅ SLA guarantee<br>✅ 24/7 Support</div>
+        <button class="lp-pc-btn" style="background:var(--teal);color:var(--navy);" onclick="window.location='mailto:admin@paype.co.in?subject=ERP Enterprise'">Contact Sales</button>
+      </div>
+    </div>
+  </div>
+  <div class="lp-demo" id="demo">
+    <div style="text-align:center;margin-bottom:28px;">
+      <div class="lp-section-title" style="font-size:24px;">Try Before You Buy</div>
+      <div class="lp-section-sub" style="margin-bottom:0;">Use demo credentials to explore all modules</div>
+    </div>
+    <div class="lp-demo-grid">
+      <div class="lp-demo-card">
+        <div style="font-size:13px;font-weight:700;color:var(--navy);margin-bottom:10px;">Demo Login</div>
+        <div style="font-family:monospace;font-size:13px;background:white;padding:12px;border-radius:8px;line-height:2.2;">Email: <strong>admin@paype.co.in</strong><br>Password: <strong>Admin@PayPe2026</strong></div>
+        <button onclick="showERPLogin()" style="width:100%;margin-top:12px;padding:10px;background:var(--navy);color:white;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;">Open ERP Demo →</button>
+      </div>
+      <div class="lp-demo-card">
+        <div style="font-size:13px;font-weight:700;color:var(--navy);margin-bottom:10px;">What You Can Try</div>
+        <div style="font-size:12px;color:var(--gray);line-height:2.2;">💰 Accounting Dashboard<br>🛒 Procurement & POs<br>🎯 CRM Lead Management<br>📊 CEO Dashboard<br>🤖 AI Assistant<br>💳 Payment Management</div>
+      </div>
+    </div>
+  </div>
+  <div class="lp-footer">
+    <div class="lp-footer-grid">
+      <div>
+        <div style="font-family:'Syne',sans-serif;font-size:18px;font-weight:900;color:white;margin-bottom:8px;">Pay<span style="color:var(--teal);">Pe</span> ERP</div>
+        <div style="font-size:12px;color:rgba(255,255,255,.5);line-height:1.7;margin-bottom:10px;">Complete AI-powered ERP for Indian SMEs.</div>
+        <div style="font-size:11px;color:rgba(255,255,255,.3);">CIN: U74994TN2022PTC151114<br>GST: 33AAMCP7960K1ZU</div>
+      </div>
+      <div>
+        <div style="font-size:11px;font-weight:700;color:rgba(255,255,255,.4);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px;">Products</div>
+        <a href="https://paype.co.in" style="color:rgba(255,255,255,.6);text-decoration:none;display:block;font-size:12px;margin-bottom:6px;">PayPe Main</a>
+        <a href="https://hr.paype.co.in" style="color:rgba(255,255,255,.6);text-decoration:none;display:block;font-size:12px;margin-bottom:6px;">PayPe HRMS</a>
+        <a href="https://social.paype.co.in" style="color:rgba(255,255,255,.6);text-decoration:none;display:block;font-size:12px;margin-bottom:6px;">Social Hub</a>
+        <a href="https://signup.paype.co.in" style="color:rgba(255,255,255,.6);text-decoration:none;display:block;font-size:12px;">Sign Up</a>
+      </div>
+      <div>
+        <div style="font-size:11px;font-weight:700;color:rgba(255,255,255,.4);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px;">Contact</div>
+        <div style="font-size:12px;color:rgba(255,255,255,.6);line-height:2.2;">admin@paype.co.in<br>+91 99448 57191<br>Coimbatore, Tamil Nadu</div>
+        <button class="lp-nav-btn" style="margin-top:12px;" onclick="document.getElementById('pricing').scrollIntoView({behavior:'smooth'})">Start Free Trial →</button>
+      </div>
+    </div>
+    <div style="border-top:1px solid rgba(255,255,255,.08);margin-top:24px;padding-top:16px;text-align:center;font-size:11px;color:rgba(255,255,255,.3);">© 2026 PayPe Technologies Pvt. Ltd.</div>
+  </div>
+</div><!-- end lp -->
+<div class="lp-tw" id="lp-tw"></div>
+
 <!-- LOGIN PAGE -->
-<div class="login-wrap" id="login-page">
+<div class="login-wrap" id="login-page" style="display:none;">
   <div class="login-left">
     <div class="ll-brand">Pay<span>Pe</span> <span style="font-size:20px;opacity:.5;">Business ERP</span></div>
     <div class="ll-sub">Complete Business Operating System</div>
@@ -1395,4 +1514,15 @@ function lpToast(msg,type){
   setTimeout(function(){t.classList.remove('show');setTimeout(function(){t.remove();},300);},3500);
 }
 </script>
-</body></html>
+<script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+<script>
+function showERPLogin(){
+  document.getElementById('lp').style.display='none';
+  document.getElementById('login-page').style.display='flex';
+}
+function buyERP(plan,amount){
+  var opts={key:'rzp_live_Si0jGc1i23NVWo',amount:amount*100,currency:'INR',name:'PayPe Technologies Pvt. Ltd.',description:'PayPe ERP — '+plan+' Plan',handler:function(r){fetch('https://erpapi.paype.co.in/api/payments/razorpay-webhook',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({razorpay_payment_id:r.razorpay_payment_id,plan:'ERP '+plan,amount:amount*100,paymentType:'Monthly'})}).catch(function(){});alert('Payment successful!\nPlan: ERP '+plan+'\nTxn: '+r.razorpay_payment_id+'\n\nTeam will email credentials to you. Contact: admin@paype.co.in');},prefill:{name:'',email:'',contact:''},notes:{plan:'ERP '+plan},theme:{color:'#00C2A8'}};
+  new Razorpay(opts).open();
+}
+</script>
+</body>
