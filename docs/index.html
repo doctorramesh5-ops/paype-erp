@@ -904,6 +904,11 @@ function go(name,el){
   if(pg)pg.classList.add('on');
   if(el)el.classList.add('on');
   if(name==='payments') loadPayments('all');
+  if(name==='crm') setTimeout(loadCRMDashboard,100);
+  else if(name==='leads') setTimeout(loadLeads,100);
+  else if(name==='opportunities') setTimeout(loadOpportunities,100);
+  else if(name==='quotations') setTimeout(loadQuotations,100);
+  else if(name==='crm-tasks') setTimeout(loadCRMTasks,100);
   document.getElementById('tb-title').textContent=el?el.textContent.trim():name;
   document.getElementById('notif-panel').classList.remove('on');
   document.getElementById('sb').classList.remove('open');
@@ -1971,16 +1976,7 @@ function editOpp(id){ showToast('Edit opportunity #'+id,'info'); }
 function viewQuotation(id){ showToast('View quotation #'+id,'info'); }
 function filterTasks(status){ showToast('Filtering: '+status,'info'); }
 
-// Hook into go() to load CRM data
-var _origGo = go;
-go = function(name, el){
-  _origGo(name, el);
-  if(name==='crm') loadCRMDashboard();
-  else if(name==='leads') loadLeads();
-  else if(name==='opportunities') loadOpportunities();
-  else if(name==='quotations') loadQuotations();
-  else if(name==='crm-tasks') loadCRMTasks();
-};
+
 
 </script>
 <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
