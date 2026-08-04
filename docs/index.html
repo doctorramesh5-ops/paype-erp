@@ -402,12 +402,16 @@ tr:hover td{background:#FAFBFC;}
       <div class="ni" id="ni-audit" onclick="go('audit',this)"><svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>Audit Trail</div>
       <div class="sb-section admin-only" id="sb-admin-sec">Admin</div>
       <div class="ni admin-only" id="ni-users" onclick="go('users',this)"><svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>User Management</div>
-      <div class="sb-section">CRM & Inventory</div>
+      <div class="sb-section">Inventory & CRM</div>
+      <div class="ni" id="ni-inventory" onclick="window.location='inventory.html'"><svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/></svg>Inventory Dashboard</div>
       <div class="ni" id="ni-crm" onclick="window.location='inventory.html#crm-dash'"><svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>CRM Dashboard</div>
-      <div class="ni" id="ni-leads" onclick="window.location='inventory.html#leads'"><svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.07 8.63"/></svg>Leads</div>
-      <div class="ni" id="ni-opportunities" onclick="window.location='inventory.html#pipeline'"><svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>Pipeline</div>
+      <div class="ni" id="ni-leads" onclick="window.location='inventory.html#leads'"><svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07"/></svg>Leads & Pipeline</div>
       <div class="ni" id="ni-quotations" onclick="window.location='inventory.html#quotations'"><svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/></svg>Quotations</div>
-      <div class="ni" id="ni-inventory" onclick="window.location='inventory.html'"><svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/></svg>Inventory</div>
+      <div class="sb-section">Procurement</div>
+      <div class="ni" id="ni-procurement" onclick="window.location='procurement.html'"><svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 01-8 0"/></svg>Procurement</div>
+      <div class="ni" id="ni-vendors" onclick="window.location='procurement.html#vendors'"><svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>Vendors</div>
+      <div class="ni" id="ni-po" onclick="window.location='procurement.html#po'"><svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>Purchase Orders</div>
+      <div class="ni" id="ni-grn" onclick="window.location='procurement.html#grn'"><svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>GRN & Approvals</div>
       <div class="sb-section">Settings</div>
       <div class="ni" id="ni-settings" onclick="go('settings',this)"><svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>Settings</div>
     </div>
@@ -457,190 +461,6 @@ tr:hover td{background:#FAFBFC;}
       <div class="pg" id="pg-settings"><div class="ph"><div><h1>⚙️ Settings</h1></div></div><div id="settings-content"></div>
 
 
-<!-- CRM PAGES -->
-<div class="pg" id="pg-crm"><div class="ph"><div><h1>🎯 CRM Dashboard</h1><p class="ph-sub">Leads, Opportunities & Sales Pipeline</p></div>
-  <button class="btn btn-primary" onclick="go('leads',null)">+ Add Lead</button></div>
-  <div class="stats-grid" id="crm-stats">
-    <div class="stat-card"><div class="stat-icon" style="background:rgba(0,194,168,.1);color:var(--teal);">🎯</div><div class="stat-val" id="crm-total-leads">—</div><div class="stat-label">Total Leads</div></div>
-    <div class="stat-card"><div class="stat-icon" style="background:rgba(56,161,105,.1);color:var(--green);">✅</div><div class="stat-val" id="crm-converted">—</div><div class="stat-label">Converted</div></div>
-    <div class="stat-card"><div class="stat-icon" style="background:rgba(221,107,32,.1);color:var(--orange);">🔥</div><div class="stat-val" id="crm-hot">—</div><div class="stat-label">Hot Leads</div></div>
-    <div class="stat-card"><div class="stat-icon" style="background:rgba(128,90,213,.1);color:var(--purple);">💰</div><div class="stat-val" id="crm-pipeline-val">—</div><div class="stat-label">Pipeline Value</div></div>
-  </div>
-  <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
-    <div class="card">
-      <div class="card-header"><span>Pipeline by Stage</span></div>
-      <div class="card-body" id="crm-pipeline-chart">
-        <div style="display:flex;flex-direction:column;gap:8px;" id="pipeline-stages"></div>
-      </div>
-    </div>
-    <div class="card">
-      <div class="card-header"><span>Recent Activities</span><button class="btn btn-sm" onclick="go('crm-tasks',null)">View All Tasks</button></div>
-      <div class="card-body" id="crm-recent-tasks" style="padding:0;"></div>
-    </div>
-  </div>
-</div>
-
-<div class="pg" id="pg-leads">
-  <div class="ph"><div><h1>📋 Leads</h1><p class="ph-sub">Manage all your sales leads</p></div>
-  <button class="btn btn-primary" onclick="openLeadModal()">+ Add Lead</button></div>
-  <div class="card">
-    <div class="card-header">
-      <span>All Leads</span>
-      <div style="display:flex;gap:8px;">
-        <select id="lead-status-filter" onchange="loadLeads()" style="border:1px solid var(--border);border-radius:6px;padding:5px 10px;font-size:12px;font-family:inherit;">
-          <option value="">All Status</option>
-          <option value="New">New</option>
-          <option value="Contacted">Contacted</option>
-          <option value="Qualified">Qualified</option>
-          <option value="Proposal">Proposal</option>
-          <option value="Won">Won</option>
-          <option value="Lost">Lost</option>
-        </select>
-        <input id="lead-search" placeholder="Search leads..." onkeyup="filterLeads(this.value)" style="border:1px solid var(--border);border-radius:6px;padding:5px 10px;font-size:12px;font-family:inherit;">
-      </div>
-    </div>
-    <div class="card-body" style="padding:0;"><table class="tbl"><thead><tr><th>Name</th><th>Company</th><th>Email</th><th>Phone</th><th>Source</th><th>Status</th><th>Value</th><th>Action</th></tr></thead>
-    <tbody id="leads-tbody"><tr><td colspan="8" style="text-align:center;padding:20px;color:var(--gray);">Loading leads...</td></tr></tbody></table></div>
-  </div>
-</div>
-
-<div class="pg" id="pg-opportunities">
-  <div class="ph"><div><h1>💼 Opportunities</h1><p class="ph-sub">Track your sales opportunities</p></div>
-  <button class="btn btn-primary" onclick="openOppModal()">+ Add Opportunity</button></div>
-  <div class="card">
-    <div class="card-header"><span>All Opportunities</span>
-      <select id="opp-stage-filter" onchange="loadOpportunities()" style="border:1px solid var(--border);border-radius:6px;padding:5px 10px;font-size:12px;font-family:inherit;">
-        <option value="">All Stages</option>
-        <option value="Prospecting">Prospecting</option>
-        <option value="Qualification">Qualification</option>
-        <option value="Proposal">Proposal</option>
-        <option value="Negotiation">Negotiation</option>
-        <option value="Closed Won">Closed Won</option>
-        <option value="Closed Lost">Closed Lost</option>
-      </select>
-    </div>
-    <div class="card-body" style="padding:0;"><table class="tbl"><thead><tr><th>Title</th><th>Lead</th><th>Stage</th><th>Value</th><th>Probability</th><th>Expected Close</th><th>Action</th></tr></thead>
-    <tbody id="opps-tbody"><tr><td colspan="7" style="text-align:center;padding:20px;color:var(--gray);">Loading opportunities...</td></tr></tbody></table></div>
-  </div>
-</div>
-
-<div class="pg" id="pg-quotations">
-  <div class="ph"><div><h1>📄 Quotations</h1><p class="ph-sub">Create and manage quotations</p></div>
-  <button class="btn btn-primary" onclick="openQuotModal()">+ New Quotation</button></div>
-  <div class="card">
-    <div class="card-header"><span>All Quotations</span></div>
-    <div class="card-body" style="padding:0;"><table class="tbl"><thead><tr><th>Quot No</th><th>Customer</th><th>Date</th><th>Valid Till</th><th>Amount</th><th>Status</th><th>Action</th></tr></thead>
-    <tbody id="quots-tbody"><tr><td colspan="7" style="text-align:center;padding:20px;color:var(--gray);">Loading quotations...</td></tr></tbody></table></div>
-  </div>
-</div>
-
-<div class="pg" id="pg-crm-tasks">
-  <div class="ph"><div><h1>✅ CRM Tasks</h1><p class="ph-sub">Follow-ups and activities</p></div>
-  <button class="btn btn-primary" onclick="openTaskModal()">+ Add Task</button></div>
-  <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:16px;">
-    <div class="card" style="cursor:pointer;" onclick="filterTasks('Pending')"><div class="card-body" style="text-align:center;"><div style="font-size:24px;margin-bottom:6px;">⏳</div><div style="font-size:20px;font-weight:700;" id="task-pending">—</div><div style="font-size:12px;color:var(--gray);">Pending</div></div></div>
-    <div class="card" style="cursor:pointer;" onclick="filterTasks('In Progress')"><div class="card-body" style="text-align:center;"><div style="font-size:24px;margin-bottom:6px;">🔄</div><div style="font-size:20px;font-weight:700;" id="task-progress">—</div><div style="font-size:12px;color:var(--gray);">In Progress</div></div></div>
-    <div class="card" style="cursor:pointer;" onclick="filterTasks('Completed')"><div class="card-body" style="text-align:center;"><div style="font-size:24px;margin-bottom:6px;">✅</div><div style="font-size:20px;font-weight:700;" id="task-done">—</div><div style="font-size:12px;color:var(--gray);">Completed</div></div></div>
-  </div>
-  <div class="card">
-    <div class="card-header"><span>All Tasks</span></div>
-    <div class="card-body" style="padding:0;"><table class="tbl"><thead><tr><th>Task</th><th>Lead/Customer</th><th>Type</th><th>Due Date</th><th>Priority</th><th>Status</th><th>Action</th></tr></thead>
-    <tbody id="tasks-tbody"><tr><td colspan="7" style="text-align:center;padding:20px;color:var(--gray);">Loading tasks...</td></tr></tbody></table></div>
-  </div>
-</div>
-
-<!-- CRM MODALS -->
-<div class="modal-overlay" id="lead-modal" style="display:none;" onclick="if(event.target===this)this.style.display='none'">
-  <div class="modal" style="max-width:560px;">
-    <div class="modal-header"><h3 id="lead-modal-title">Add New Lead</h3><button class="modal-close" onclick="document.getElementById('lead-modal').style.display='none'">✕</button></div>
-    <div class="modal-body">
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
-        <div class="form-group"><label>Full Name *</label><input id="lead-name" placeholder="Contact name"></div>
-        <div class="form-group"><label>Company *</label><input id="lead-company" placeholder="Company name"></div>
-        <div class="form-group"><label>Email</label><input id="lead-email" type="email" placeholder="email@company.com"></div>
-        <div class="form-group"><label>Phone</label><input id="lead-phone" placeholder="+91 XXXXX XXXXX"></div>
-        <div class="form-group"><label>Source</label><select id="lead-source"><option>Website</option><option>Referral</option><option>Social Media</option><option>Cold Call</option><option>Email Campaign</option><option>WhatsApp</option><option>Trade Show</option><option>Other</option></select></div>
-        <div class="form-group"><label>Status</label><select id="lead-status"><option>New</option><option>Contacted</option><option>Qualified</option><option>Proposal</option><option>Won</option><option>Lost</option></select></div>
-        <div class="form-group"><label>Expected Value (Rs)</label><input id="lead-value" type="number" placeholder="0"></div>
-        <div class="form-group"><label>Priority</label><select id="lead-priority"><option>Low</option><option>Medium</option><option>High</option><option>Hot</option></select></div>
-      </div>
-      <div class="form-group"><label>Notes</label><textarea id="lead-notes" style="height:70px;resize:none;" placeholder="Additional notes..."></textarea></div>
-    </div>
-    <div class="modal-footer">
-      <button class="btn btn-secondary" onclick="document.getElementById('lead-modal').style.display='none'">Cancel</button>
-      <button class="btn btn-primary" onclick="saveLead()">Save Lead</button>
-    </div>
-  </div>
-</div>
-
-<div class="modal-overlay" id="opp-modal" style="display:none;" onclick="if(event.target===this)this.style.display='none'">
-  <div class="modal" style="max-width:560px;">
-    <div class="modal-header"><h3>Add Opportunity</h3><button class="modal-close" onclick="document.getElementById('opp-modal').style.display='none'">✕</button></div>
-    <div class="modal-body">
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
-        <div class="form-group"><label>Title *</label><input id="opp-title" placeholder="Opportunity title"></div>
-        <div class="form-group"><label>Lead/Customer *</label><input id="opp-lead" placeholder="Lead or customer name"></div>
-        <div class="form-group"><label>Stage</label><select id="opp-stage"><option>Prospecting</option><option>Qualification</option><option>Proposal</option><option>Negotiation</option><option>Closed Won</option><option>Closed Lost</option></select></div>
-        <div class="form-group"><label>Value (Rs)</label><input id="opp-value" type="number" placeholder="0"></div>
-        <div class="form-group"><label>Probability (%)</label><input id="opp-prob" type="number" placeholder="50" min="0" max="100"></div>
-        <div class="form-group"><label>Expected Close</label><input id="opp-close" type="date"></div>
-      </div>
-      <div class="form-group"><label>Description</label><textarea id="opp-desc" style="height:60px;resize:none;"></textarea></div>
-    </div>
-    <div class="modal-footer">
-      <button class="btn btn-secondary" onclick="document.getElementById('opp-modal').style.display='none'">Cancel</button>
-      <button class="btn btn-primary" onclick="saveOpportunity()">Save Opportunity</button>
-    </div>
-  </div>
-</div>
-
-<div class="modal-overlay" id="task-modal" style="display:none;" onclick="if(event.target===this)this.style.display='none'">
-  <div class="modal" style="max-width:500px;">
-    <div class="modal-header"><h3>Add CRM Task</h3><button class="modal-close" onclick="document.getElementById('task-modal').style.display='none'">✕</button></div>
-    <div class="modal-body">
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
-        <div class="form-group"><label>Task Title *</label><input id="task-title" placeholder="Follow up call"></div>
-        <div class="form-group"><label>Related To</label><input id="task-related" placeholder="Lead/Customer name"></div>
-        <div class="form-group"><label>Type</label><select id="task-type"><option>Call</option><option>Email</option><option>Meeting</option><option>Follow-up</option><option>Demo</option><option>Other</option></select></div>
-        <div class="form-group"><label>Priority</label><select id="task-priority"><option>Low</option><option>Medium</option><option>High</option></select></div>
-        <div class="form-group"><label>Due Date</label><input id="task-due" type="date"></div>
-        <div class="form-group"><label>Status</label><select id="task-status"><option>Pending</option><option>In Progress</option><option>Completed</option></select></div>
-      </div>
-      <div class="form-group"><label>Notes</label><textarea id="task-notes" style="height:60px;resize:none;"></textarea></div>
-    </div>
-    <div class="modal-footer">
-      <button class="btn btn-secondary" onclick="document.getElementById('task-modal').style.display='none'">Cancel</button>
-      <button class="btn btn-primary" onclick="saveTask()">Save Task</button>
-    </div>
-  </div>
-</div>
-
-<div class="modal-overlay" id="quot-modal" style="display:none;" onclick="if(event.target===this)this.style.display='none'">
-  <div class="modal" style="max-width:600px;">
-    <div class="modal-header"><h3>New Quotation</h3><button class="modal-close" onclick="document.getElementById('quot-modal').style.display='none'">✕</button></div>
-    <div class="modal-body">
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
-        <div class="form-group"><label>Customer Name *</label><input id="quot-customer" placeholder="Customer name"></div>
-        <div class="form-group"><label>Valid Till</label><input id="quot-valid" type="date"></div>
-        <div class="form-group"><label>Item / Service *</label><input id="quot-item" placeholder="Product or service"></div>
-        <div class="form-group"><label>Quantity</label><input id="quot-qty" type="number" value="1"></div>
-        <div class="form-group"><label>Rate (Rs)</label><input id="quot-rate" type="number" placeholder="0" oninput="calcQuot()"></div>
-        <div class="form-group"><label>GST %</label><select id="quot-gst" onchange="calcQuot()"><option value="0">0%</option><option value="5">5%</option><option value="12">12%</option><option value="18" selected>18%</option><option value="28">28%</option></select></div>
-      </div>
-      <div style="background:var(--bg);border-radius:8px;padding:12px;margin-top:8px;">
-        <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px;"><span>Subtotal</span><span id="quot-subtotal">Rs 0</span></div>
-        <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px;"><span>GST</span><span id="quot-gst-amt">Rs 0</span></div>
-        <div style="display:flex;justify-content:space-between;font-size:13px;font-weight:700;border-top:1px solid var(--border);padding-top:6px;"><span>Total</span><span id="quot-total">Rs 0</span></div>
-      </div>
-      <div class="form-group" style="margin-top:10px;"><label>Terms & Notes</label><textarea id="quot-terms" style="height:55px;resize:none;" placeholder="Payment terms, delivery notes..."></textarea></div>
-    </div>
-    <div class="modal-footer">
-      <button class="btn btn-secondary" onclick="document.getElementById('quot-modal').style.display='none'">Cancel</button>
-      <button class="btn btn-primary" onclick="saveQuotation()">Save Quotation</button>
-    </div>
-  </div>
-</div>
-<!-- END CRM PAGES -->
 </div>
     </div>
   </div>
@@ -904,11 +724,7 @@ function go(name,el){
   if(pg)pg.classList.add('on');
   if(el)el.classList.add('on');
   if(name==='payments') loadPayments('all');
-  if(name==='crm') setTimeout(loadCRMDashboard,100);
-  else if(name==='leads') setTimeout(loadLeads,100);
-  else if(name==='opportunities') setTimeout(loadOpportunities,100);
-  else if(name==='quotations') setTimeout(loadQuotations,100);
-  else if(name==='crm-tasks') setTimeout(loadCRMTasks,100);
+
   document.getElementById('tb-title').textContent=el?el.textContent.trim():name;
   document.getElementById('notif-panel').classList.remove('on');
   document.getElementById('sb').classList.remove('open');
