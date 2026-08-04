@@ -1671,8 +1671,10 @@ if(TOKEN&&USER){ROLE=USER.role||'employee';startApp();}
 </div>
 <script>
 function showERPLogin(){
-  document.getElementById('lp').style.display='none';
-  document.getElementById('erp-login-wrap').style.display='flex';
+  var lp=document.getElementById('lp');
+  if(lp)lp.style.display='none';
+  var loginWrap=document.getElementById('erp-login-wrap')||document.getElementById('login-page');
+  if(loginWrap)loginWrap.style.display='flex';
 }
 function autofillDemo(){
   showERPLogin();
