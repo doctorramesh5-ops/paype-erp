@@ -687,9 +687,6 @@ function startApp(){
     document.querySelectorAll('.mgr-btn').forEach(function(el){el.style.display='none';});
     document.querySelectorAll('.mgr-only').forEach(function(el){el.style.display='none';});
   }
-  if(ROLE!=='admin'){
-    document.querySelectorAll('.admin-only').forEach(function(el){el.style.display='none';});
-  }
   var h=new Date().getHours();
   document.getElementById('dash-sub').textContent=(h<12?'Good Morning':h<17?'Good Afternoon':'Good Evening')+', '+(USER.name||'').split(' ')[0]+'! FY 2026-27';
   preloadData();loadDash();
