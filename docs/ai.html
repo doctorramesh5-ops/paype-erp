@@ -804,17 +804,18 @@ async function callClaude(prompt, systemPrompt, maxTokens) {
   maxTokens = maxTokens || 1000;
   systemPrompt = systemPrompt || buildSystemPrompt();
   try {
-    var res = await fetch('https://api.anthropic.com/v1/messages', {
+    var tok = localStorage.getItem('erp_token')||'';
+    var res = await fetch('https://erpapi.paype.co.in/api/ai/chat', {
       method: 'POST',
-      headers: {'Content-Type': 'application/json'},
+      headers: {'Content-Type': 'application/json', 'Authorization': 'Bearer '+tok},
       body: JSON.stringify({
-        model: 'claude-sonnet-4-6',
         max_tokens: maxTokens,
         system: systemPrompt,
         messages: [{role: 'user', content: prompt}]
       })
     });
     var data = await res.json();
+    data = data.data;
     if (data.content && data.content[0]) return data.content[0].text;
     return 'AI response error: ' + JSON.stringify(data);
   } catch(e) { return 'Connection error: ' + e.message; }

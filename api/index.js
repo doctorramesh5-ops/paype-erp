@@ -1983,6 +1983,29 @@ app.post('/api/payments/razorpay-webhook', async (req, res) => {
 });
 
 // ── 404 & ERROR ────────────────────────────────────────
+// ── AI PROXY ─────────────────────────────────────────
+app.post('/api/ai/chat', auth, async (req, res) => {
+  try {
+    const { messages, system, max_tokens } = req.body;
+    const response = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': process.env.ANTHROPIC_API_KEY || '',
+        'anthropic-version': '2023-06-01'
+      },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-6',
+        max_tokens: max_tokens || 1000,
+        system: system || 'You are PayPe AI, a helpful business assistant.',
+        messages: messages || []
+      })
+    });
+    const data = await response.json();
+    res.json({ success: true, data });
+  } catch(e) { res.status(500).json({ success: false, message: e.message }); }
+});
+
 app.use(function(req, res) { res.status(404).json({ success: false, message: 'Endpoint not found' }); });
 app.use(function(err, req, res, next) { res.status(500).json({ success: false, message: err.message }); });
 
