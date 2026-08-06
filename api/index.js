@@ -1512,10 +1512,10 @@ app.get('/api/inventory/reports', auth, async (req, res) => {
 app.get('/api/crm/leads', auth, async (req, res) => {
   try {
     const { status } = req.query;
-    let q = 'SELECT l.*, u.name AS assigned_name FROM leads l LEFT JOIN erp_users u ON u.id=l.assigned_to WHERE l.company_id=$1';
+    let q = 'SELECT * FROM leads WHERE company_id=$1';
     const params = [req.user.company_id];
-    if (status) { params.push(status); q += ' AND l.status=$' + params.length; }
-    q += ' ORDER BY l.created_at DESC';
+    if (status) { params.push(status); q += ' AND status=$' + params.length; }
+    q += ' ORDER BY created_at DESC';
     const r = await db(q, params);
     res.json({ success: true, data: r.rows });
   } catch(e) { res.status(500).json({ success: false, message: e.message }); }
@@ -1544,9 +1544,7 @@ app.put('/api/crm/leads/:id', auth, async (req, res) => {
 // OPPORTUNITIES
 app.get('/api/crm/opportunities', auth, async (req, res) => {
   try {
-    const r = await db(`SELECT o.*, l.name AS lead_name, l.company_name, u.name AS assigned_name
-      FROM opportunities o LEFT JOIN leads l ON l.id=o.lead_id LEFT JOIN erp_users u ON u.id=o.assigned_to
-      WHERE o.company_id=$1 ORDER BY o.created_at DESC`, [req.user.company_id]);
+    const r = await db(`SELECT * FROM opportunities WHERE company_id=$1 ORDER BY created_at DESC`, [req.user.company_id]);
     res.json({ success: true, data: r.rows });
   } catch(e) { res.status(500).json({ success: false, message: e.message }); }
 });
@@ -1574,7 +1572,7 @@ app.put('/api/crm/opportunities/:id', auth, async (req, res) => {
 // QUOTATIONS
 app.get('/api/crm/quotations', auth, async (req, res) => {
   try {
-    const r = await db(`SELECT q.*, l.name AS lead_name FROM quotations q LEFT JOIN leads l ON l.id=q.lead_id WHERE q.company_id=$1 ORDER BY q.created_at DESC`, [req.user.company_id]);
+    const r = await db(`SELECT * FROM quotations WHERE company_id=$1 ORDER BY created_at DESC`, [req.user.company_id]);
     res.json({ success: true, data: r.rows });
   } catch(e) { res.status(500).json({ success: false, message: e.message }); }
 });
@@ -1603,7 +1601,7 @@ app.post('/api/crm/quotations', auth, async (req, res) => {
 // TASKS
 app.get('/api/crm/tasks', auth, async (req, res) => {
   try {
-    const r = await db(`SELECT t.*, u.name AS assigned_name FROM crm_tasks t LEFT JOIN erp_users u ON u.id=t.assigned_to WHERE t.company_id=$1 ORDER BY t.due_date ASC NULLS LAST, t.created_at DESC`, [req.user.company_id]);
+    const r = await db(`SELECT * FROM crm_tasks WHERE company_id=$1 ORDER BY due_date ASC NULLS LAST, created_at DESC`, [req.user.company_id]);
     res.json({ success: true, data: r.rows });
   } catch(e) { res.status(500).json({ success: false, message: e.message }); }
 });
@@ -1670,13 +1668,7 @@ app.get('/api/crm/reports', auth, async (req, res) => {
 // VENDORS
 app.get('/api/procurement/vendors', auth, async (req, res) => {
   try {
-    const r = await db(`SELECT v.*, 
-      COUNT(DISTINCT po.id) AS po_count,
-      COALESCE(SUM(po.total),0) AS total_business
-      FROM vendors v
-      LEFT JOIN purchase_orders po ON po.vendor_id = v.party_id
-      WHERE v.company_id=$1
-      GROUP BY v.id ORDER BY v.name`, [req.user.company_id]);
+    const r = await db(`SELECT * FROM vendors WHERE company_id=$1 ORDER BY name`, [req.user.company_id]);
     res.json({ success: true, data: r.rows });
   } catch(e) { res.status(500).json({ success: false, message: e.message }); }
 });
@@ -1709,9 +1701,7 @@ app.put('/api/procurement/vendors/:id', auth, async (req, res) => {
 // RFQ
 app.get('/api/procurement/rfq', auth, async (req, res) => {
   try {
-    const r = await db(`SELECT r.*, u.name AS created_by_name FROM rfq r
-      LEFT JOIN erp_users u ON u.id=r.created_by
-      WHERE r.company_id=$1 ORDER BY r.created_at DESC`, [req.user.company_id]);
+    const r = await db(`SELECT * FROM rfq WHERE company_id=$1 ORDER BY created_at DESC`, [req.user.company_id]);
     res.json({ success: true, data: r.rows });
   } catch(e) { res.status(500).json({ success: false, message: e.message }); }
 });
@@ -1779,9 +1769,7 @@ app.put('/api/procurement/approvals/:id', auth, async (req, res) => {
 // GRN
 app.get('/api/procurement/grn', auth, async (req, res) => {
   try {
-    const r = await db(`SELECT g.*, po.po_no, po.vendor_name FROM grn g
-      LEFT JOIN purchase_orders po ON po.id=g.po_id
-      WHERE g.company_id=$1 ORDER BY g.created_at DESC`, [req.user.company_id]);
+    const r = await db(`SELECT * FROM grn WHERE company_id=$1 ORDER BY created_at DESC`, [req.user.company_id]);
     res.json({ success: true, data: r.rows });
   } catch(e) { res.status(500).json({ success: false, message: e.message }); }
 });
@@ -1815,9 +1803,7 @@ app.post('/api/procurement/grn', auth, async (req, res) => {
 // VENDOR PAYMENTS
 app.get('/api/procurement/payments', auth, async (req, res) => {
   try {
-    const r = await db(`SELECT vp.*, p.name AS vendor_name FROM vendor_payments vp
-      LEFT JOIN parties p ON p.id=vp.vendor_id
-      WHERE vp.company_id=$1 ORDER BY vp.payment_date DESC`, [req.user.company_id]);
+    const r = await db(`SELECT * FROM vendor_payments WHERE company_id=$1 ORDER BY payment_date DESC`, [req.user.company_id]);
     res.json({ success: true, data: r.rows });
   } catch(e) { res.status(500).json({ success: false, message: e.message }); }
 });
