@@ -1113,6 +1113,235 @@ app.get('/api/setup', async (req, res) => {
 
 
 // ══════════════════════════════════════════════════════
+// ── SETUP TABLES ─────────────────────────────────────
+// ══════════════════════════════════════════════════════
+app.get('/api/setup-tables', async (req, res) => {
+  try {
+    const tables = [];
+    
+    // Products
+    await db(`CREATE TABLE IF NOT EXISTS products (
+      id SERIAL PRIMARY KEY,
+      company_id UUID REFERENCES erp_companies(id) ON DELETE CASCADE,
+      name VARCHAR(200) NOT NULL,
+      sku VARCHAR(100),
+      category VARCHAR(100),
+      unit VARCHAR(50),
+      purchase_price NUMERIC(15,2) DEFAULT 0,
+      selling_price NUMERIC(15,2) DEFAULT 0,
+      tax_rate NUMERIC(5,2) DEFAULT 18,
+      hsn_code VARCHAR(20),
+      description TEXT,
+      is_active BOOLEAN DEFAULT true,
+      created_at TIMESTAMP DEFAULT NOW()
+    )`); tables.push('products');
+
+    // Warehouses
+    await db(`CREATE TABLE IF NOT EXISTS warehouses (
+      id SERIAL PRIMARY KEY,
+      company_id UUID REFERENCES erp_companies(id) ON DELETE CASCADE,
+      name VARCHAR(200) NOT NULL,
+      location VARCHAR(200),
+      manager VARCHAR(200),
+      is_active BOOLEAN DEFAULT true,
+      created_at TIMESTAMP DEFAULT NOW()
+    )`); tables.push('warehouses');
+
+    // Stock movements
+    await db(`CREATE TABLE IF NOT EXISTS stock_movements (
+      id SERIAL PRIMARY KEY,
+      company_id UUID REFERENCES erp_companies(id) ON DELETE CASCADE,
+      product_id INTEGER REFERENCES products(id),
+      warehouse_id INTEGER REFERENCES warehouses(id),
+      type VARCHAR(20) NOT NULL,
+      quantity NUMERIC(10,2) NOT NULL,
+      reference VARCHAR(100),
+      notes TEXT,
+      created_at TIMESTAMP DEFAULT NOW()
+    )`); tables.push('stock_movements');
+
+    // Purchase orders
+    await db(`CREATE TABLE IF NOT EXISTS purchase_orders (
+      id SERIAL PRIMARY KEY,
+      company_id UUID REFERENCES erp_companies(id) ON DELETE CASCADE,
+      po_number VARCHAR(50),
+      vendor_name VARCHAR(200),
+      order_date DATE DEFAULT CURRENT_DATE,
+      expected_date DATE,
+      status VARCHAR(50) DEFAULT 'Draft',
+      total_amount NUMERIC(15,2) DEFAULT 0,
+      notes TEXT,
+      created_at TIMESTAMP DEFAULT NOW()
+    )`); tables.push('purchase_orders');
+
+    // Sales orders
+    await db(`CREATE TABLE IF NOT EXISTS sales_orders (
+      id SERIAL PRIMARY KEY,
+      company_id UUID REFERENCES erp_companies(id) ON DELETE CASCADE,
+      so_number VARCHAR(50),
+      customer_name VARCHAR(200),
+      order_date DATE DEFAULT CURRENT_DATE,
+      delivery_date DATE,
+      status VARCHAR(50) DEFAULT 'Draft',
+      total_amount NUMERIC(15,2) DEFAULT 0,
+      notes TEXT,
+      created_at TIMESTAMP DEFAULT NOW()
+    )`); tables.push('sales_orders');
+
+    // CRM Leads
+    await db(`CREATE TABLE IF NOT EXISTS leads (
+      id SERIAL PRIMARY KEY,
+      company_id UUID REFERENCES erp_companies(id) ON DELETE CASCADE,
+      name VARCHAR(200) NOT NULL,
+      company VARCHAR(200),
+      email VARCHAR(200),
+      phone VARCHAR(20),
+      source VARCHAR(100),
+      status VARCHAR(50) DEFAULT 'New',
+      expected_value NUMERIC(15,2) DEFAULT 0,
+      priority VARCHAR(20) DEFAULT 'Medium',
+      notes TEXT,
+      assigned_to VARCHAR(200),
+      created_at TIMESTAMP DEFAULT NOW()
+    )`); tables.push('leads');
+
+    // CRM Opportunities
+    await db(`CREATE TABLE IF NOT EXISTS opportunities (
+      id SERIAL PRIMARY KEY,
+      company_id UUID REFERENCES erp_companies(id) ON DELETE CASCADE,
+      title VARCHAR(200) NOT NULL,
+      lead_name VARCHAR(200),
+      customer_name VARCHAR(200),
+      stage VARCHAR(100) DEFAULT 'Prospecting',
+      value NUMERIC(15,2) DEFAULT 0,
+      probability INTEGER DEFAULT 50,
+      expected_close_date DATE,
+      description TEXT,
+      created_at TIMESTAMP DEFAULT NOW()
+    )`); tables.push('opportunities');
+
+    // CRM Quotations
+    await db(`CREATE TABLE IF NOT EXISTS quotations (
+      id SERIAL PRIMARY KEY,
+      company_id UUID REFERENCES erp_companies(id) ON DELETE CASCADE,
+      quotation_number VARCHAR(50),
+      customer_name VARCHAR(200) NOT NULL,
+      date DATE DEFAULT CURRENT_DATE,
+      valid_till DATE,
+      items JSONB DEFAULT '[]',
+      subtotal NUMERIC(15,2) DEFAULT 0,
+      gst_amount NUMERIC(15,2) DEFAULT 0,
+      total_amount NUMERIC(15,2) DEFAULT 0,
+      terms TEXT,
+      status VARCHAR(50) DEFAULT 'Draft',
+      created_at TIMESTAMP DEFAULT NOW()
+    )`); tables.push('quotations');
+
+    // CRM Tasks
+    await db(`CREATE TABLE IF NOT EXISTS crm_tasks (
+      id SERIAL PRIMARY KEY,
+      company_id UUID REFERENCES erp_companies(id) ON DELETE CASCADE,
+      title VARCHAR(200) NOT NULL,
+      related_to VARCHAR(200),
+      task_type VARCHAR(50) DEFAULT 'Follow-up',
+      priority VARCHAR(20) DEFAULT 'Medium',
+      due_date DATE,
+      status VARCHAR(50) DEFAULT 'Pending',
+      notes TEXT,
+      created_at TIMESTAMP DEFAULT NOW()
+    )`); tables.push('crm_tasks');
+
+    // CRM Activities
+    await db(`CREATE TABLE IF NOT EXISTS crm_activities (
+      id SERIAL PRIMARY KEY,
+      company_id UUID REFERENCES erp_companies(id) ON DELETE CASCADE,
+      lead_id INTEGER REFERENCES leads(id) ON DELETE CASCADE,
+      type VARCHAR(50),
+      description TEXT,
+      created_at TIMESTAMP DEFAULT NOW()
+    )`); tables.push('crm_activities');
+
+    // Vendors
+    await db(`CREATE TABLE IF NOT EXISTS vendors (
+      id SERIAL PRIMARY KEY,
+      company_id UUID REFERENCES erp_companies(id) ON DELETE CASCADE,
+      name VARCHAR(200) NOT NULL,
+      email VARCHAR(200),
+      phone VARCHAR(20),
+      gstin VARCHAR(20),
+      pan VARCHAR(15),
+      address TEXT,
+      payment_terms VARCHAR(100),
+      status VARCHAR(20) DEFAULT 'Active',
+      created_at TIMESTAMP DEFAULT NOW()
+    )`); tables.push('vendors');
+
+    // RFQ
+    await db(`CREATE TABLE IF NOT EXISTS rfq (
+      id SERIAL PRIMARY KEY,
+      company_id UUID REFERENCES erp_companies(id) ON DELETE CASCADE,
+      rfq_number VARCHAR(50),
+      title VARCHAR(200),
+      description TEXT,
+      deadline DATE,
+      status VARCHAR(50) DEFAULT 'Open',
+      created_at TIMESTAMP DEFAULT NOW()
+    )`); tables.push('rfq');
+
+    // RFQ Vendors
+    await db(`CREATE TABLE IF NOT EXISTS rfq_vendors (
+      id SERIAL PRIMARY KEY,
+      rfq_id INTEGER REFERENCES rfq(id) ON DELETE CASCADE,
+      vendor_id INTEGER REFERENCES vendors(id) ON DELETE CASCADE,
+      quoted_amount NUMERIC(15,2),
+      status VARCHAR(50) DEFAULT 'Pending',
+      notes TEXT,
+      created_at TIMESTAMP DEFAULT NOW()
+    )`); tables.push('rfq_vendors');
+
+    // Procurement approvals
+    await db(`CREATE TABLE IF NOT EXISTS procurement_approvals (
+      id SERIAL PRIMARY KEY,
+      company_id UUID REFERENCES erp_companies(id) ON DELETE CASCADE,
+      purchase_order_id INTEGER,
+      approver VARCHAR(200),
+      status VARCHAR(50) DEFAULT 'Pending',
+      comments TEXT,
+      created_at TIMESTAMP DEFAULT NOW()
+    )`); tables.push('procurement_approvals');
+
+    // GRN
+    await db(`CREATE TABLE IF NOT EXISTS grn (
+      id SERIAL PRIMARY KEY,
+      company_id UUID REFERENCES erp_companies(id) ON DELETE CASCADE,
+      grn_number VARCHAR(50),
+      purchase_order_id INTEGER,
+      vendor_name VARCHAR(200),
+      received_date DATE DEFAULT CURRENT_DATE,
+      items JSONB DEFAULT '[]',
+      status VARCHAR(50) DEFAULT 'Draft',
+      notes TEXT,
+      created_at TIMESTAMP DEFAULT NOW()
+    )`); tables.push('grn');
+
+    // Vendor payments
+    await db(`CREATE TABLE IF NOT EXISTS vendor_payments (
+      id SERIAL PRIMARY KEY,
+      company_id UUID REFERENCES erp_companies(id) ON DELETE CASCADE,
+      vendor_id INTEGER REFERENCES vendors(id),
+      amount NUMERIC(15,2) NOT NULL,
+      payment_date DATE DEFAULT CURRENT_DATE,
+      payment_mode VARCHAR(50),
+      reference VARCHAR(100),
+      notes TEXT,
+      created_at TIMESTAMP DEFAULT NOW()
+    )`); tables.push('vendor_payments');
+
+    res.json({ success: true, message: 'All tables created!', tables });
+  } catch(e) { res.status(500).json({ success: false, message: e.message }); }
+});
+
+// ══════════════════════════════════════════════════════
 // ── INVENTORY API ────────────────────────────────────
 // ══════════════════════════════════════════════════════
 
