@@ -1633,7 +1633,7 @@ app.get('/api/crm/pipeline', auth, async (req, res) => {
       const found = r.rows.find(function(row) { return row.stage === stage; });
       return { stage, count: parseInt(found?.count||0), totalValue: parseFloat(found?.total_value||0) };
     });
-    const allOpps = await db('SELECT o.*, l.name AS lead_name, l.company_name FROM opportunities o LEFT JOIN leads l ON l.id=o.lead_id WHERE o.company_id=$1 ORDER BY o.value DESC', [req.user.company_id]);
+    const allOpps = await db('SELECT * FROM opportunities WHERE company_id=$1 ORDER BY value DESC', [req.user.company_id]);
     res.json({ success: true, data: { pipeline, opportunities: allOpps.rows } });
   } catch(e) { res.status(500).json({ success: false, message: e.message }); }
 });
