@@ -355,12 +355,362 @@ tr:hover td{background:rgba(0,194,168,.02);}
     </div>
 
     <!-- PROFILE -->
-    <div class="section" id="sec-profile">
-      <div style="font-family:Syne,sans-serif;font-size:22px;font-weight:800;color:var(--navy);margin-bottom:16px;">👤 My Profile</div>
-      <div id="profile-content"></div>
+    ng="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>PayPe ERP — CEO Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Syne:wght@700;800&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+:root{--navy:#0D1B3E;--teal:#00C2A8;--red:#E63329;--bg:#F0F4F8;--border:#E2E8F0;--gray:#718096;--green:#38A169;--orange:#DD6B20;--purple:#805AD5;}
+body{font-family:'Inter',sans-serif;background:var(--bg);color:#1A202C;font-size:13px;}
+
+/* LOGIN */
+.login-wrap{display:flex;min-height:100vh;}
+.login-left{flex:1;background:linear-gradient(135deg,#0D1B3E,#0a0f2e);display:flex;flex-direction:column;justify-content:center;padding:60px;position:relative;overflow:hidden;}
+.login-left::before{content:'';position:absolute;top:-100px;right:-80px;width:500px;height:500px;border-radius:50%;background:rgba(0,194,168,.05);}
+.login-left::after{content:'';position:absolute;bottom:-100px;left:-60px;width:350px;height:350px;border-radius:50%;background:rgba(128,90,213,.05);}
+.ll-brand{font-family:'Syne',sans-serif;font-size:30px;font-weight:800;color:white;margin-bottom:4px;position:relative;z-index:1;}
+.ll-brand span{color:var(--teal);}
+.ll-sub{font-size:11px;color:rgba(255,255,255,.3);letter-spacing:2px;text-transform:uppercase;margin-bottom:36px;position:relative;z-index:1;}
+.ll-title{font-size:28px;font-weight:800;color:white;margin-bottom:12px;line-height:1.3;position:relative;z-index:1;}
+.ll-title span{background:linear-gradient(135deg,var(--teal),var(--purple));-webkit-background-clip:text;-webkit-text-fill-color:transparent;}
+.ll-desc{font-size:14px;color:rgba(255,255,255,.5);line-height:1.7;margin-bottom:32px;max-width:420px;position:relative;z-index:1;}
+.ll-modules{display:grid;grid-template-columns:1fr 1fr;gap:8px;position:relative;z-index:1;}
+.ll-mod{padding:10px 14px;background:rgba(255,255,255,.04);border-radius:10px;border:1px solid rgba(255,255,255,.07);display:flex;align-items:center;gap:8px;font-size:12px;color:rgba(255,255,255,.65);}
+.ll-mod-dot{width:7px;height:7px;border-radius:50%;background:var(--green);}
+.login-right{width:440px;background:white;display:flex;flex-direction:column;justify-content:center;padding:60px 50px;flex-shrink:0;}
+.lr-logo{font-family:'Syne',sans-serif;font-size:22px;font-weight:800;color:var(--navy);margin-bottom:4px;}
+.lr-logo span{color:var(--teal);}
+.lr-badge{display:inline-flex;align-items:center;gap:6px;padding:3px 12px;background:linear-gradient(135deg,rgba(0,194,168,.1),rgba(128,90,213,.1));border-radius:20px;font-size:11px;font-weight:700;color:var(--navy);margin-bottom:24px;border:1px solid rgba(0,194,168,.2);}
+.lr-welcome{font-size:22px;font-weight:800;color:var(--navy);margin-bottom:6px;}
+.lr-sub{font-size:13px;color:var(--gray);margin-bottom:28px;}
+.ff{display:flex;flex-direction:column;gap:5px;margin-bottom:14px;}
+.ff label{font-size:11px;font-weight:700;color:var(--gray);text-transform:uppercase;letter-spacing:.5px;}
+.ff input{border:1.5px solid var(--border);border-radius:10px;padding:11px 14px;font-family:inherit;font-size:13px;outline:none;transition:.15s;width:100%;}
+.ff input:focus{border-color:var(--teal);}
+.pass-wrap{position:relative;}.pass-wrap input{padding-right:40px;}
+.pass-eye{position:absolute;right:12px;top:50%;transform:translateY(-50%);cursor:pointer;background:none;border:none;font-size:14px;}
+.login-btn{width:100%;padding:13px;background:linear-gradient(135deg,var(--navy),#1a3a7c);color:white;border:none;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;transition:.2s;margin-top:8px;}
+.login-btn:hover{opacity:.9;}
+.login-err{background:#FFF5F5;border:1px solid #FED7D7;color:var(--red);border-radius:8px;padding:10px 14px;font-size:12px;margin-top:10px;display:none;}
+.login-footer{margin-top:24px;padding-top:16px;border-top:1px solid var(--border);font-size:11px;color:var(--gray);}
+
+/* APP */
+.app{display:none;min-height:100vh;flex-direction:column;}
+.app.on{display:flex;}
+
+/* TOP NAV */
+.topnav{background:var(--navy);padding:0 24px;height:60px;display:flex;align-items:center;gap:16px;flex-shrink:0;}
+.tn-brand{font-family:'Syne',sans-serif;font-size:18px;font-weight:800;color:white;}
+.tn-brand span{color:var(--teal);}
+.tn-badge{padding:3px 10px;background:rgba(0,194,168,.15);border-radius:20px;font-size:10px;font-weight:700;color:var(--teal);border:1px solid rgba(0,194,168,.2);}
+.tn-right{margin-left:auto;display:flex;align-items:center;gap:12px;}
+.tn-date{font-size:11px;color:rgba(255,255,255,.4);}
+.tn-refresh{background:rgba(255,255,255,.1);border:none;color:rgba(255,255,255,.7);padding:6px 12px;border-radius:8px;cursor:pointer;font-size:11px;font-weight:600;font-family:inherit;transition:.15s;}
+.tn-refresh:hover{background:rgba(255,255,255,.2);color:white;}
+.tn-user{display:flex;align-items:center;gap:8px;}
+.tn-avatar{width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,var(--teal),var(--purple));color:white;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;}
+.tn-name{font-size:12px;color:rgba(255,255,255,.7);}
+.tn-logout{background:none;border:none;color:rgba(255,255,255,.4);cursor:pointer;font-size:11px;font-family:inherit;transition:.15s;}
+.tn-logout:hover{color:var(--red);}
+
+/* MODULE TABS */
+.mod-tabs{background:white;border-bottom:1px solid var(--border);padding:0 24px;display:flex;gap:4px;overflow-x:auto;}
+.mod-tabs::-webkit-scrollbar{display:none;}
+.mod-tab{padding:12px 16px;border-bottom:2px solid transparent;cursor:pointer;font-size:12px;font-weight:600;color:var(--gray);white-space:nowrap;transition:.15s;display:flex;align-items:center;gap:6px;}
+.mod-tab:hover{color:var(--navy);}
+.mod-tab.on{color:var(--navy);border-bottom-color:var(--teal);}
+
+/* CONTENT */
+.ceo-content{flex:1;overflow-y:auto;padding:20px 24px;}
+.section{display:none;}.section.on{display:block;}
+
+/* KPI GRID */
+.kpi-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:12px;margin-bottom:16px;}
+.kpi-card{background:white;border-radius:14px;padding:18px;border:1px solid var(--border);position:relative;overflow:hidden;}
+.kpi-card::before{content:'';position:absolute;top:-20px;right:-20px;width:80px;height:80px;border-radius:50%;background:var(--kc,rgba(0,194,168,.06));}
+.kpi-icon{font-size:22px;margin-bottom:8px;}
+.kpi-val{font-size:22px;font-weight:800;color:var(--navy);}
+.kpi-label{font-size:11px;color:var(--gray);margin-top:3px;}
+.kpi-trend{font-size:11px;font-weight:600;margin-top:6px;display:flex;align-items:center;gap:4px;}
+.trend-up{color:var(--green);}
+.trend-dn{color:var(--red);}
+
+/* CARDS */
+.card{background:white;border-radius:14px;border:1px solid var(--border);margin-bottom:14px;}
+.ch{padding:14px 16px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--bg);}
+.ct{font-size:14px;font-weight:700;color:var(--navy);}
+.cb{padding:16px;}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;}
+
+/* TABLE */
+.tbl-wrap{overflow-x:auto;}
+table{width:100%;border-collapse:collapse;}
+th{background:var(--bg);padding:8px 12px;text-align:left;font-size:11px;font-weight:700;color:var(--gray);text-transform:uppercase;letter-spacing:.5px;}
+td{padding:10px 12px;border-bottom:1px solid var(--bg);font-size:12px;vertical-align:middle;}
+tr:last-child td{border-bottom:none;}
+tr:hover td{background:rgba(0,194,168,.02);}
+
+/* BADGE */
+.b{display:inline-flex;align-items:center;padding:2px 8px;border-radius:20px;font-size:10px;font-weight:700;}
+.bg{background:#F0FFF4;color:var(--green);}
+.br{background:#FFF5F5;color:var(--red);}
+.by{background:#FFFBEB;color:#B7791F;}
+.bt{background:rgba(0,194,168,.1);color:var(--teal);}
+.bn{background:var(--bg);color:var(--gray);}
+.bo{background:rgba(221,107,32,.1);color:var(--orange);}
+.bp{background:#FAF5FF;color:var(--purple);}
+
+/* PROGRESS */
+.progress{height:6px;background:var(--bg);border-radius:3px;overflow:hidden;}
+.progress-fill{height:100%;border-radius:3px;transition:.5s;}
+
+/* ACTION ITEMS */
+.action-item{padding:10px 12px;border-radius:10px;margin-bottom:6px;display:flex;align-items:center;gap:10px;border:1px solid var(--border);}
+.action-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+.action-text{flex:1;font-size:12px;}
+.action-due{font-size:11px;font-weight:600;}
+
+/* STAT ROW */
+.stat-row{display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--bg);}
+.stat-row:last-child{border-bottom:none;}
+
+/* CHART */
+.chart-wrap{position:relative;height:220px;}
+
+/* LOADER */
+.ld{display:flex;align-items:center;gap:8px;color:var(--gray);padding:30px;justify-content:center;}
+.sp{width:18px;height:18px;border:2px solid var(--border);border-top-color:var(--teal);border-radius:50%;animation:spin .7s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg);}}
+.em{text-align:center;padding:20px;color:var(--gray);}
+
+/* MINI STAT */
+.mini-stat{text-align:center;padding:14px;background:var(--bg);border-radius:10px;}
+.mini-val{font-size:20px;font-weight:800;color:var(--navy);}
+.mini-label{font-size:11px;color:var(--gray);margin-top:3px;}
+
+/* MODULE CARD */
+.mod-status-card{background:white;border-radius:14px;padding:16px;border:1px solid var(--border);display:flex;align-items:center;gap:14px;}
+.mod-status-icon{width:44px;height:44px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0;}
+.mod-status-name{font-size:13px;font-weight:700;color:var(--navy);}
+.mod-status-url{font-size:11px;color:var(--gray);margin-top:2px;}
+.mod-status-live{margin-left:auto;display:flex;align-items:center;gap:5px;font-size:11px;font-weight:700;color:var(--green);}
+.live-dot{width:7px;height:7px;border-radius:50%;background:var(--green);animation:pulse 2s infinite;}
+@keyframes pulse{0%,100%{opacity:1;}50%{opacity:.4;}}
+
+@media(max-width:768px){.g2,.g3{grid-template-columns:1fr;}.kpi-grid{grid-template-columns:1fr 1fr;}}
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div class="login-wrap" id="login-page">
+  <div class="login-left">
+    <div class="ll-brand">Pay<span>Pe</span> ERP</div>
+    <div class="ll-sub">CEO Executive Dashboard — Module 8</div>
+    <div class="ll-title">Complete Business<br><span>Intelligence</span></div>
+    <div class="ll-desc">Real-time view of your entire business — Finance, HR, Sales, Inventory, Procurement — all in one executive dashboard.</div>
+    <div class="ll-modules">
+      <div class="ll-mod"><div class="ll-mod-dot"></div>📊 Accounting & Finance</div>
+      <div class="ll-mod"><div class="ll-mod-dot"></div>👥 HR & Payroll</div>
+      <div class="ll-mod"><div class="ll-mod-dot"></div>🎯 CRM & Sales Pipeline</div>
+      <div class="ll-mod"><div class="ll-mod-dot"></div>📦 Inventory & Stock</div>
+      <div class="ll-mod"><div class="ll-mod-dot"></div>🛒 Procurement</div>
+      <div class="ll-mod"><div class="ll-mod-dot"></div>🤖 AI Insights</div>
+    </div>
+  </div>
+  <div class="login-right">
+    <div class="lr-logo">Pay<span>Pe</span> CEO</div>
+    <div class="lr-badge">👑 Executive Access Only</div>
+    <div class="lr-welcome">Executive Sign In</div>
+    <div class="lr-sub">Access your complete business dashboard</div>
+    <div class="ff"><label>Email</label><input id="l-email" type="email" value=""></div>
+    <div class="ff"><label>Password</label><div class="pass-wrap"><input id="l-pass" type="password" value=""><button class="pass-eye" onclick="togglePass()">👁</button></div></div>
+    <button class="login-btn" id="l-btn" onclick="doLogin()">👑 Access CEO Dashboard</button>
+    <div class="login-err" id="l-err"></div>
+    <div class="login-footer">admin@paype.co.in </div>
+  </div>
+</div>
+
+<!-- CEO APP -->
+<div class="app" id="ceo-app">
+  <!-- TOP NAV -->
+  <div class="topnav">
+    <div class="tn-brand">Pay<span>Pe</span></div>
+    <div class="tn-badge">👑 CEO Dashboard</div>
+    <div class="tn-right">
+      <div class="tn-date" id="tn-date"></div>
+      <button class="tn-refresh" onclick="refreshAll()">🔄 Refresh</button>
+      <div class="tn-user">
+        <div class="tn-avatar" id="tn-avatar">R</div>
+        <div class="tn-name" id="tn-name">CEO</div>
+      </div>
+      <button class="tn-logout" onclick="doLogout()">Sign Out</button>
+    </div>
+  </div>
+
+  <!-- MODULE TABS -->
+  <div class="mod-tabs">
+    <div class="mod-tab on" onclick="showSection('overview',this)">🏠 Overview</div>
+    <div class="mod-tab" onclick="showSection('finance',this)">📊 Finance</div>
+    <div class="mod-tab" onclick="showSection('hrms',this)">👥 HR & People</div>
+    <div class="mod-tab" onclick="showSection('sales',this)">🎯 Sales & CRM</div>
+    <div class="mod-tab" onclick="showSection('inventory',this)">📦 Inventory</div>
+    <div class="mod-tab" onclick="showSection('procurement',this)">🛒 Procurement</div>
+    <div class="mod-tab" onclick="showSection('modules',this)">🔗 All Modules</div>
+    <div class="mod-tab" onclick="showSection('profile',this)">👤 Profile</div>
+    <div class="mod-tab" onclick="showSection('settings',this)">⚙️ Settings</div>
+  </div>
+
+  <div class="ceo-content">
+
+    <!-- OVERVIEW -->
+    <div class="section on" id="sec-overview">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+        <div>
+          <div style="font-family:Syne,sans-serif;font-size:22px;font-weight:800;color:var(--navy);" id="ov-greeting">Good Morning, Ramesh!</div>
+          <div style="font-size:12px;color:var(--gray);margin-top:3px;">Here's your business at a glance</div>
+        </div>
+        <div style="font-size:12px;color:var(--gray);background:white;padding:6px 14px;border-radius:20px;border:1px solid var(--border);">FY 2026-27</div>
+      </div>
+
+      <!-- Top KPIs -->
+      <div class="kpi-grid" id="ov-kpis">
+        <div class="ld"><div class="sp"></div></div>
+      </div>
+
+      <!-- Charts + Actions -->
+      <div class="g2" style="margin-bottom:14px;">
+        <div class="card">
+          <div class="ch"><div class="ct">📈 Revenue Trend</div><span style="font-size:11px;color:var(--gray);">Last 6 months</span></div>
+          <div class="cb"><div class="chart-wrap"><canvas id="revenue-chart"></canvas></div></div>
+        </div>
+        <div class="card">
+          <div class="ch"><div class="ct">🔴 Action Required</div><span id="action-count" style="font-size:11px;font-weight:700;color:var(--red);"></span></div>
+          <div class="cb" id="action-items"><div class="ld"><div class="sp"></div></div></div>
+        </div>
+      </div>
+
+      <!-- Module summaries -->
+      <div class="g3" id="ov-modules">
+        <div class="ld"><div class="sp"></div></div>
+      </div>
     </div>
 
-    <!-- SETTINGS -->
+    <!-- FINANCE -->
+    <div class="section" id="sec-finance">
+      <div class="kpi-grid" id="fin-kpis" style="margin-bottom:16px;"></div>
+      <div class="g2">
+        <div class="card">
+          <div class="ch"><div class="ct">📊 P&L Summary</div></div>
+          <div class="cb" id="fin-pl"></div>
+        </div>
+        <div class="card">
+          <div class="ch"><div class="ct">🔢 GST Overview</div></div>
+          <div class="cb" id="fin-gst"></div>
+        </div>
+            <div class="card">
+              <div class="card-h"><span>💳 SaaS Subscriptions</span></div>
+              <div id="fin-payments"><div class="em" style="padding:20px;">Loading...</div></div>
+            </div>
+      </div>
+      <div class="g2">
+        <div class="card">
+          <div class="ch"><div class="ct">📋 Recent Invoices</div><a href="https://erp.paype.co.in" target="_blank" style="font-size:11px;color:var(--teal);">Open Accounting →</a></div>
+          <div class="cb" id="fin-invoices"></div>
+        </div>
+        <div class="card">
+          <div class="ch"><div class="ct">💸 Expense Breakdown</div></div>
+          <div class="cb"><div class="chart-wrap"><canvas id="expense-chart"></canvas></div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- HRMS -->
+    <div class="section" id="sec-hrms">
+      <div class="kpi-grid" id="hr-kpis" style="margin-bottom:16px;"></div>
+      <div class="g2">
+        <div class="card">
+          <div class="ch"><div class="ct">👥 Employee List</div><a href="https://hr.paype.co.in" target="_blank" style="font-size:11px;color:var(--teal);">Open HRMS →</a></div>
+          <div class="cb" id="hr-employees"></div>
+        </div>
+        <div class="card">
+          <div class="ch"><div class="ct">📅 Attendance Today</div></div>
+          <div class="cb" id="hr-attendance"></div>
+        </div>
+      </div>
+      <div class="g2">
+        <div class="card">
+          <div class="ch"><div class="ct">🏖 Leave Requests</div></div>
+          <div class="cb" id="hr-leaves"></div>
+        </div>
+        <div class="card">
+          <div class="ch"><div class="ct">💰 Payroll Summary</div></div>
+          <div class="cb" id="hr-payroll"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SALES & CRM -->
+    <div class="section" id="sec-sales">
+      <div class="kpi-grid" id="crm-kpis" style="margin-bottom:16px;"></div>
+      <div class="g2">
+        <div class="card">
+          <div class="ch"><div class="ct">🎯 Sales Pipeline</div><a href="https://doctorramesh5-ops.github.io/paype-erp/inventory.html" target="_blank" style="font-size:11px;color:var(--teal);">Open CRM →</a></div>
+          <div class="cb" id="crm-pipeline"></div>
+        </div>
+        <div class="card">
+          <div class="ch"><div class="ct">📊 Pipeline by Stage</div></div>
+          <div class="cb"><div class="chart-wrap"><canvas id="pipeline-chart"></canvas></div></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="ch"><div class="ct">🔥 Recent Leads</div></div>
+        <div class="cb" id="crm-leads"></div>
+      </div>
+    </div>
+
+    <!-- INVENTORY -->
+    <div class="section" id="sec-inventory">
+      <div class="kpi-grid" id="inv-kpis" style="margin-bottom:16px;"></div>
+      <div class="g2">
+        <div class="card">
+          <div class="ch"><div class="ct">⚠️ Low Stock Alerts</div><a href="https://doctorramesh5-ops.github.io/paype-erp/inventory.html" target="_blank" style="font-size:11px;color:var(--teal);">Open Inventory →</a></div>
+          <div class="cb" id="inv-lowstock"></div>
+        </div>
+        <div class="card">
+          <div class="ch"><div class="ct">📦 Top Products</div></div>
+          <div class="cb" id="inv-products"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- PROCUREMENT -->
+    <div class="section" id="sec-procurement">
+      <div class="kpi-grid" id="proc-kpis" style="margin-bottom:16px;"></div>
+      <div class="g2">
+        <div class="card">
+          <div class="ch"><div class="ct">🏪 Top Vendors</div></div>
+          <div class="cb" id="proc-vendors"></div>
+        </div>
+        <div class="card">
+          <div class="ch"><div class="ct">✅ Pending Approvals</div></div>
+          <div class="cb" id="proc-approvals"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ALL MODULES -->
+    <div class="section" id="sec-modules">
+      <div style="font-family:Syne,sans-serif;font-size:18px;font-weight:800;color:var(--navy);margin-bottom:14px;">🔗 PayPe ERP — All Modules</div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:12px;" id="all-modules"></div>
+    </div>
+
+    <!-- PROFILE -->
     <div class="section" id="sec-settings">
       <div style="font-family:Syne,sans-serif;font-size:22px;font-weight:800;color:var(--navy);margin-bottom:16px;">⚙️ Dashboard Settings</div>
       <div id="settings-content"></div>
@@ -847,11 +1197,15 @@ async function loadProcurement(){
 // ── ALL MODULES ───────────────────────────
 function loadModules(){
   var mods=[
-    {icon:'📊',name:'Accounting',url:'https://erp.paype.co.in',desc:'Journal entries, GST, TDS, reports',color:'rgba(0,194,168,.1)'},
+    {icon:'📊',name:'ERP Accounting',url:'https://erp.paype.co.in',desc:'Journal entries, GST, TDS, reports',color:'rgba(0,194,168,.1)'},
     {icon:'👥',name:'HRMS',url:'https://hr.paype.co.in',desc:'Employees, payroll, attendance, leaves',color:'rgba(128,90,213,.1)'},
-    {icon:'📦',name:'Inventory & CRM',url:'https://doctorramesh5-ops.github.io/paype-erp/inventory.html',desc:'Stock, orders, leads, pipeline',color:'rgba(221,107,32,.1)'},
-    {icon:'🤖',name:'AI Assistant',url:'https://doctorramesh5-ops.github.io/paype-erp/ai.html',desc:'AI bookkeeping, GST, email, insights',color:'rgba(128,90,213,.1)'},
-    {icon:'🛒',name:'Procurement',url:'paype_procurement.html',desc:'Vendors, RFQ, GRN, payments',color:'rgba(56,161,105,.1)'},
+    {icon:'📣',name:'Social Hub',url:'https://social.paype.co.in',desc:'SMS, WhatsApp, Email, Meta, LinkedIn, SEO',color:'rgba(245,158,11,.1)'},
+    {icon:'💳',name:'Payment Gateway',url:'https://api.paype.co.in',desc:'PhonePe TSP, Razorpay, merchant payments',color:'rgba(230,51,41,.1)'},
+    {icon:'🏦',name:'BankMe',url:'https://bankme.co.in',desc:'Banking & financial services',color:'rgba(56,161,105,.1)'},
+    {icon:'📦',name:'Inventory & CRM',url:'https://erp.paype.co.in/inventory.html',desc:'Stock, orders, leads, pipeline',color:'rgba(221,107,32,.1)'},
+    {icon:'🛒',name:'Procurement',url:'https://erp.paype.co.in/procurement.html',desc:'Vendors, RFQ, GRN, payments',color:'rgba(56,161,105,.1)'},
+    {icon:'🤖',name:'AI Assistant',url:'https://erp.paype.co.in/ai.html',desc:'AI bookkeeping, GST, email, insights',color:'rgba(128,90,213,.1)'},
+    {icon:'📝',name:'Signup',url:'https://signup.paype.co.in',desc:'Customer onboarding & subscriptions',color:'rgba(0,194,168,.1)'},
     {icon:'👑',name:'CEO Dashboard',url:'#',desc:'You are here!',color:'rgba(13,27,62,.06)'},
   ];
   document.getElementById('all-modules').innerHTML=mods.map(function(m){return`
