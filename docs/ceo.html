@@ -209,8 +209,8 @@ tr:hover td{background:rgba(0,194,168,.02);}
     <div class="mod-tab" onclick="showSection('inventory',this)">📦 Inventory</div>
     <div class="mod-tab" onclick="showSection('procurement',this)">🛒 Procurement</div>
     <div class="mod-tab" onclick="showSection('modules',this)">🔗 All Modules</div>
-    <div class="mod-tab" onclick="showSection('profile',this)">👤 Profile</div>
-    <div class="mod-tab" onclick="showSection('settings',this)">⚙️ Settings</div>
+    
+    
   </div>
 
   <div class="ceo-content">
@@ -511,33 +511,7 @@ tr:hover td{background:rgba(0,194,168,.02);}
 <body>
 
 <!-- LOGIN -->
-<div class="login-wrap" id="login-page">
-  <div class="login-left">
-    <div class="ll-brand">Pay<span>Pe</span> ERP</div>
-    <div class="ll-sub">CEO Executive Dashboard — Module 8</div>
-    <div class="ll-title">Complete Business<br><span>Intelligence</span></div>
-    <div class="ll-desc">Real-time view of your entire business — Finance, HR, Sales, Inventory, Procurement — all in one executive dashboard.</div>
-    <div class="ll-modules">
-      <div class="ll-mod"><div class="ll-mod-dot"></div>📊 Accounting & Finance</div>
-      <div class="ll-mod"><div class="ll-mod-dot"></div>👥 HR & Payroll</div>
-      <div class="ll-mod"><div class="ll-mod-dot"></div>🎯 CRM & Sales Pipeline</div>
-      <div class="ll-mod"><div class="ll-mod-dot"></div>📦 Inventory & Stock</div>
-      <div class="ll-mod"><div class="ll-mod-dot"></div>🛒 Procurement</div>
-      <div class="ll-mod"><div class="ll-mod-dot"></div>🤖 AI Insights</div>
-    </div>
-  </div>
-  <div class="login-right">
-    <div class="lr-logo">Pay<span>Pe</span> CEO</div>
-    <div class="lr-badge">👑 Executive Access Only</div>
-    <div class="lr-welcome">Executive Sign In</div>
-    <div class="lr-sub">Access your complete business dashboard</div>
-    <div class="ff"><label>Email</label><input id="l-email" type="email" value=""></div>
-    <div class="ff"><label>Password</label><div class="pass-wrap"><input id="l-pass" type="password" value=""><button class="pass-eye" onclick="togglePass()">👁</button></div></div>
-    <button class="login-btn" id="l-btn" onclick="doLogin()">👑 Access CEO Dashboard</button>
-    <div class="login-err" id="l-err"></div>
-    <div class="login-footer">admin@paype.co.in </div>
-  </div>
-</div>
+
 
 <!-- CEO APP -->
 <div class="app" id="ceo-app">
@@ -565,8 +539,8 @@ tr:hover td{background:rgba(0,194,168,.02);}
     <div class="mod-tab" onclick="showSection('inventory',this)">📦 Inventory</div>
     <div class="mod-tab" onclick="showSection('procurement',this)">🛒 Procurement</div>
     <div class="mod-tab" onclick="showSection('modules',this)">🔗 All Modules</div>
-    <div class="mod-tab" onclick="showSection('profile',this)">👤 Profile</div>
-    <div class="mod-tab" onclick="showSection('settings',this)">⚙️ Settings</div>
+    
+    
   </div>
 
   <div class="ceo-content">
@@ -714,10 +688,7 @@ tr:hover td{background:rgba(0,194,168,.02);}
     </div>
 
     <!-- PROFILE -->
-    <div class="section" id="sec-settings">
-      <div style="font-family:Syne,sans-serif;font-size:22px;font-weight:800;color:var(--navy);margin-bottom:16px;">⚙️ Dashboard Settings</div>
-      <div id="settings-content"></div>
-    </div>
+    
 
   </div>
 </div>
@@ -760,6 +731,7 @@ async function doLogin(){
 }
 
 function startApp(){
+  history.replaceState(null, '', 'ceo.html');
   document.getElementById('login-page').style.display='none';
   document.getElementById('ceo-app').classList.add('on');
   var h=new Date().getHours();
@@ -771,7 +743,7 @@ function startApp(){
   document.getElementById('tn-date').textContent=new Date().toLocaleDateString('en-IN',{weekday:'short',day:'numeric',month:'short',year:'numeric'});
   loadOverview();
 }
-function doLogout(){localStorage.removeItem('erp_token');localStorage.removeItem('erp_user');localStorage.removeItem('hr_token');location.reload();}
+function doLogout(){localStorage.removeItem('erp_token');localStorage.removeItem('erp_user');localStorage.removeItem('hr_token');localStorage.removeItem('hr_user');window.location.replace('ceo.html');}
 
 function showSection(name,el){
   document.querySelectorAll('.section').forEach(function(s){s.classList.remove('on');});
@@ -1443,6 +1415,6 @@ function ceoRefreshAll(){refreshAll();ceoToast("Dashboard refreshed!","ok");}
 
 if(TOKEN&&USER) startApp();
 </script>
-<script src="paype-chatbot.js"></script>
+
 </body>
 </html>
