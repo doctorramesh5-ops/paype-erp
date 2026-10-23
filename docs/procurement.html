@@ -162,6 +162,7 @@ tr:last-child td{border-bottom:none;}
 
 @media(max-width:900px){.g2,.g3,.g4{grid-template-columns:1fr;}.sb{position:fixed;left:-230px;z-index:150;height:100vh;transition:.3s;}.sb.open{left:0;}}
 </style>
+<style>/* single-login-1 */#login-page{display:none!important}</style>
 </head>
 <body>
 
@@ -984,7 +985,7 @@ function procClearCache(){localStorage.removeItem("procTheme");localStorage.remo
 })();
 
 // Auto login
-if(TOKEN&&USER){startApp();}
+if(TOKEN&&USER){startApp();}else{location.replace('index.html');}
 </script>
 <script src="paype-chatbot.js"></script>
 </body>
