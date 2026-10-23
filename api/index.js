@@ -696,6 +696,23 @@ app.post('/api/auth/login', async (req, res) => {
 });
 
 // ── DASHBOARD ──────────────────────────────────────────
+// ── CHANGE OWN PASSWORD ────────────────────────────────
+app.post('/api/auth/change-password', auth, async (req, res) => {
+  try {
+    const { currentPassword, newPassword } = req.body;
+    if (!currentPassword || !newPassword || String(newPassword).length < 8) {
+      return res.status(400).json({ success: false, message: 'Valid passwords required (min 8 chars)' });
+    }
+    const r = await db('SELECT password FROM erp_users WHERE id=$1 AND company_id=$2', [req.user.id, req.user.company_id]);
+    if (!r.rows.length) return res.status(404).json({ success: false, message: 'User not found' });
+    const ok = await bcrypt.compare(currentPassword, r.rows[0].password);
+    if (!ok) return res.status(400).json({ success: false, message: 'Current password incorrect' });
+    const hash = await bcrypt.hash(newPassword, 12);
+    await db('UPDATE erp_users SET password=$1 WHERE id=$2 AND company_id=$3', [hash, req.user.id, req.user.company_id]);
+    res.json({ success: true, message: 'Password changed. Please login again.' });
+  } catch(e) { res.status(500).json({ success: false, message: e.message }); }
+});
+
 app.get('/api/dashboard', auth, async (req, res) => {
   try {
     const cid = req.user.company_id;
