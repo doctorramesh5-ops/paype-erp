@@ -42,7 +42,8 @@ const bcrypt = require('bcryptjs');
 const { Pool } = require('pg');
 
 const app = express();
-const JWT = process.env.JWT_SECRET || 'PayPeERP@2026#SecretKey';
+const JWT = process.env.JWT_SECRET;
+if (!JWT) throw new Error('JWT_SECRET is not set');
 const PORT = process.env.PORT || 3000;
 
 // ── MIDDLEWARE ─────────────────────────────────────────
@@ -67,6 +68,7 @@ async function auth(req, res, next) {
     const d = jwt.verify(h.split(' ')[1], JWT);
     const r = await db('SELECT u.*, c.name AS company_name FROM erp_users u LEFT JOIN erp_companies c ON c.id=u.company_id WHERE u.id=$1 AND u.is_active=true', [d.userId]);
     if (!r.rows.length) return res.status(401).json({ success: false, message: 'Unauthorized' });
+    if (d.scope === 'totp-setup' && !/^\/api\/auth\/totp\//.test(String(req.originalUrl || '').split('?')[0])) return res.status(403).json({ success: false, message: 'Set up your authenticator first', mustSetupTotp: true });
     req.user = r.rows[0];
     next();
   } catch(e) { return res.status(401).json({ success: false, message: 'Invalid token' }); }
@@ -681,21 +683,249 @@ app.get('/api/health', async (req, res) => {
 });
 
 // ── AUTH ───────────────────────────────────────────────
-app.post('/api/auth/login', async (req, res) => {
+app.post('/api/auth/login', rateLimit(20, 15 * 60 * 1000), async (req, res) => {
   try {
     const { email, password } = req.body;
     if (!email || !password) return res.status(400).json({ success: false, message: 'Email and password required' });
+    await ensureAuthSchema();
     const r = await db('SELECT u.*, c.name AS company_name, c.gstin, c.financial_year FROM erp_users u LEFT JOIN erp_companies c ON c.id=u.company_id WHERE u.email=$1 AND u.is_active=true', [email.toLowerCase()]);
     if (!r.rows.length) return res.status(401).json({ success: false, message: 'Invalid credentials' });
     const user = r.rows[0];
     const valid = await bcrypt.compare(password, user.password);
     if (!valid) return res.status(401).json({ success: false, message: 'Invalid credentials' });
-    const token = jwt.sign({ userId: user.id, companyId: user.company_id, role: user.role }, JWT, { expiresIn: '8h' });
-    res.json({ success: true, token, user: { id: user.id, name: user.name, email: user.email, role: user.role, company: user.company_name, companyId: user.company_id, gstin: user.gstin, fy: user.financial_year }});
+    if (user.role === 'employee' && process.env.EMPLOYEE_PASSWORD_LOGIN === 'false') {
+      return res.status(403).json({ success: false, useOtp: true, message: 'Employees sign in with an email code.' });
+    }
+    let setupOnly = false;
+    if (user.role === 'admin' || user.role === 'manager') {
+      if (user.totp_enabled) {
+        const totpCode = (req.body || {}).totpCode, backupCode = (req.body || {}).backupCode;
+        let pass2 = false;
+        if (totpCode && totpVerify(user.totp_secret, totpCode)) pass2 = true;
+        else if (backupCode) pass2 = await useBackupCode(user, backupCode);
+        if (!pass2) return res.status(401).json({ success: false, needTotp: true, message: (totpCode || backupCode) ? 'Wrong authenticator code' : 'Authenticator code required' });
+      } else if (process.env.REQUIRE_TOTP === 'true') { setupOnly = true; }
+    }
+    const claims = { userId: user.id, companyId: user.company_id, role: user.role };
+    if (setupOnly) claims.scope = 'totp-setup';
+    const token = jwt.sign(claims, JWT, { expiresIn: setupOnly ? '30m' : '8h' });
+    db('UPDATE erp_users SET last_login_at=NOW() WHERE id=$1', [user.id]).catch(function(){});
+    res.json({ success: true, token, mustSetupTotp: setupOnly || ((user.role === 'admin' || user.role === 'manager') && !user.totp_enabled), mustChangePassword: !!user.must_change_password, user: { id: user.id, name: user.name, email: user.email, role: user.role, company: user.company_name, companyId: user.company_id, gstin: user.gstin, fy: user.financial_year }});
   } catch(e) { res.status(500).json({ success: false, message: e.message }); }
 });
 
 // ── DASHBOARD ──────────────────────────────────────────
+/* auth-core-1 : email OTP for employees, authenticator for admin/manager, invite + deactivate */
+const _cr = require('crypto');
+let _authSchemaReady = false;
+async function ensureAuthSchema() {
+  if (_authSchemaReady) return;
+  const stmts = [
+    "ALTER TABLE erp_users ADD COLUMN IF NOT EXISTS onboarding_status VARCHAR(20) DEFAULT 'active'",
+    "ALTER TABLE erp_users ADD COLUMN IF NOT EXISTS pan_verified BOOLEAN DEFAULT false",
+    "ALTER TABLE erp_users ADD COLUMN IF NOT EXISTS pan_last4 VARCHAR(4)",
+    "ALTER TABLE erp_users ADD COLUMN IF NOT EXISTS totp_secret TEXT",
+    "ALTER TABLE erp_users ADD COLUMN IF NOT EXISTS totp_enabled BOOLEAN DEFAULT false",
+    "ALTER TABLE erp_users ADD COLUMN IF NOT EXISTS backup_codes JSONB",
+    "ALTER TABLE erp_users ADD COLUMN IF NOT EXISTS must_change_password BOOLEAN DEFAULT false",
+    "ALTER TABLE erp_users ADD COLUMN IF NOT EXISTS deactivated_at TIMESTAMPTZ",
+    "ALTER TABLE erp_users ADD COLUMN IF NOT EXISTS last_login_at TIMESTAMPTZ",
+    "CREATE TABLE IF NOT EXISTS erp_login_otps (id UUID PRIMARY KEY DEFAULT gen_random_uuid(), user_id UUID NOT NULL, code_hash TEXT NOT NULL, expires_at TIMESTAMPTZ NOT NULL, attempts INT DEFAULT 0, used BOOLEAN DEFAULT false, created_at TIMESTAMPTZ DEFAULT NOW())"
+  ];
+  for (const s of stmts) await db(s);
+  _authSchemaReady = true;
+}
+
+// ── authenticator (TOTP, RFC 6238) ──
+const B32 = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
+function b32encode(buf) {
+  let bits = '', out = '';
+  for (const b of buf) bits += b.toString(2).padStart(8, '0');
+  for (let i = 0; i < bits.length; i += 5) out += B32[parseInt(bits.slice(i, i + 5).padEnd(5, '0'), 2)];
+  return out;
+}
+function b32decode(str) {
+  let bits = '';
+  for (const ch of String(str).toUpperCase().replace(/=+$/, '')) { const v = B32.indexOf(ch); if (v < 0) return Buffer.alloc(0); bits += v.toString(2).padStart(5, '0'); }
+  const bytes = [];
+  for (let i = 0; i + 8 <= bits.length; i += 8) bytes.push(parseInt(bits.slice(i, i + 8), 2));
+  return Buffer.from(bytes);
+}
+function totpAt(secretB32, counter) {
+  const buf = Buffer.alloc(8); buf.writeBigUInt64BE(BigInt(counter));
+  const h = _cr.createHmac('sha1', b32decode(secretB32)).update(buf).digest();
+  const o = h[h.length - 1] & 15;
+  const n = ((h[o] & 127) << 24) | (h[o + 1] << 16) | (h[o + 2] << 8) | h[o + 3];
+  return String(n % 1000000).padStart(6, '0');
+}
+function totpVerify(secretB32, code, nowMs) {
+  if (!secretB32 || !/^\d{6}$/.test(String(code || '').trim())) return false;
+  const c = Math.floor((nowMs || Date.now()) / 30000);
+  const want = Buffer.from(String(code).trim());
+  for (let w = -1; w <= 1; w++) {
+    const cand = Buffer.from(totpAt(secretB32, c + w));
+    if (cand.length === want.length && _cr.timingSafeEqual(cand, want)) return true;
+  }
+  return false;
+}
+const sha = (s) => _cr.createHash('sha256').update(String(s)).digest('hex');
+const normBackup = (c) => String(c || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+async function useBackupCode(user, code) {
+  const list = Array.isArray(user.backup_codes) ? user.backup_codes : [];
+  const h = sha(normBackup(code));
+  if (!normBackup(code) || !list.includes(h)) return false;
+  await db('UPDATE erp_users SET backup_codes=$1 WHERE id=$2', [JSON.stringify(list.filter(x => x !== h)), user.id]);
+  return true;
+}
+
+// ── mail (MSG91 email API) ──
+async function sendMail(toEmail, toName, templateId, variables) {
+  const key = process.env.MSG91_AUTHKEY;
+  if (!key || !templateId) return { ok: false, reason: 'mail not configured' };
+  try {
+    const r = await fetch('https://control.msg91.com/api/v5/email/send', {
+      method: 'POST',
+      headers: { authkey: key, 'Content-Type': 'application/json', Accept: 'application/json' },
+      body: JSON.stringify({
+        recipients: [{ to: [{ name: toName || toEmail, email: toEmail }], variables: variables || {} }],
+        from: { name: process.env.MSG91_FROM_NAME || 'PAYPE Technologies', email: process.env.MSG91_FROM_EMAIL || 'no-reply@mail.paype.co.in' },
+        domain: process.env.MSG91_EMAIL_DOMAIN || 'mail.paype.co.in',
+        template_id: templateId
+      })
+    });
+    const t = await r.text();
+    return { ok: r.ok, status: r.status, body: t.slice(0, 200) };
+  } catch (e) { return { ok: false, reason: e.message }; }
+}
+
+function userPayload(u) {
+  return { id: u.id, name: u.name, email: u.email, role: u.role, company: u.company_name, companyId: u.company_id, gstin: u.gstin, fy: u.financial_year };
+}
+const OTP_GENERIC = { success: true, message: 'If this email is registered, a code has been sent to it.' };
+
+// ── EMPLOYEE EMAIL OTP ──
+app.post('/api/auth/otp/request', rateLimit(10, 10 * 60 * 1000), async (req, res) => {
+  try {
+    await ensureAuthSchema();
+    const email = String((req.body || {}).email || '').trim().toLowerCase();
+    if (!email) return res.status(400).json({ success: false, message: 'Email required' });
+    const r = await db("SELECT id,name,email FROM erp_users WHERE lower(email)=$1 AND is_active=true AND role='employee'", [email]);
+    if (!r.rows.length) return res.json(OTP_GENERIC);
+    const u = r.rows[0];
+    const recent = await db("SELECT COUNT(*)::int AS n FROM erp_login_otps WHERE user_id=$1 AND created_at > NOW() - INTERVAL '1 hour'", [u.id]);
+    if (recent.rows[0].n >= 3) return res.json(OTP_GENERIC);
+    const code = String(_cr.randomInt(0, 1000000)).padStart(6, '0');
+    await db("INSERT INTO erp_login_otps (user_id, code_hash, expires_at) VALUES ($1,$2,NOW() + INTERVAL '10 minutes')", [u.id, sha(code + ':' + u.id + ':' + JWT)]);
+    const m = await sendMail(u.email, u.name, process.env.MSG91_OTP_TEMPLATE, { name: u.name, otp: code });
+    if (!m.ok) console.log('OTP mail failed:', m.status || '', m.reason || m.body || '');
+    return res.json(OTP_GENERIC);
+  } catch (e) { return res.status(500).json({ success: false, message: 'Could not send code' }); }
+});
+
+app.post('/api/auth/otp/verify', rateLimit(20, 10 * 60 * 1000), async (req, res) => {
+  try {
+    await ensureAuthSchema();
+    const email = String((req.body || {}).email || '').trim().toLowerCase();
+    const code = String((req.body || {}).code || '').trim();
+    const bad = () => res.status(401).json({ success: false, message: 'Invalid or expired code' });
+    if (!email || !/^\d{6}$/.test(code)) return bad();
+    const r = await db("SELECT u.*, c.name AS company_name, c.gstin, c.financial_year FROM erp_users u LEFT JOIN erp_companies c ON c.id=u.company_id WHERE lower(u.email)=$1 AND u.is_active=true AND u.role='employee'", [email]);
+    if (!r.rows.length) return bad();
+    const u = r.rows[0];
+    const o = await db("SELECT * FROM erp_login_otps WHERE user_id=$1 AND used=false AND expires_at > NOW() ORDER BY created_at DESC LIMIT 1", [u.id]);
+    if (!o.rows.length) return bad();
+    const row = o.rows[0];
+    if (row.attempts >= 5) { await db('UPDATE erp_login_otps SET used=true WHERE id=$1', [row.id]); return bad(); }
+    await db('UPDATE erp_login_otps SET attempts=attempts+1 WHERE id=$1', [row.id]);
+    const a = Buffer.from(sha(code + ':' + u.id + ':' + JWT)), b = Buffer.from(row.code_hash);
+    if (a.length !== b.length || !_cr.timingSafeEqual(a, b)) return bad();
+    await db('UPDATE erp_login_otps SET used=true WHERE id=$1', [row.id]);
+    await db("UPDATE erp_users SET last_login_at=NOW(), onboarding_status=CASE WHEN onboarding_status='invited' THEN 'active' ELSE onboarding_status END WHERE id=$1", [u.id]);
+    const token = jwt.sign({ userId: u.id, companyId: u.company_id, role: u.role }, JWT, { expiresIn: '8h' });
+    return res.json({ success: true, token, needsPan: process.env.PAN_REQUIRED === 'true' && !u.pan_verified, user: userPayload(u) });
+  } catch (e) { return res.status(500).json({ success: false, message: 'Could not verify code' }); }
+});
+
+// ── AUTHENTICATOR SETUP (admin / manager) ──
+app.post('/api/auth/totp/setup', auth, async (req, res) => {
+  try {
+    await ensureAuthSchema();
+    if (!['admin', 'manager'].includes(req.user.role)) return res.status(403).json({ success: false, message: 'Not required for this role' });
+    if (req.user.totp_enabled) return res.status(400).json({ success: false, message: 'Authenticator already set up. Ask the admin to reset it.' });
+    const secret = b32encode(_cr.randomBytes(20));
+    await db('UPDATE erp_users SET totp_secret=$1 WHERE id=$2', [secret, req.user.id]);
+    const otpauth = 'otpauth://totp/' + encodeURIComponent('PAYPE:' + req.user.email) + '?secret=' + secret + '&issuer=PAYPE&period=30&digits=6';
+    return res.json({ success: true, secret, otpauth });
+  } catch (e) { return res.status(500).json({ success: false, message: e.message }); }
+});
+
+app.post('/api/auth/totp/enable', auth, async (req, res) => {
+  try {
+    await ensureAuthSchema();
+    const u = req.user;
+    if (!u.totp_secret || u.totp_enabled) return res.status(400).json({ success: false, message: 'Start setup first' });
+    if (!totpVerify(u.totp_secret, (req.body || {}).code)) return res.status(400).json({ success: false, message: 'Code did not match. Check the time on your phone and try again.' });
+    const plain = Array.from({ length: 8 }, () => _cr.randomBytes(5).toString('hex'));
+    await db('UPDATE erp_users SET totp_enabled=true, backup_codes=$1 WHERE id=$2', [JSON.stringify(plain.map(c => sha(normBackup(c)))), u.id]);
+    const token = jwt.sign({ userId: u.id, companyId: u.company_id, role: u.role }, JWT, { expiresIn: '8h' });
+    return res.json({ success: true, token, backupCodes: plain, message: 'Authenticator is on. Save these backup codes now. They are shown only once.' });
+  } catch (e) { return res.status(500).json({ success: false, message: e.message }); }
+});
+
+// ── ADMIN: invite, deactivate, reset authenticator ──
+app.post('/api/users/invite', auth, async (req, res) => {
+  try {
+    await ensureAuthSchema();
+    if (req.user.role !== 'admin') return res.status(403).json({ success: false, message: 'Admin only' });
+    const name = String((req.body || {}).name || '').trim();
+    const email = String((req.body || {}).email || '').trim().toLowerCase();
+    const role = (req.body || {}).role || 'employee';
+    if (!name || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return res.status(400).json({ success: false, message: 'Valid name and company email required' });
+    if (!['employee', 'manager'].includes(role)) return res.status(400).json({ success: false, message: 'Role must be employee or manager' });
+    const allowed = (process.env.ALLOWED_EMAIL_DOMAINS || 'paype.co.in').split(',').map(s => s.trim().toLowerCase()).filter(Boolean);
+    if (allowed.length && !allowed.includes(email.split('@')[1])) return res.status(400).json({ success: false, message: 'Use a company email address (' + allowed.join(', ') + ')' });
+    const temp = role === 'manager' ? _cr.randomBytes(9).toString('base64').replace(/[^A-Za-z0-9]/g, 'x') + 'a1' : null;
+    const hash = await bcrypt.hash(temp || _cr.randomBytes(24).toString('hex'), 10);
+    const r = await db("INSERT INTO erp_users (company_id,name,email,password,role,onboarding_status,must_change_password) VALUES ($1,$2,$3,$4,$5,'invited',$6) RETURNING id,name,email,role", [req.user.company_id, name, email, hash, role, role === 'manager']);
+    const link = process.env.APP_URL || 'https://erp.paype.co.in';
+    const m = await sendMail(email, name, process.env.MSG91_WELCOME_TEMPLATE, { name, link });
+    const out = { success: true, data: r.rows[0], mailSent: !!m.ok };
+    if (temp) { out.temporaryPassword = temp; out.note = 'Give this temporary password privately. The manager must change it at first sign-in and set up the authenticator.'; }
+    return res.status(201).json(out);
+  } catch (e) {
+    if (e.code === '23505') return res.status(400).json({ success: false, message: 'This email already exists' });
+    return res.status(500).json({ success: false, message: e.message });
+  }
+});
+
+app.post('/api/users/:id/deactivate', auth, async (req, res) => {
+  try {
+    await ensureAuthSchema();
+    if (req.user.role !== 'admin') return res.status(403).json({ success: false, message: 'Admin only' });
+    if (String(req.params.id) === String(req.user.id)) return res.status(400).json({ success: false, message: 'You cannot deactivate yourself' });
+    const t = await db('SELECT id, role, is_active FROM erp_users WHERE id=$1 AND company_id=$2', [req.params.id, req.user.company_id]);
+    if (!t.rows.length) return res.status(404).json({ success: false, message: 'User not found' });
+    if (t.rows[0].role === 'admin') {
+      const n = await db("SELECT COUNT(*)::int AS n FROM erp_users WHERE company_id=$1 AND role='admin' AND is_active=true", [req.user.company_id]);
+      if (n.rows[0].n <= 1) return res.status(400).json({ success: false, message: 'Cannot deactivate the last admin' });
+    }
+    await db('UPDATE erp_users SET is_active=false, deactivated_at=NOW() WHERE id=$1 AND company_id=$2', [req.params.id, req.user.company_id]);
+    await db('DELETE FROM erp_login_otps WHERE user_id=$1', [req.params.id]);
+    return res.json({ success: true, message: 'User deactivated. Their sessions stop working immediately.' });
+  } catch (e) { return res.status(500).json({ success: false, message: e.message }); }
+});
+
+app.post('/api/users/:id/reset-totp', auth, async (req, res) => {
+  try {
+    await ensureAuthSchema();
+    if (req.user.role !== 'admin') return res.status(403).json({ success: false, message: 'Admin only' });
+    const r = await db('UPDATE erp_users SET totp_secret=NULL, totp_enabled=false, backup_codes=NULL WHERE id=$1 AND company_id=$2 RETURNING id', [req.params.id, req.user.company_id]);
+    if (!r.rows.length) return res.status(404).json({ success: false, message: 'User not found' });
+    return res.json({ success: true, message: 'Authenticator reset. The user sets it up again at next sign-in.' });
+  } catch (e) { return res.status(500).json({ success: false, message: e.message }); }
+});
+
+
 // ── CHANGE OWN PASSWORD ────────────────────────────────
 app.post('/api/auth/change-password', auth, async (req, res) => {
   try {
@@ -708,7 +938,8 @@ app.post('/api/auth/change-password', auth, async (req, res) => {
     const ok = await bcrypt.compare(currentPassword, r.rows[0].password);
     if (!ok) return res.status(400).json({ success: false, message: 'Current password incorrect' });
     const hash = await bcrypt.hash(newPassword, 12);
-    await db('UPDATE erp_users SET password=$1 WHERE id=$2 AND company_id=$3', [hash, req.user.id, req.user.company_id]);
+    await ensureAuthSchema();
+    await db('UPDATE erp_users SET password=$1, must_change_password=false WHERE id=$2 AND company_id=$3', [hash, req.user.id, req.user.company_id]);
     res.json({ success: true, message: 'Password changed. Please login again.' });
   } catch(e) { res.status(500).json({ success: false, message: e.message }); }
 });
