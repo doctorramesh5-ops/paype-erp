@@ -2453,6 +2453,7 @@ async function reactivateUser(i){
   if(!confirm('Reactivate '+u.name+' ('+u.email+')?\nThey can sign in again and a welcome email is sent.'))return;
   var r=await req('POST','/api/users/'+u.id+'/reactivate',{});
   toast((r&&r.message)||'Done',(r&&r.success)?'ok':'err');loadUsers();
+  if(r&&r.success&&r.mailSent===false){showBox('Welcome email not sent','<p style="font-size:13px;margin:0 0 8px;">The user is active again, but the welcome email could not be sent. Reason:</p><div style="font-family:monospace;font-size:12px;background:#f4f7f9;padding:10px;border-radius:8px;word-break:break-word;">'+esc(r.mailError||'unknown')+'</div>');}
 }
 async function removeUser(i){
   var u=USERS_CACHE[i];if(!u)return;
@@ -2469,7 +2470,8 @@ async function submitUser(){
   document.getElementById('usr-name').value='';document.getElementById('usr-email').value='';
   if(r.temporaryPassword){
     showBox('Invite created','<p style="font-size:13px;margin:0 0 8px;">Give this temporary password to <strong>'+esc(name)+'</strong> privately (phone or WhatsApp, never email). They must choose their own password and set up Google Authenticator at first sign-in.</p><div style="font-family:monospace;font-size:16px;background:#f4f7f9;padding:12px;border-radius:8px;text-align:center;">'+esc(r.temporaryPassword)+'</div><p style="font-size:12px;color:#667;margin:8px 0 0;">'+(r.mailSent?'A welcome email was sent.':'The welcome email could not be sent.')+' This password is not shown again.</p>');
-  }else{toast(r.mailSent?'Invite sent. A welcome email is on its way.':'User added, but the welcome email could not be sent.',r.mailSent?'ok':'err');}
+  }else if(r.mailSent){toast('Invite sent. A welcome email is on its way.','ok');}
+  else{showBox('Welcome email not sent','<p style="font-size:13px;margin:0 0 8px;">The user was added, but the welcome email could not be sent. Reason:</p><div style="font-family:monospace;font-size:12px;background:#f4f7f9;padding:10px;border-radius:8px;word-break:break-word;">'+esc(r.mailError||'unknown')+'</div>');}
   loadUsers();
 }
 async function resetPassword(i){

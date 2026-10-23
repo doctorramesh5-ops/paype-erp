@@ -781,7 +781,7 @@ async function useBackupCode(user, code) {
 // ── mail (MSG91 email API) ──
 async function sendMail(toEmail, toName, templateId, variables) {
   const key = process.env.MSG91_AUTHKEY;
-  if (!key || !templateId) return { ok: false, reason: 'mail not configured' };
+  if (!key || !templateId) return { ok: false, reason: 'Mail is not configured: ' + (!key ? 'MSG91_AUTHKEY is missing' : 'the template ID setting is missing') };
   try {
     const r = await fetch('https://control.msg91.com/api/v5/email/send', {
       method: 'POST',
@@ -793,9 +793,10 @@ async function sendMail(toEmail, toName, templateId, variables) {
         template_id: templateId
       })
     });
-    const t = await r.text();
-    return { ok: r.ok, status: r.status, body: t.slice(0, 200) };
-  } catch (e) { return { ok: false, reason: e.message }; }
+    const t = await r.text(); /* mail-diag-1 */
+    if (!r.ok) console.log('MSG91 send failed:', r.status, t.slice(0, 300));
+    return { ok: r.ok, status: r.status, body: t.slice(0, 300) };
+  } catch (e) { console.log('MSG91 send error:', e.message); return { ok: false, reason: e.message }; }
 }
 
 function userPayload(u) {
@@ -889,7 +890,7 @@ app.post('/api/users/invite', auth, async (req, res) => {
     const r = await db("INSERT INTO erp_users (company_id,name,email,password,role,onboarding_status,must_change_password) VALUES ($1,$2,$3,$4,$5,'invited',$6) RETURNING id,name,email,role", [req.user.company_id, name, email, hash, role, role === 'manager']);
     const link = process.env.APP_URL || 'https://erp.paype.co.in';
     const m = await sendMail(email, name, process.env.MSG91_WELCOME_TEMPLATE, { name, link });
-    const out = { success: true, data: r.rows[0], mailSent: !!m.ok };
+    const out = { success: true, data: r.rows[0], mailSent: !!m.ok, mailError: m.ok ? undefined : (m.reason || ('MSG91 answered ' + m.status + ': ' + m.body)) };
     if (temp) { out.temporaryPassword = temp; out.note = 'Give this temporary password privately. The manager must change it at first sign-in and set up the authenticator.'; }
     return res.status(201).json(out);
   } catch (e) {
@@ -939,7 +940,7 @@ app.post('/api/users/:id/reactivate', auth, async (req, res) => {
     if (!r.rows.length) return res.status(404).json({ success: false, message: 'Deactivated user not found' });
     const u = r.rows[0];
     const m = await sendMail(u.email, u.name, process.env.MSG91_WELCOME_TEMPLATE, { name: u.name, link: process.env.APP_URL || 'https://erp.paype.co.in' });
-    return res.json({ success: true, mailSent: !!m.ok, message: 'User reactivated.' });
+    return res.json({ success: true, mailSent: !!m.ok, mailError: m.ok ? undefined : (m.reason || ('MSG91 answered ' + m.status + ': ' + m.body)), message: 'User reactivated.' });
   } catch (e) { return res.status(500).json({ success: false, message: e.message }); }
 });
 
