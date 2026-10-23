@@ -2428,6 +2428,7 @@ async function loadUsers(){
     var last=u.last_login_at?new Date(u.last_login_at).toLocaleString('en-IN'):'Never';
     var act='';
     if(u.is_active&&USER&&u.id!==USER.id){act+='<button class="btn bto btsm" onclick="deactivateUser('+i+')">Deactivate</button> ';}
+    if(!u.is_active){act+='<button class="btn bto btsm" onclick="reactivateUser('+i+')">Reactivate</button> <button class="btn bto btsm" onclick="removeUser('+i+')">Remove</button>';}
     if(u.is_active&&u.role==='manager'){act+='<button class="btn bto btsm" onclick="resetPassword('+i+')">Reset password</button> ';}
     if(u.is_active&&u.role!=='employee'&&u.totp_enabled){act+='<button class="btn bto btsm" onclick="resetTotp('+i+')">Reset authenticator</button>';}
     h+='<tr><td><strong>'+esc(u.name)+'</strong></td><td>'+esc(u.email)+'</td><td>'+esc(rn[u.role]||u.role)+'</td><td>'+st+'</td><td>'+tf+'</td><td>'+esc(last)+'</td><td>'+act+'</td></tr>';
@@ -2445,6 +2446,18 @@ async function resetTotp(i){
   var u=USERS_CACHE[i];if(!u)return;
   if(!confirm('Reset the authenticator for '+u.name+'?\nThey will set it up again at their next sign-in.'))return;
   var r=await req('POST','/api/users/'+u.id+'/reset-totp',{});
+  toast((r&&r.message)||'Done',(r&&r.success)?'ok':'err');loadUsers();
+}
+async function reactivateUser(i){
+  var u=USERS_CACHE[i];if(!u)return;
+  if(!confirm('Reactivate '+u.name+' ('+u.email+')?\nThey can sign in again and a welcome email is sent.'))return;
+  var r=await req('POST','/api/users/'+u.id+'/reactivate',{});
+  toast((r&&r.message)||'Done',(r&&r.success)?'ok':'err');loadUsers();
+}
+async function removeUser(i){
+  var u=USERS_CACHE[i];if(!u)return;
+  if(!confirm('Remove '+u.name+' ('+u.email+') completely?\nThis cannot be undone. If they have records in the ERP, removal is refused.'))return;
+  var r=await req('POST','/api/users/'+u.id+'/remove',{});
   toast((r&&r.message)||'Done',(r&&r.success)?'ok':'err');loadUsers();
 }
 async function submitUser(){

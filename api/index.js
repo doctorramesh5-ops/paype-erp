@@ -893,7 +893,10 @@ app.post('/api/users/invite', auth, async (req, res) => {
     if (temp) { out.temporaryPassword = temp; out.note = 'Give this temporary password privately. The manager must change it at first sign-in and set up the authenticator.'; }
     return res.status(201).json(out);
   } catch (e) {
-    if (e.code === '23505') return res.status(400).json({ success: false, message: 'This email already exists' });
+    if (e.code === '23505') {
+      try { const x = await db('SELECT is_active FROM erp_users WHERE lower(email)=$1', [String((req.body || {}).email || '').trim().toLowerCase()]); if (x.rows.length && x.rows[0].is_active === false) return res.status(400).json({ success: false, message: 'This email belongs to a deactivated user. Use Reactivate, or Remove them first.' }); } catch (e3) {}
+      return res.status(400).json({ success: false, message: 'This email already exists' });
+    }
     return res.status(500).json({ success: false, message: e.message });
   }
 });
@@ -924,6 +927,37 @@ app.post('/api/users/:id/reset-password', auth, async (req, res) => {
     const r = await db("UPDATE erp_users SET password=$1, must_change_password=true WHERE id=$2 AND company_id=$3 AND role='manager' AND is_active=true RETURNING id", [hash, req.params.id, req.user.company_id]);
     if (!r.rows.length) return res.status(404).json({ success: false, message: 'Only an active Accounts Manager password can be reset here' });
     return res.json({ success: true, temporaryPassword: temp, message: 'Password reset. Share the temporary password privately.' });
+  } catch (e) { return res.status(500).json({ success: false, message: e.message }); }
+});
+
+/* users-extra-1 */
+app.post('/api/users/:id/reactivate', auth, async (req, res) => {
+  try {
+    await ensureAuthSchema();
+    if (req.user.role !== 'admin') return res.status(403).json({ success: false, message: 'Admin only' });
+    const r = await db("UPDATE erp_users SET is_active=true, deactivated_at=NULL, onboarding_status='invited' WHERE id=$1 AND company_id=$2 AND is_active=false RETURNING id,name,email,role", [req.params.id, req.user.company_id]);
+    if (!r.rows.length) return res.status(404).json({ success: false, message: 'Deactivated user not found' });
+    const u = r.rows[0];
+    const m = await sendMail(u.email, u.name, process.env.MSG91_WELCOME_TEMPLATE, { name: u.name, link: process.env.APP_URL || 'https://erp.paype.co.in' });
+    return res.json({ success: true, mailSent: !!m.ok, message: 'User reactivated.' });
+  } catch (e) { return res.status(500).json({ success: false, message: e.message }); }
+});
+
+app.post('/api/users/:id/remove', auth, async (req, res) => {
+  try {
+    await ensureAuthSchema();
+    if (req.user.role !== 'admin') return res.status(403).json({ success: false, message: 'Admin only' });
+    const t = await db('SELECT id, is_active FROM erp_users WHERE id=$1 AND company_id=$2', [req.params.id, req.user.company_id]);
+    if (!t.rows.length) return res.status(404).json({ success: false, message: 'User not found' });
+    if (t.rows[0].is_active) return res.status(400).json({ success: false, message: 'Deactivate the user first' });
+    try {
+      await db('DELETE FROM erp_login_otps WHERE user_id=$1', [req.params.id]);
+      await db('DELETE FROM erp_users WHERE id=$1 AND company_id=$2 AND is_active=false', [req.params.id, req.user.company_id]);
+    } catch (e2) {
+      if (e2.code === '23503') return res.status(409).json({ success: false, message: 'This person has records in the ERP, so they can only stay deactivated. This keeps your audit history safe.' });
+      throw e2;
+    }
+    return res.json({ success: true, message: 'User removed completely.' });
   } catch (e) { return res.status(500).json({ success: false, message: e.message }); }
 });
 
