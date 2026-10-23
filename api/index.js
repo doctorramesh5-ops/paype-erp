@@ -875,7 +875,7 @@ app.post('/api/journal', auth, async (req, res) => {
         [entry.id, l.accountId, parseFloat(l.debit)||0, parseFloat(l.credit)||0, l.narration||null]);
       // Update account balance
       const dr = parseFloat(l.debit)||0, cr = parseFloat(l.credit)||0;
-      await db('UPDATE coa SET current_balance = current_balance + $1 WHERE id=$2', [dr-cr, l.accountId]);
+      await db('UPDATE coa SET current_balance = current_balance + $1 WHERE id=$2 AND company_id=$3', [dr-cr, l.accountId, req.user.company_id]);
     }
     res.status(201).json({ success: true, data: entry, message: 'Journal entry ' + entryNo + ' posted!' });
   } catch(e) { res.status(500).json({ success: false, message: e.message }); }
@@ -901,7 +901,7 @@ app.post('/api/bank', auth, async (req, res) => {
 
 app.get('/api/bank/:id/transactions', auth, async (req, res) => {
   try {
-    const r = await db('SELECT * FROM bank_transactions WHERE bank_account_id=$1 ORDER BY date DESC LIMIT 100', [req.params.id]);
+    const r = await db('SELECT bt.* FROM bank_transactions bt JOIN bank_accounts ba ON ba.id=bt.bank_account_id WHERE bt.bank_account_id=$1 AND ba.company_id=$2 ORDER BY bt.date DESC LIMIT 100', [req.params.id, req.user.company_id]);
     res.json({ success: true, data: r.rows });
   } catch(e) { res.status(500).json({ success: false, message: e.message }); }
 });
@@ -1042,11 +1042,13 @@ app.post('/api/bank/:id/transactions', auth, async (req, res) => {
     const prevBal = parseFloat(bankRes.rows[0].balance);
     const newBal = prevBal + credit - debit;
     // Insert transaction
+    const _own = await db('SELECT 1 FROM bank_accounts WHERE id=$1 AND company_id=$2', [req.params.id, req.user.company_id]); /* tenant-safety-1 */
+    if (!_own.rows.length) return res.status(404).json({ success: false, message: 'Not found' });
     const r = await db(`INSERT INTO bank_transactions (bank_account_id,date,description,debit,credit,balance,reference,mode)
       VALUES ($1,$2,$3,$4,$5,$6,$7,$8) RETURNING *`,
       [req.params.id, date, description, debit, credit, newBal, reference||null, mode||null]);
     // Update account balance
-    await db('UPDATE bank_accounts SET balance=$1 WHERE id=$2', [newBal, req.params.id]);
+    await db('UPDATE bank_accounts SET balance=$1 WHERE id=$2 AND company_id=$3', [newBal, req.params.id, req.user.company_id]);
     res.status(201).json({ success: true, data: r.rows[0], message: 'Transaction added!' });
   } catch(e) { res.status(500).json({ success: false, message: e.message }); }
 });
@@ -1084,6 +1086,7 @@ app.get('/api/users', auth, async (req, res) => {
 
 // ── SETUP — Create missing default users ──────────────
 app.get('/api/setup', async (req, res) => {
+  if (process.env.SETUP_ENABLED !== 'true') return res.status(404).json({ success: false, message: 'Not found' });
   try {
     const co = await db('SELECT id FROM erp_companies LIMIT 1');
     if (!co.rows.length) return res.json({ success: false, message: 'No company found' });
@@ -1759,8 +1762,8 @@ app.put('/api/procurement/approvals/:id', auth, async (req, res) => {
     await db(`UPDATE purchase_approvals SET status=$1,remarks=$2,approved_by=$3,approved_at=NOW() WHERE id=$4 AND company_id=$5`,
       [status, remarks||null, req.user.id, req.params.id, req.user.company_id]);
     if (status === 'Approved') {
-      const ap = await db('SELECT po_id FROM purchase_approvals WHERE id=$1', [req.params.id]);
-      if (ap.rows[0]) await db("UPDATE purchase_orders SET status='Approved' WHERE id=$1", [ap.rows[0].po_id]);
+      const ap = await db('SELECT po_id FROM purchase_approvals WHERE id=$1 AND company_id=$2', [req.params.id, req.user.company_id]);
+      if (ap.rows[0]) await db("UPDATE purchase_orders SET status='Approved' WHERE id=$1 AND company_id=$2", [ap.rows[0].po_id, req.user.company_id]);
     }
     res.json({ success: true, message: 'Approval '+status+'!' });
   } catch(e) { res.status(500).json({ success: false, message: e.message }); }
@@ -1795,7 +1798,7 @@ app.post('/api/procurement/grn', auth, async (req, res) => {
         }
       }
     }
-    await db("UPDATE purchase_orders SET status='Received' WHERE id=$1", [poId]);
+    await db("UPDATE purchase_orders SET status='Received' WHERE id=$1 AND company_id=$2", [poId, req.user.company_id]);
     res.status(201).json({ success: true, data: grn, message: 'GRN '+grnNo+' created!' });
   } catch(e) { res.status(500).json({ success: false, message: e.message }); }
 });
@@ -1816,7 +1819,7 @@ app.post('/api/procurement/payments', auth, async (req, res) => {
       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9) RETURNING *`,
       [req.user.company_id, vendorId, parseFloat(amount), paymentDate||new Date().toISOString().split('T')[0],
        mode||'NEFT', reference||null, billId||null, notes||null, req.user.id]);
-    if (billId) await db("UPDATE invoices SET status='Paid' WHERE id=$1", [billId]);
+    if (billId) await db("UPDATE invoices SET status='Paid' WHERE id=$1 AND company_id=$2", [billId, req.user.company_id]);
     res.status(201).json({ success: true, data: r.rows[0], message: 'Payment recorded!' });
   } catch(e) { res.status(500).json({ success: false, message: e.message }); }
 });
