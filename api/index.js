@@ -915,6 +915,18 @@ app.post('/api/users/:id/deactivate', auth, async (req, res) => {
   } catch (e) { return res.status(500).json({ success: false, message: e.message }); }
 });
 
+app.post('/api/users/:id/reset-password', auth, async (req, res) => {
+  try {
+    await ensureAuthSchema();
+    if (req.user.role !== 'admin') return res.status(403).json({ success: false, message: 'Admin only' });
+    const temp = _cr.randomBytes(9).toString('base64').replace(/[^A-Za-z0-9]/g, 'x') + 'a1';
+    const hash = await bcrypt.hash(temp, 10);
+    const r = await db("UPDATE erp_users SET password=$1, must_change_password=true WHERE id=$2 AND company_id=$3 AND role='manager' AND is_active=true RETURNING id", [hash, req.params.id, req.user.company_id]);
+    if (!r.rows.length) return res.status(404).json({ success: false, message: 'Only an active Accounts Manager password can be reset here' });
+    return res.json({ success: true, temporaryPassword: temp, message: 'Password reset. Share the temporary password privately.' });
+  } catch (e) { return res.status(500).json({ success: false, message: e.message }); }
+});
+
 app.post('/api/users/:id/reset-totp', auth, async (req, res) => {
   try {
     await ensureAuthSchema();
@@ -1324,8 +1336,9 @@ app.post('/api/auth/register', auth, async (req, res) => {
 // ── GET ALL USERS ──────────────────────────────────────
 app.get('/api/users', auth, async (req, res) => {
   try {
+    await ensureAuthSchema();
     if (req.user.role !== 'admin') return res.status(403).json({ success: false, message: 'Admin only' });
-    const r = await db('SELECT id,name,email,role,is_active,created_at FROM erp_users WHERE company_id=$1 ORDER BY created_at', [req.user.company_id]);
+    const r = await db('SELECT id,name,email,role,is_active,created_at,onboarding_status,totp_enabled,last_login_at FROM erp_users WHERE company_id=$1 ORDER BY created_at', [req.user.company_id]);
     res.json({ success: true, data: r.rows });
   } catch(e) { res.status(500).json({ success: false, message: e.message }); }
 });
