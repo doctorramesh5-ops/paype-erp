@@ -1930,7 +1930,7 @@ app.delete('/api/payments/subscriptions/:id', auth, async (req, res) => {
 });
 
 // Get payment summary stats
-app.get('/api/payments/stats', async (req, res) => {
+app.get('/api/payments/stats', auth, async (req, res) => { /* stats-scope-1 */
   try {
     await db(`CREATE TABLE IF NOT EXISTS saas_subscriptions (
       id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -1943,14 +1943,15 @@ app.get('/api/payments/stats', async (req, res) => {
       payment_method VARCHAR(50), transaction_id VARCHAR(200), notes TEXT,
       created_at TIMESTAMP DEFAULT NOW(), updated_at TIMESTAMP DEFAULT NOW()
     )`);
+    const cid = req.user.company_id;
     const [total, paid, unpaid, overdue, revenue, parties, invoices] = await Promise.all([
-      db('SELECT COUNT(*) as cnt FROM saas_subscriptions'),
-      db("SELECT COUNT(*) as cnt FROM saas_subscriptions WHERE status='Paid'"),
-      db("SELECT COUNT(*) as cnt FROM saas_subscriptions WHERE status='Unpaid'"),
-      db("SELECT COUNT(*) as cnt FROM saas_subscriptions WHERE status='Overdue'"),
-      db("SELECT COALESCE(SUM(amount),0) as total FROM saas_subscriptions WHERE status='Paid'"),
-      db('SELECT COUNT(*) as cnt FROM parties'),
-      db("SELECT COUNT(*) as cnt FROM invoices WHERE status='Unpaid'"),
+      db('SELECT COUNT(*) as cnt FROM saas_subscriptions WHERE company_id=$1', [cid]),
+      db("SELECT COUNT(*) as cnt FROM saas_subscriptions WHERE status='Paid' AND company_id=$1", [cid]),
+      db("SELECT COUNT(*) as cnt FROM saas_subscriptions WHERE status='Unpaid' AND company_id=$1", [cid]),
+      db("SELECT COUNT(*) as cnt FROM saas_subscriptions WHERE status='Overdue' AND company_id=$1", [cid]),
+      db("SELECT COALESCE(SUM(amount),0) as total FROM saas_subscriptions WHERE status='Paid' AND company_id=$1", [cid]),
+      db('SELECT COUNT(*) as cnt FROM parties WHERE company_id=$1', [cid]),
+      db("SELECT COUNT(*) as cnt FROM invoices WHERE status='Unpaid' AND company_id=$1", [cid]),
     ]);
     res.json({ success: true, data: {
       subscriptions: { total: parseInt(total.rows[0].cnt), paid: parseInt(paid.rows[0].cnt), unpaid: parseInt(unpaid.rows[0].cnt), overdue: parseInt(overdue.rows[0].cnt), revenue: parseFloat(revenue.rows[0].total) },
