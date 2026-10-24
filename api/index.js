@@ -321,6 +321,91 @@ app.get('/api/super/audit', auth, superOnly, async (req, res) => {
   } catch (e) { res.status(500).json({ success: false, message: e.message }); }
 });
 
+/* console-1 */
+let _consoleReady = false;
+async function ensureConsoleSchema() {
+  if (_consoleReady) return;
+  await ensureSuperSchema();
+  await db('ALTER TABLE erp_companies ADD COLUMN IF NOT EXISTS partner_id UUID');
+  _consoleReady = true;
+}
+async function myCompany(req) {
+  const r = await db('SELECT id, name, email, kind, plan, modules, status, partner_id, created_at FROM erp_companies WHERE id=$1', [req.user.company_id]);
+  return r.rows[0] || null;
+}
+app.get('/api/tenant/me', auth, async (req, res) => {
+  try {
+    await ensureConsoleSchema();
+    const c = await myCompany(req);
+    if (!c) return res.status(404).json({ success: false, message: 'Company not found' });
+    const n = await db('SELECT COUNT(*)::int AS total, COUNT(*) FILTER (WHERE is_active)::int AS active FROM erp_users WHERE company_id=$1', [c.id]);
+    let partner = null;
+    if (c.partner_id) { const p = await db('SELECT name FROM erp_companies WHERE id=$1', [c.partner_id]); partner = p.rows.length ? p.rows[0].name : null; }
+    res.json({ success: true, data: { name: c.name, kind: c.kind || 'customer', plan: c.plan, modules: String(c.modules || '').split(',').filter(Boolean), status: c.status || 'active', createdAt: c.created_at, partner: partner, users: n.rows[0], me: { name: req.user.name, email: req.user.email, role: req.user.role } } });
+  } catch (e) { res.status(500).json({ success: false, message: e.message }); }
+});
+async function partnerOnly(req, res, next) {
+  try {
+    await ensureConsoleSchema();
+    if (req.user.role !== 'admin') return res.status(403).json({ success: false, message: 'Partner admin only' });
+    const c = await myCompany(req);
+    if (!c || c.kind !== 'partner' || (c.status || 'active') !== 'active') return res.status(403).json({ success: false, message: 'Partner admin only' });
+    req.partner = c; next();
+  } catch (e) { res.status(500).json({ success: false, message: e.message }); }
+}
+const PARTNER_PLANS = ['Trial', 'Starter', 'Growth', 'Business', 'Enterprise'];
+app.get('/api/partner/customers', auth, partnerOnly, async (req, res) => {
+  try {
+    const r = await db('SELECT c.id, c.name, c.email, c.plan, c.modules, c.status, c.created_at, (SELECT COUNT(*)::int FROM erp_users x WHERE x.company_id=c.id) AS users FROM erp_companies c WHERE c.partner_id=$1 ORDER BY c.created_at DESC', [req.partner.id]);
+    res.json({ success: true, data: r.rows, allowedModules: String(req.partner.modules || '').split(',').filter(Boolean), plans: PARTNER_PLANS });
+  } catch (e) { res.status(500).json({ success: false, message: e.message }); }
+});
+app.post('/api/partner/customers', auth, partnerOnly, rateLimit(20, 60 * 60 * 1000), async (req, res) => {
+  let companyId = null;
+  try {
+    const b = req.body || {};
+    const name = String(b.name || '').trim().slice(0, 200);
+    const adminName = String(b.adminName || '').trim().slice(0, 200);
+    const adminEmail = String(b.adminEmail || '').trim().toLowerCase();
+    const plan = PARTNER_PLANS.includes(b.plan) ? b.plan : 'Trial';
+    const own = String(req.partner.modules || '').split(',').filter(Boolean);
+    const modules = (Array.isArray(b.modules) ? b.modules : []).filter(m => SUPER_MODULES.includes(m) && own.includes(m));
+    if (!name || !adminName) return res.status(400).json({ success: false, message: 'Company name and admin name are required' });
+    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(adminEmail)) return res.status(400).json({ success: false, message: 'A valid admin email is required' });
+    if (!modules.length) return res.status(400).json({ success: false, message: 'Choose at least one product your partner plan includes' });
+    const dup = await db('SELECT 1 FROM erp_users WHERE lower(email)=$1', [adminEmail]);
+    if (dup.rows.length) return res.status(400).json({ success: false, message: 'This email already has an account' });
+    const c = await db("INSERT INTO erp_companies (name, email, kind, plan, modules, notes, status, partner_id) VALUES ($1,$2,'customer',$3,$4,$5,'active',$6) RETURNING id, name", [name, adminEmail, plan, modules.join(','), String(b.notes || '').slice(0, 500), req.partner.id]);
+    companyId = c.rows[0].id;
+    const temp = require('crypto').randomBytes(9).toString('base64').replace(/[^A-Za-z0-9]/g, 'x') + 'a1';
+    const hash = await bcrypt.hash(temp, 10);
+    await db("INSERT INTO erp_users (company_id, name, email, password, role, must_change_password) VALUES ($1,$2,$3,$4,'admin',true)", [companyId, adminName, adminEmail, hash]);
+    await superLog(req, 'partner.customer.create', name, 'partner ' + req.partner.name + ' / ' + plan + ' / ' + modules.join(','));
+    res.status(201).json({ success: true, data: { id: companyId, name, plan, modules }, temporaryPassword: temp, note: 'Give this temporary password to the customer admin privately. It is shown once. They must change it and set up the authenticator at first sign-in.' });
+  } catch (e) {
+    if (companyId) { try { await db('DELETE FROM erp_companies WHERE id=$1', [companyId]); } catch (x) {} }
+    res.status(500).json({ success: false, message: e.message });
+  }
+});
+app.post('/api/partner/customers/:id/status', auth, partnerOnly, async (req, res) => {
+  try {
+    const id = req.params.id, status = (req.body || {}).status;
+    if (!_UUID.test(id)) return res.status(400).json({ success: false, message: 'Bad id' });
+    if (!['active', 'suspended'].includes(status)) return res.status(400).json({ success: false, message: 'Status must be active or suspended' });
+    const c = await db('SELECT id, name FROM erp_companies WHERE id=$1 AND partner_id=$2', [id, req.partner.id]);
+    if (!c.rows.length) return res.status(404).json({ success: false, message: 'Customer not found' });
+    if (status === 'suspended') {
+      await db("UPDATE erp_companies SET status='suspended', suspended_at=NOW() WHERE id=$1", [id]);
+      await db("UPDATE erp_users SET is_active=false, suspended_by_super=true, deactivated_at=NOW() WHERE company_id=$1 AND is_active=true", [id]);
+    } else {
+      await db("UPDATE erp_companies SET status='active', suspended_at=NULL WHERE id=$1", [id]);
+      await db("UPDATE erp_users SET is_active=true, suspended_by_super=false, deactivated_at=NULL WHERE company_id=$1 AND suspended_by_super=true", [id]);
+    }
+    await superLog(req, 'partner.customer.' + status, c.rows[0].name, 'partner ' + req.partner.name);
+    res.json({ success: true, message: 'Customer ' + status });
+  } catch (e) { res.status(500).json({ success: false, message: e.message }); }
+});
+
 app.get('/api/health', async (req, res) => {
   let dbStatus = 'not configured';
   if (process.env.DATABASE_URL) {
@@ -1142,7 +1227,7 @@ app.post('/api/users/invite', auth, async (req, res) => {
     if (!['employee', 'manager'].includes(role)) return res.status(400).json({ success: false, message: 'Role must be employee or manager' });
     if (req.user.role === 'manager' && role !== 'employee') return res.status(403).json({ success: false, message: 'Only an admin can add a manager' });
     const allowed = (process.env.ALLOWED_EMAIL_DOMAINS || 'paype.co.in').split(',').map(s => s.trim().toLowerCase()).filter(Boolean);
-    if (allowed.length && !allowed.includes(email.split('@')[1])) return res.status(400).json({ success: false, message: 'Use a company email address (' + allowed.join(', ') + ')' });
+    if (allowed.length && !allowed.concat([String(req.user.email || '').toLowerCase().split('@')[1]]).includes(email.split('@')[1])) return res.status(400).json({ success: false, message: 'Use a company email address (' + allowed.join(', ') + ')' });
     const temp = role === 'manager' ? _cr.randomBytes(9).toString('base64').replace(/[^A-Za-z0-9]/g, 'x') + 'a1' : null;
     const hash = await bcrypt.hash(temp || _cr.randomBytes(24).toString('hex'), 10);
     const r = await db("INSERT INTO erp_users (company_id,name,email,password,role,onboarding_status,must_change_password) VALUES ($1,$2,$3,$4,$5,'invited',$6) RETURNING id,name,email,role", [req.user.company_id, name, email, hash, role, role === 'manager']);
