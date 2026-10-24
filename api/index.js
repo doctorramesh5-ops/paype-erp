@@ -94,6 +94,7 @@ const EMP_RULES = [
   ['POST', /^\/api\/ai\/(chat|saraswathi)\/?$/],
   ['POST', /^\/api\/voice\/(stt|tts)\/?$/],
   ['POST', /^\/api\/ai\/sivi-app\/?$/],
+  ['GET,POST', /^\/api\/social\/approvals\/?$/],
 ];
 const EMP_OWN = {
   '/api/inventory/sales-orders': 'created_by', '/api/inventory/purchase-orders': 'created_by',
@@ -2603,6 +2604,58 @@ app.post('/api/voice/stt', rateLimit(40, 10 * 60 * 1000), auth, voiceStt);
 app.post('/api/voice/tts', rateLimit(60, 10 * 60 * 1000), auth, voiceTts);
 app.post('/api/voice/public-stt', rateLimit(10, 10 * 60 * 1000), voiceStt);
 app.post('/api/voice/public-tts', rateLimit(15, 10 * 60 * 1000), voiceTts);
+
+/* social-approvals-1 */
+// ---- Social Hub approvals ----
+let _socReady = false;
+async function ensureSocialSchema() {
+  if (_socReady) return;
+  await db("CREATE TABLE IF NOT EXISTS social_approvals (id UUID PRIMARY KEY DEFAULT gen_random_uuid(), company_id UUID, requested_by UUID, requester_name VARCHAR(200), channel VARCHAR(30), title VARCHAR(300), content TEXT, status VARCHAR(12) DEFAULT 'pending', decided_by UUID, decided_name VARCHAR(200), decision_note TEXT, decided_at TIMESTAMPTZ, created_at TIMESTAMPTZ DEFAULT NOW())");
+  await db("CREATE INDEX IF NOT EXISTS social_appr_idx ON social_approvals (company_id, status, created_at DESC)");
+  _socReady = true;
+}
+const SOC_CHANNELS = ['sms', 'whatsapp', 'email', 'meta', 'linkedin', 'youtube', 'posts', 'other'];
+app.post('/api/social/approvals', rateLimit(30, 10 * 60 * 1000), auth, async (req, res) => {
+  try {
+    await ensureSocialSchema();
+    if (req.user.role !== 'employee') return res.status(403).json({ success: false, message: 'Approval requests are made by employees' });
+    const b = req.body || {};
+    const channel = SOC_CHANNELS.includes(b.channel) ? b.channel : 'other';
+    const title = String(b.title || '').trim().slice(0, 200);
+    const content = String(b.content || '').trim().slice(0, 3000);
+    if (!title) return res.status(400).json({ success: false, message: 'Give this request a title' });
+    const r = await db('INSERT INTO social_approvals (company_id,requested_by,requester_name,channel,title,content) VALUES ($1,$2,$3,$4,$5,$6) RETURNING id,channel,title,status,created_at', [req.user.company_id, req.user.id, req.user.name, channel, title, content]);
+    await notify(req.user.company_id, { roles: ['manager', 'admin'] }, req.user, 'approval', 'Approval needed: ' + title, req.user.name + ' wants to send via ' + channel + '. Open Approvals to decide.', 'social:approvals');
+    res.status(201).json({ success: true, data: r.rows[0] });
+  } catch (e) { res.status(500).json({ success: false, message: 'Could not submit the request' }); }
+});
+app.get('/api/social/approvals', auth, async (req, res) => {
+  try {
+    await ensureSocialSchema();
+    const own = req.user.role === 'employee';
+    const st = ['pending', 'approved', 'rejected'].includes(req.query.status) ? req.query.status : null;
+    const p = [req.user.company_id]; let w = 'company_id=$1';
+    if (own) { p.push(req.user.id); w += ' AND requested_by=$' + p.length; }
+    if (st) { p.push(st); w += ' AND status=$' + p.length; }
+    const r = await db('SELECT id,requester_name,channel,title,content,status,decided_name,decision_note,decided_at,created_at FROM social_approvals WHERE ' + w + " ORDER BY (status='pending') DESC, created_at DESC LIMIT 100", p);
+    res.json({ success: true, data: r.rows });
+  } catch (e) { res.status(500).json({ success: false, message: 'Could not load approvals' }); }
+});
+app.post('/api/social/approvals/:id/decide', rateLimit(60, 10 * 60 * 1000), auth, async (req, res) => {
+  try {
+    await ensureSocialSchema();
+    if (req.user.role !== 'admin' && req.user.role !== 'manager') return res.status(403).json({ success: false, message: 'Only a manager or admin can decide' });
+    if (!/^[0-9a-fA-F-]{36}$/.test(req.params.id)) return res.status(400).json({ success: false, message: 'Bad id' });
+    const dec = (req.body || {}).decision;
+    if (dec !== 'approved' && dec !== 'rejected') return res.status(400).json({ success: false, message: 'Decision must be approved or rejected' });
+    const note = String((req.body || {}).note || '').trim().slice(0, 500);
+    const r = await db("UPDATE social_approvals SET status=$1, decided_by=$2, decided_name=$3, decision_note=$4, decided_at=NOW() WHERE id=$5 AND company_id=$6 AND status='pending' RETURNING id,title,requested_by,status", [dec, req.user.id, req.user.name, note || null, req.params.id, req.user.company_id]);
+    if (!r.rows.length) return res.status(409).json({ success: false, message: 'Already decided or not found' });
+    const row = r.rows[0];
+    await notify(req.user.company_id, { userIds: [row.requested_by] }, req.user, 'decision', (dec === 'approved' ? 'Approved: ' : 'Rejected: ') + row.title, (dec === 'approved' ? 'Approved by ' : 'Rejected by ') + req.user.name + (note ? ' - ' + note : ''), 'social:approvals');
+    res.json({ success: true, data: row });
+  } catch (e) { res.status(500).json({ success: false, message: 'Could not save the decision' }); }
+});
 
 app.use(function(req, res) { res.status(404).json({ success: false, message: 'Endpoint not found' }); });
 app.use(function(err, req, res, next) { res.status(500).json({ success: false, message: err.message }); });
