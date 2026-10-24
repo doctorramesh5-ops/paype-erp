@@ -637,8 +637,9 @@ tr:hover td{background:#FAFBFC;}
   <div class="mb"><div class="g2">
     <div class="ff2"><label>Full Name *</label><input id="usr-name" placeholder="Employee name"></div>
     <div class="ff2"><label>Email *</label><input id="usr-email" type="email" placeholder="email@paype.co.in"></div>
-    <div class="ff2"><label>Role *</label><select id="usr-role"><option value="employee">Employee — signs in with an email code</option><option value="manager">Accounts Manager — password + authenticator</option></select></div>
+    <div class="ff2"><label>Role *</label><select id="usr-role" onchange="usrRoleChg()"><option value="employee">Employee — signs in with an email code</option><option value="manager">Accounts Manager — password + authenticator</option></select></div>
   </div>
+  <div class="ff2" id="usr-areas-wrap" style="margin-top:8px;"><label>Work areas * (what this employee may fill in)</label><div style="display:flex;gap:16px;flex-wrap:wrap;font-size:13px;margin-top:4px;"><label style="display:flex;gap:5px;align-items:center;"><input type="checkbox" class="usr-area" value="crm"> CRM</label><label style="display:flex;gap:5px;align-items:center;"><input type="checkbox" class="usr-area" value="inventory"> Inventory</label><label style="display:flex;gap:5px;align-items:center;"><input type="checkbox" class="usr-area" value="procurement"> Procurement</label></div></div>
   <div class="alert alert-info" style="margin-top:8px;"><strong>How sign-in works:</strong><br>Employee: a one-time code is sent to the company email<br>Accounts Manager: password + Google Authenticator<br>Only company email addresses are accepted.</div>
   </div>
   <div class="mf"><button class="btn bto" onclick="closeModal('user')">Cancel</button><button class="btn btp" onclick="submitUser()">Send Invite</button></div></div>
@@ -2428,7 +2429,7 @@ async function loadUsers(){
   USERS_CACHE=r.data||[];
   var rn={admin:'Admin',manager:'Accounts Manager',employee:'Employee'};
   var chip=function(t,col,bg){return '<span style="display:inline-block;padding:2px 9px;border-radius:10px;font-size:11px;font-weight:600;color:'+col+';background:'+bg+';">'+t+'</span>';};
-  var h='<div class="card"><div class="tw"><table><thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Status</th><th>Authenticator</th><th>Last sign-in</th><th>Action</th></tr></thead><tbody>';
+  var h='<div class="card"><div class="tw"><table><thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Work areas</th><th>Status</th><th>Authenticator</th><th>Last sign-in</th><th>Action</th></tr></thead><tbody>';
   USERS_CACHE.forEach(function(u,i){
     var st=!u.is_active?chip('Deactivated','#a12b20','#fdecea'):(u.onboarding_status==='invited'?chip('Invited','#8a5a00','#fff4de'):chip('Active','#0a6b3a','#e3f7ec'));
     var tf=(u.role==='employee')?'<span style="color:#889;">Email code</span>':(u.totp_enabled?chip('On','#0a6b3a','#e3f7ec'):chip('Not set up','#8a5a00','#fff4de'));
@@ -2436,9 +2437,10 @@ async function loadUsers(){
     var act='';
     if(u.is_active&&USER&&u.id!==USER.id){act+='<button class="btn bto btsm" onclick="deactivateUser('+i+')">Deactivate</button> ';}
     if(!u.is_active){act+='<button class="btn bto btsm" onclick="reactivateUser('+i+')">Reactivate</button> <button class="btn bto btsm" onclick="removeUser('+i+')">Remove</button>';}
+    if(u.is_active&&u.role==='employee'){act+='<button class="btn bto btsm" onclick="editAreas('+i+')">Work areas</button> ';}
     if(u.is_active&&u.role==='manager'){act+='<button class="btn bto btsm" onclick="resetPassword('+i+')">Reset password</button> ';}
     if(u.is_active&&u.role!=='employee'&&u.totp_enabled){act+='<button class="btn bto btsm" onclick="resetTotp('+i+')">Reset authenticator</button>';}
-    h+='<tr><td><strong>'+esc(u.name)+'</strong></td><td>'+esc(u.email)+'</td><td>'+esc(rn[u.role]||u.role)+'</td><td>'+st+'</td><td>'+tf+'</td><td>'+esc(last)+'</td><td>'+act+'</td></tr>';
+    h+='<tr><td><strong>'+esc(u.name)+'</strong></td><td>'+esc(u.email)+'</td><td>'+esc(rn[u.role]||u.role)+'</td><td>'+areasCell(u)+'</td><td>'+st+'</td><td>'+tf+'</td><td>'+esc(last)+'</td><td>'+act+'</td></tr>';
   });
   h+='</tbody></table></div></div>';
   c.innerHTML=h;
@@ -2471,7 +2473,9 @@ async function removeUser(i){
 async function submitUser(){
   var name=document.getElementById('usr-name').value.trim(),email=document.getElementById('usr-email').value.trim(),role=document.getElementById('usr-role').value;
   if(!name||!email){toast('Enter the name and company email','err');return;}
-  var r=await req('POST','/api/users/invite',{name:name,email:email,role:role});
+  var areas=[].slice.call(document.querySelectorAll('.usr-area')).filter(function(c){return c.checked;}).map(function(c){return c.value;});
+  if(role==='employee'&&!areas.length){toast('Tick at least one work area (CRM, Inventory or Procurement)','err');return;}
+  var r=await req('POST','/api/users/invite',{name:name,email:email,role:role,workAreas:areas});
   if(!r||!r.success){toast((r&&r.message)||'Could not invite the user','err');return;}
   closeModal('user');
   document.getElementById('usr-name').value='';document.getElementById('usr-email').value='';
@@ -2480,6 +2484,29 @@ async function submitUser(){
   }else if(r.mailSent){toast('Invite sent. A welcome email is on its way.','ok');}
   else{showBox('Welcome email not sent','<p style="font-size:13px;margin:0 0 8px;">The user was added, but the welcome email could not be sent. Reason:</p><div style="font-family:monospace;font-size:12px;background:#f4f7f9;padding:10px;border-radius:8px;word-break:break-word;">'+esc(r.mailError||'unknown')+'</div>');}
   loadUsers();
+}
+/* work-areas-1 */
+var AREA_LABEL={crm:'CRM',inventory:'Inventory',procurement:'Procurement'};
+function usrRoleChg(){var w=document.getElementById('usr-areas-wrap');if(w)w.style.display=document.getElementById('usr-role').value==='employee'?'':'none';}
+function areasCell(u){
+  if(u.role!=='employee')return '<span style="color:#889;">All (by role)</span>';
+  var a=Array.isArray(u.work_areas)?u.work_areas:['crm','inventory','procurement'];
+  if(!a.length)return '<span style="color:#a12b20;">None</span>';
+  return a.map(function(x){return '<span style="display:inline-block;padding:1px 8px;margin:1px;border-radius:10px;font-size:11px;font-weight:600;color:#0a6b3a;background:#e3f7ec;">'+(AREA_LABEL[x]||esc(x))+'</span>';}).join('');
+}
+function editAreas(i){
+  var u=USERS_CACHE[i];if(!u)return;
+  var a=Array.isArray(u.work_areas)?u.work_areas:['crm','inventory','procurement'];
+  var h='<p style="font-size:13px;margin:0 0 10px;">Choose what <strong>'+esc(u.name)+'</strong> may fill in. They see only these screens, and only their own entries.</p><div style="display:flex;flex-direction:column;gap:8px;font-size:14px;">';
+  ['crm','inventory','procurement'].forEach(function(k){h+='<label style="display:flex;gap:8px;align-items:center;"><input type="checkbox" class="ea-box" value="'+k+'"'+(a.indexOf(k)>-1?' checked':'')+'> '+AREA_LABEL[k]+'</label>';});
+  h+='</div><div style="margin-top:14px;"><button class="btn btp" onclick="saveAreas('+i+')">Save</button> <button class="btn bto" onclick="closeBox()">Cancel</button></div>';
+  showBox('Work areas',h);
+}
+async function saveAreas(i){
+  var u=USERS_CACHE[i];if(!u)return;
+  var areas=[].slice.call(document.querySelectorAll('.ea-box')).filter(function(c){return c.checked;}).map(function(c){return c.value;});
+  var r=await req('PUT','/api/users/'+u.id+'/work-areas',{areas:areas});
+  closeBox();toast((r&&r.message)||'Done',(r&&r.success)?'ok':'err');loadUsers();
 }
 async function resetPassword(i){
   var u=USERS_CACHE[i];if(!u)return;
@@ -2518,8 +2545,13 @@ function startApp(){
   if(ROLE==='employee'){
     /* emp-ui-1 */
     document.querySelectorAll('.sb-nav .ni,.sb-nav .sb-section').forEach(function(el){el.style.display='none';});
-    ['ni-profile','ni-inventory','ni-procurement'].forEach(function(id){var e=document.getElementById(id);if(e)e.style.display='';});
-    document.querySelectorAll('.sb-nav .sb-section.mgr-only').forEach(function(el){el.style.display='';});
+    var wa=Array.isArray(USER.workAreas)?USER.workAreas:['crm','inventory','procurement'];
+    var showInv=wa.indexOf('crm')>-1||wa.indexOf('inventory')>-1,showProc=wa.indexOf('procurement')>-1;
+    var np0=document.getElementById('ni-profile');if(np0)np0.style.display='';
+    var ei=document.getElementById('ni-inventory');if(ei)ei.style.display=showInv?'':'none';
+    var ep=document.getElementById('ni-procurement');if(ep)ep.style.display=showProc?'':'none';
+    document.querySelectorAll('.sb-nav .sb-section.mgr-only').forEach(function(el){var t=el.textContent.trim();el.style.display=((t==='Procurement')?showProc:showInv)?'':'none';});
+    req('GET','/api/auth/me').then(function(r){if(r&&r.success&&r.user){var a1=JSON.stringify(r.user.workAreas||null),b1=JSON.stringify(USER.workAreas||null);if(a1!==b1){USER.workAreas=r.user.workAreas;persistLogin();location.reload();}}});
     var np=document.getElementById('ni-profile');go('profile',np);
     return;
   }

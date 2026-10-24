@@ -88,6 +88,7 @@ const EMP_RULES = [
   ['GET', /^\/api\/procurement\/vendors\/?$/],
   ['GET,POST', /^\/api\/procurement\/(rfq|grn)\/?$/],
   ['POST', /^\/api\/procurement\/approvals\/?$/],
+  ['GET', /^\/api\/auth\/me\/?$/],
   ['GET', /^\/api\/notifications\/?$/],
   ['POST', /^\/api\/notifications\/read\/?$/],
   ['POST', /^\/api\/ai\/(chat|saraswathi)\/?$/],
@@ -104,6 +105,13 @@ async function employeeGate(req, res) {
   const path = String(req.originalUrl || req.url || '').split('?')[0].replace(/\/+$/, '');
   const ok = EMP_RULES.some(([m, rx]) => m.split(',').includes(req.method) && rx.test(path));
   if (!ok) { res.status(403).json({ success: false, message: 'Not available for employees' }); return false; }
+  { /* work-areas-1 */
+    const mine = empAreas(req.user);
+    const area = /^\/api\/crm\//.test(path) ? 'crm' : /^\/api\/inventory\//.test(path) ? 'inventory' : /^\/api\/procurement\//.test(path) ? 'procurement' : null;
+    if ((area && !mine.includes(area)) || (path === '/api/parties' && !mine.length)) {
+      res.status(403).json({ success: false, message: 'This work area is not assigned to you. Ask your admin.' }); return false;
+    }
+  }
   if (req.method === 'GET' && EMP_OWN[path]) {
     const field = EMP_OWN[path], me = String(req.user.id), orig = res.json.bind(res);
     res.json = (b) => {
@@ -841,6 +849,7 @@ async function ensureAuthSchema() {
     "ALTER TABLE erp_users ADD COLUMN IF NOT EXISTS must_change_password BOOLEAN DEFAULT false",
     "ALTER TABLE erp_users ADD COLUMN IF NOT EXISTS deactivated_at TIMESTAMPTZ",
     "ALTER TABLE erp_users ADD COLUMN IF NOT EXISTS last_login_at TIMESTAMPTZ",
+    "ALTER TABLE erp_users ADD COLUMN IF NOT EXISTS work_areas TEXT[]",
     "CREATE TABLE IF NOT EXISTS erp_login_otps (id UUID PRIMARY KEY DEFAULT gen_random_uuid(), user_id UUID NOT NULL, code_hash TEXT NOT NULL, expires_at TIMESTAMPTZ NOT NULL, attempts INT DEFAULT 0, used BOOLEAN DEFAULT false, created_at TIMESTAMPTZ DEFAULT NOW())"
   ];
   for (const s of stmts) await db(s);
@@ -910,8 +919,12 @@ async function sendMail(toEmail, toName, templateId, variables) {
   } catch (e) { console.log('MSG91 send error:', e.message); return { ok: false, reason: e.message }; }
 }
 
+/* work-areas-1 */
+const ALL_AREAS = ['crm', 'inventory', 'procurement'];
+const empAreas = (u) => (Array.isArray(u.work_areas) ? u.work_areas.filter(a => ALL_AREAS.includes(a)) : ALL_AREAS.slice());
+const cleanAreas = (a) => (Array.isArray(a) ? ALL_AREAS.filter(x => a.includes(x)) : []);
 function userPayload(u) {
-  return { id: u.id, name: u.name, email: u.email, role: u.role, company: u.company_name, companyId: u.company_id, gstin: u.gstin, fy: u.financial_year };
+  return { id: u.id, name: u.name, email: u.email, role: u.role, company: u.company_name, companyId: u.company_id, gstin: u.gstin, fy: u.financial_year, workAreas: u.role === 'employee' ? empAreas(u) : null };
 }
 const OTP_GENERIC = { success: true, message: 'If this email is registered, a code has been sent to it.' };
 
@@ -985,6 +998,17 @@ app.post('/api/auth/totp/enable', auth, async (req, res) => {
 });
 
 // ── ADMIN: invite, deactivate, reset authenticator ──
+app.get('/api/auth/me', auth, (req, res) => res.json({ success: true, user: userPayload(req.user) }));
+app.put('/api/users/:id/work-areas', auth, async (req, res) => {
+  try {
+    await ensureAuthSchema();
+    if (req.user.role !== 'admin') return res.status(403).json({ success: false, message: 'Admin only' });
+    const areas = cleanAreas((req.body || {}).areas);
+    const r = await db("UPDATE erp_users SET work_areas=$1 WHERE id=$2 AND company_id=$3 AND role='employee' RETURNING id", [areas, req.params.id, req.user.company_id]);
+    if (!r.rows.length) return res.status(404).json({ success: false, message: 'Employee not found' });
+    res.json({ success: true, areas: areas, message: 'Work areas saved' });
+  } catch (e) { res.status(500).json({ success: false, message: e.message }); }
+});
 app.post('/api/users/invite', auth, async (req, res) => {
   try {
     await ensureAuthSchema();
@@ -999,6 +1023,7 @@ app.post('/api/users/invite', auth, async (req, res) => {
     const temp = role === 'manager' ? _cr.randomBytes(9).toString('base64').replace(/[^A-Za-z0-9]/g, 'x') + 'a1' : null;
     const hash = await bcrypt.hash(temp || _cr.randomBytes(24).toString('hex'), 10);
     const r = await db("INSERT INTO erp_users (company_id,name,email,password,role,onboarding_status,must_change_password) VALUES ($1,$2,$3,$4,$5,'invited',$6) RETURNING id,name,email,role", [req.user.company_id, name, email, hash, role, role === 'manager']);
+    if (role === 'employee') await db('UPDATE erp_users SET work_areas=$1 WHERE id=$2', [cleanAreas((req.body || {}).workAreas), r.rows[0].id]);
     const link = process.env.APP_URL || 'https://erp.paype.co.in';
     const m = await sendMail(email, name, process.env.MSG91_WELCOME_TEMPLATE, { name, link });
     const out = { success: true, data: r.rows[0], mailSent: !!m.ok, mailError: m.ok ? undefined : (m.reason || ('MSG91 answered ' + m.status + ': ' + m.body)) };
@@ -1484,7 +1509,7 @@ app.get('/api/users', auth, async (req, res) => {
   try {
     await ensureAuthSchema();
     if (req.user.role !== 'admin') return res.status(403).json({ success: false, message: 'Admin only' });
-    const r = await db('SELECT id,name,email,role,is_active,created_at,onboarding_status,totp_enabled,last_login_at FROM erp_users WHERE company_id=$1 ORDER BY created_at', [req.user.company_id]);
+    const r = await db('SELECT id,name,email,role,is_active,created_at,onboarding_status,totp_enabled,last_login_at,work_areas FROM erp_users WHERE company_id=$1 ORDER BY created_at', [req.user.company_id]);
     res.json({ success: true, data: r.rows });
   } catch(e) { res.status(500).json({ success: false, message: e.message }); }
 });

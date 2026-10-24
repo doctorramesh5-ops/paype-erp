@@ -676,6 +676,14 @@ async function startApp(){
   if(USER.role==='employee'){
     /* emp-ui-1 */
     ['ni-inv-dash','ni-warehouses','ni-crm-dash','ni-pipeline'].forEach(function(id){var e=document.getElementById(id);if(e)e.style.display='none';});
+    var wa=Array.isArray(USER.workAreas)?USER.workAreas:['crm','inventory','procurement'];
+    var hasInv=wa.indexOf('inventory')>-1,hasCrm=wa.indexOf('crm')>-1;
+    if(!hasInv&&!hasCrm){window.location='index.html';return;}
+    var hideIds=function(ids){ids.forEach(function(id){var e=document.getElementById(id);if(e)e.style.display='none';});};
+    if(!hasInv)hideIds(['ni-products','ni-po','ni-so','ni-stock']);
+    if(!hasCrm)hideIds(['ni-leads','ni-quotations','ni-tasks']);
+    document.querySelectorAll('.sb-nav .sb-section').forEach(function(s){var t=s.textContent;if((!hasInv&&t.indexOf('Inventory')>-1)||(!hasCrm&&t.indexOf('CRM')>-1))s.style.display='none';});
+    if(wa.indexOf('procurement')<0)document.querySelectorAll('a[href="procurement.html"]').forEach(function(a){a.style.display='none';});
   }
   var h=new Date().getHours();
   var g=h<12?'Good Morning':h<17?'Good Afternoon':'Good Evening';
@@ -683,8 +691,9 @@ async function startApp(){
   document.getElementById('crm-dash-sub').textContent=g+', '+(USER.name||'').split(' ')[0]+'!';
   await preload();
   if(USER.role==='employee'){
-    if(startModule==='crm') go('leads',document.getElementById('ni-leads'));
-    else go('so',document.getElementById('ni-so'));
+    var wb=Array.isArray(USER.workAreas)?USER.workAreas:['crm','inventory','procurement'];
+    if(wb.indexOf('inventory')>-1&&!(startModule==='crm'&&wb.indexOf('crm')>-1)) go('so',document.getElementById('ni-so'));
+    else go('leads',document.getElementById('ni-leads'));
     return;
   }
   if(startModule==='crm') go('crm-dash',document.getElementById('ni-crm-dash'));

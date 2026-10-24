@@ -493,6 +493,9 @@ function startApp(){
   if(USER&&USER.role==='employee'){
     /* emp-ui-1 */
     /* proc-emp-2 */['ni-dashboard','ni-vendors','ni-approvals','ni-payments'].forEach(function(id){var e=document.getElementById(id);if(e)e.style.display='none';});
+    var wp=Array.isArray(USER.workAreas)?USER.workAreas:['crm','inventory','procurement'];
+    if(wp.indexOf('procurement')<0){window.location='index.html';return;}
+    if(wp.indexOf('crm')<0&&wp.indexOf('inventory')<0)document.querySelectorAll('a[href="inventory.html"]').forEach(function(a){a.style.display='none';});
     loadVendorsData();
     go('rfq',document.getElementById('ni-rfq'));
     return;
