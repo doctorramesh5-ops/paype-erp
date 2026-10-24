@@ -202,6 +202,125 @@ function canAdmin(req, res, next) {
 }
 
 // ── HEALTH & MIGRATIONS ────────────────────────────────
+
+/* super-admin-1 */ // PAYPE Super Admin - tenants, partners, suspend/activate. Metadata only, never business data.
+const SUPER_MODULES = ['ERP', 'HRMS', 'CRM', 'Social Hub', 'Payment Gateway', 'BankMe', 'AI Builder'];
+const SUPER_PLANS = ['Trial', 'Starter', 'Growth', 'Business', 'Enterprise', 'White-label'];
+const _UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+let _superSchemaReady = false;
+async function ensureSuperSchema() {
+  if (_superSchemaReady) return;
+  const stmts = [
+    "ALTER TABLE erp_companies ADD COLUMN IF NOT EXISTS status VARCHAR(20) DEFAULT 'active'",
+    "ALTER TABLE erp_companies ADD COLUMN IF NOT EXISTS kind VARCHAR(20) DEFAULT 'customer'",
+    "ALTER TABLE erp_companies ADD COLUMN IF NOT EXISTS plan VARCHAR(50)",
+    "ALTER TABLE erp_companies ADD COLUMN IF NOT EXISTS modules TEXT",
+    "ALTER TABLE erp_companies ADD COLUMN IF NOT EXISTS notes TEXT",
+    "ALTER TABLE erp_companies ADD COLUMN IF NOT EXISTS suspended_at TIMESTAMPTZ",
+    "ALTER TABLE erp_users ADD COLUMN IF NOT EXISTS suspended_by_super BOOLEAN DEFAULT false",
+    "CREATE TABLE IF NOT EXISTS super_audit (id UUID PRIMARY KEY DEFAULT gen_random_uuid(), actor_email VARCHAR(200), action VARCHAR(60), target VARCHAR(200), detail TEXT, created_at TIMESTAMPTZ DEFAULT NOW())"
+  ];
+  for (const s of stmts) await db(s);
+  _superSchemaReady = true;
+}
+function isSuperUser(u) {
+  const list = String(process.env.SUPER_ADMIN_EMAILS || '').split(',').map(s => s.trim().toLowerCase()).filter(Boolean);
+  return !!u && u.role === 'admin' && list.length > 0 && list.includes(String(u.email || '').toLowerCase());
+}
+function superOnly(req, res, next) {
+  if (!isSuperUser(req.user)) return res.status(403).json({ success: false, message: 'Super admin only' });
+  next();
+}
+async function superLog(req, action, target, detail) {
+  try { await db('INSERT INTO super_audit (actor_email, action, target, detail) VALUES ($1,$2,$3,$4)', [req.user.email, action, String(target || '').slice(0, 200), String(detail || '').slice(0, 500)]); } catch (e) {}
+}
+app.get('/api/super/me', auth, async (req, res) => {
+  res.json({ success: true, data: { isSuper: isSuperUser(req.user), name: req.user.name, email: req.user.email } });
+});
+app.get('/api/super/overview', auth, superOnly, async (req, res) => {
+  try {
+    await ensureSuperSchema();
+    const t = await db("SELECT kind, status, COUNT(*)::int AS n FROM erp_companies GROUP BY kind, status");
+    const u = await db("SELECT COUNT(*)::int AS n FROM erp_users WHERE is_active=true");
+    let s = { rows: [] };
+    try { s = await db("SELECT status, COUNT(*)::int AS n, COALESCE(SUM(amount),0) AS total FROM saas_subscriptions GROUP BY status"); } catch (e) {}
+    res.json({ success: true, data: { tenants: t.rows, activeUsers: u.rows[0].n, subscriptions: s.rows } });
+  } catch (e) { res.status(500).json({ success: false, message: e.message }); }
+});
+app.get('/api/super/tenants', auth, superOnly, async (req, res) => {
+  try {
+    await ensureSuperSchema();
+    const kind = ['customer', 'partner'].includes(req.query.kind) ? req.query.kind : null;
+    const r = await db("SELECT c.id, c.name, c.email, c.kind, c.plan, c.modules, c.status, c.created_at, (SELECT COUNT(*)::int FROM erp_users x WHERE x.company_id=c.id) AS users FROM erp_companies c WHERE ($1::text IS NULL OR c.kind=$1) ORDER BY c.created_at DESC LIMIT 500", [kind]);
+    res.json({ success: true, data: r.rows });
+  } catch (e) { res.status(500).json({ success: false, message: e.message }); }
+});
+app.get('/api/super/tenants/:id', auth, superOnly, async (req, res) => {
+  try {
+    await ensureSuperSchema();
+    if (!_UUID.test(req.params.id)) return res.status(400).json({ success: false, message: 'Bad id' });
+    const c = await db('SELECT id, name, email, mobile, gstin, kind, plan, modules, status, notes, created_at, suspended_at FROM erp_companies WHERE id=$1', [req.params.id]);
+    if (!c.rows.length) return res.status(404).json({ success: false, message: 'Tenant not found' });
+    const u = await db('SELECT id, name, email, role, is_active, last_login_at FROM erp_users WHERE company_id=$1 ORDER BY created_at', [req.params.id]);
+    res.json({ success: true, data: { tenant: c.rows[0], users: u.rows } });
+  } catch (e) { res.status(500).json({ success: false, message: e.message }); }
+});
+app.post('/api/super/tenants', auth, superOnly, rateLimit(30, 60 * 60 * 1000), async (req, res) => {
+  let companyId = null;
+  try {
+    await ensureSuperSchema();
+    const b = req.body || {};
+    const name = String(b.name || '').trim().slice(0, 200);
+    const adminName = String(b.adminName || '').trim().slice(0, 200);
+    const adminEmail = String(b.adminEmail || '').trim().toLowerCase();
+    const kind = b.kind === 'partner' ? 'partner' : 'customer';
+    const plan = SUPER_PLANS.includes(b.plan) ? b.plan : 'Trial';
+    const modules = (Array.isArray(b.modules) ? b.modules : []).filter(m => SUPER_MODULES.includes(m));
+    if (!name || !adminName) return res.status(400).json({ success: false, message: 'Company name and admin name are required' });
+    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(adminEmail)) return res.status(400).json({ success: false, message: 'A valid admin email is required' });
+    if (!modules.length) return res.status(400).json({ success: false, message: 'Choose at least one module' });
+    const dup = await db('SELECT 1 FROM erp_users WHERE lower(email)=$1', [adminEmail]);
+    if (dup.rows.length) return res.status(400).json({ success: false, message: 'This email already has an account' });
+    const c = await db("INSERT INTO erp_companies (name, email, kind, plan, modules, notes, status) VALUES ($1,$2,$3,$4,$5,$6,'active') RETURNING id, name", [name, adminEmail, kind, plan, modules.join(','), String(b.notes || '').slice(0, 500) || null]);
+    companyId = c.rows[0].id;
+    const temp = require('crypto').randomBytes(9).toString('base64').replace(/[^A-Za-z0-9]/g, 'x') + 'a1';
+    const hash = await bcrypt.hash(temp, 10);
+    await db("INSERT INTO erp_users (company_id, name, email, password, role, must_change_password) VALUES ($1,$2,$3,$4,'admin',true)", [companyId, adminName, adminEmail, hash]);
+    await superLog(req, 'tenant.create', name, kind + ' / ' + plan + ' / ' + modules.join(','));
+    res.status(201).json({ success: true, data: { id: companyId, name, kind, plan, modules }, temporaryPassword: temp, note: 'Give this temporary password to the admin privately. It is shown once. They must change it and set up the authenticator at first sign-in.' });
+  } catch (e) {
+    if (companyId) { try { await db('DELETE FROM erp_companies WHERE id=$1', [companyId]); } catch (x) {} }
+    res.status(500).json({ success: false, message: e.message });
+  }
+});
+app.post('/api/super/tenants/:id/status', auth, superOnly, async (req, res) => {
+  try {
+    await ensureSuperSchema();
+    const id = req.params.id, status = (req.body || {}).status;
+    if (!_UUID.test(id)) return res.status(400).json({ success: false, message: 'Bad id' });
+    if (!['active', 'suspended'].includes(status)) return res.status(400).json({ success: false, message: 'Status must be active or suspended' });
+    if (status === 'suspended' && String(id) === String(req.user.company_id)) return res.status(400).json({ success: false, message: 'You cannot suspend your own company' });
+    const c = await db('SELECT id, name FROM erp_companies WHERE id=$1', [id]);
+    if (!c.rows.length) return res.status(404).json({ success: false, message: 'Tenant not found' });
+    if (status === 'suspended') {
+      await db("UPDATE erp_companies SET status='suspended', suspended_at=NOW() WHERE id=$1", [id]);
+      await db("UPDATE erp_users SET is_active=false, suspended_by_super=true, deactivated_at=NOW() WHERE company_id=$1 AND is_active=true", [id]);
+    } else {
+      await db("UPDATE erp_companies SET status='active', suspended_at=NULL WHERE id=$1", [id]);
+      await db("UPDATE erp_users SET is_active=true, suspended_by_super=false, deactivated_at=NULL WHERE company_id=$1 AND suspended_by_super=true", [id]);
+    }
+    await superLog(req, 'tenant.' + status, c.rows[0].name, '');
+    res.json({ success: true, message: 'Tenant ' + status });
+  } catch (e) { res.status(500).json({ success: false, message: e.message }); }
+});
+app.get('/api/super/audit', auth, superOnly, async (req, res) => {
+  try {
+    await ensureSuperSchema();
+    const r = await db('SELECT actor_email, action, target, detail, created_at FROM super_audit ORDER BY created_at DESC LIMIT 100');
+    res.json({ success: true, data: r.rows });
+  } catch (e) { res.status(500).json({ success: false, message: e.message }); }
+});
+
 app.get('/api/health', async (req, res) => {
   let dbStatus = 'not configured';
   if (process.env.DATABASE_URL) {
