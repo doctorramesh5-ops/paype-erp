@@ -70,8 +70,49 @@ async function auth(req, res, next) {
     if (!r.rows.length) return res.status(401).json({ success: false, message: 'Unauthorized' });
     if (d.scope === 'totp-setup' && !/^\/api\/auth\/totp\//.test(String(req.originalUrl || '').split('?')[0])) return res.status(403).json({ success: false, message: 'Set up your authenticator first', mustSetupTotp: true });
     req.user = r.rows[0];
+    if (req.user.role === 'employee' && !(await employeeGate(req, res))) return;
     next();
   } catch(e) { return res.status(401).json({ success: false, message: 'Invalid token' }); }
+}
+
+/* emp-gate-1 */
+// Employees may only use the entry screens (CRM, Inventory, Procurement) and see their OWN entries.
+const EMP_RULES = [
+  ['GET,POST', /^\/api\/auth\/change-password\/?$/],
+  ['GET', /^\/api\/parties\/?$/],
+  ['GET', /^\/api\/inventory\/(products|warehouses)\/?$/],
+  ['GET,POST', /^\/api\/inventory\/(sales-orders|purchase-orders|stock-movements)\/?$/],
+  ['GET,POST', /^\/api\/crm\/(leads|opportunities|quotations|tasks)\/?$/],
+  ['PUT', /^\/api\/crm\/(leads|opportunities)\/[0-9a-fA-F-]{36}\/?$/],
+  ['PUT', /^\/api\/crm\/tasks\/[0-9a-fA-F-]{36}\/status\/?$/],
+  ['GET', /^\/api\/procurement\/vendors\/?$/],
+  ['GET,POST', /^\/api\/procurement\/(rfq|grn)\/?$/],
+  ['POST', /^\/api\/procurement\/approvals\/?$/],
+];
+const EMP_OWN = {
+  '/api/inventory/sales-orders': 'created_by', '/api/inventory/purchase-orders': 'created_by',
+  '/api/inventory/stock-movements': 'created_by', '/api/crm/quotations': 'created_by',
+  '/api/procurement/rfq': 'created_by', '/api/procurement/grn': 'created_by',
+  '/api/crm/leads': 'assigned_to', '/api/crm/opportunities': 'assigned_to', '/api/crm/tasks': 'assigned_to',
+};
+const EMP_TABLE = { leads: 'leads', opportunities: 'opportunities', tasks: 'crm_tasks' };
+async function employeeGate(req, res) {
+  const path = String(req.originalUrl || req.url || '').split('?')[0].replace(/\/+$/, '');
+  const ok = EMP_RULES.some(([m, rx]) => m.split(',').includes(req.method) && rx.test(path));
+  if (!ok) { res.status(403).json({ success: false, message: 'Not available for employees' }); return false; }
+  if (req.method === 'GET' && EMP_OWN[path]) {
+    const field = EMP_OWN[path], me = String(req.user.id), orig = res.json.bind(res);
+    res.json = (b) => {
+      if (b && Array.isArray(b.data)) b = Object.assign({}, b, { data: b.data.filter(x => x && String(x[field]) === me) });
+      return orig(b);
+    };
+  }
+  const m = path.match(/^\/api\/crm\/(leads|opportunities|tasks)\/([0-9a-fA-F-]{36})/);
+  if (m && req.method === 'PUT') {
+    const r = await db('SELECT 1 FROM ' + EMP_TABLE[m[1]] + ' WHERE id=$1 AND company_id=$2 AND assigned_to=$3', [m[2], req.user.company_id, req.user.id]);
+    if (!r.rows.length) { res.status(403).json({ success: false, message: 'You can only change your own entries' }); return false; }
+  }
+  return true;
 }
 
 function canAdmin(req, res, next) {
@@ -1414,7 +1455,7 @@ app.get('/api/setup', async (req, res) => {
 // ══════════════════════════════════════════════════════
 // ── SETUP TABLES ─────────────────────────────────────
 // ══════════════════════════════════════════════════════
-app.get('/api/setup-tables', async (req, res) => {
+app.get('/api/setup-tables', auth, canAdmin, async (req, res) => {
   try {
     const tables = [];
     

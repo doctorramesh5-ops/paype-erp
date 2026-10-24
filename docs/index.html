@@ -363,11 +363,12 @@ tr:hover td{background:#FAFBFC;}
     <div class="ff"><label>Email Address</label><input id="l-email" type="email" placeholder="admin@paype.co.in"></div>
     <div class="ff"><label>Password</label><div class="pass-wrap"><input id="l-pass" type="password" placeholder="Enter your password"><button class="pass-eye" onclick="togglePass()">👁</button></div></div>
     <div class="ff" id="l-code-wrap" style="display:none;"><label id="l-code-label">Code</label><input id="l-code" inputmode="numeric" autocomplete="one-time-code" maxlength="12"></div>
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
+    <div id="l-extras" style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
       <label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;"><input type="checkbox"> Remember me</label>
       <span style="font-size:12px;color:var(--teal);cursor:pointer;">Forgot password?</span>
     </div>
     <button class="login-btn" id="l-btn" onclick="doLogin()">Sign In to ERP</button>
+    <div id="l-resend" style="display:none;text-align:center;margin-top:10px;font-size:12px;color:var(--teal);"><span style="cursor:pointer;" onclick="resendOtp()">Resend OTP</span> &nbsp;·&nbsp; <span style="cursor:pointer;" onclick="changeOtpEmail()">Use a different email</span></div>
     <div class="login-err" id="l-err"></div>
     <div class="login-footer">
       <div id="l-hint" style="margin-bottom:6px;"></div>
@@ -2304,10 +2305,16 @@ function setRole(role,el){
   document.getElementById('l-code-wrap').style.display='none';
   document.getElementById('l-code').value='';
   document.getElementById('l-pass').value='';
-  document.getElementById('l-btn').textContent=emp?'Email me a code':'Sign In to ERP';
+  document.getElementById('l-btn').textContent=emp?'Send OTP to my company email':'Sign In to ERP';
+  document.getElementById('l-extras').style.display=emp?'none':'flex';
+  document.getElementById('l-resend').style.display='none';
+  document.getElementById('l-email').readOnly=false;
+  document.getElementById('l-email').placeholder=emp?'yourname@paype.co.in':'admin@paype.co.in';
   document.getElementById('l-hint').textContent=emp?'Employees sign in with a one-time code sent to their company email.':'';
   document.getElementById('l-err').style.display='none';
 }
+function resendOtp(){LOGIN_STAGE='start';document.getElementById('l-code').value='';doLogin();}
+function changeOtpEmail(){var t=document.querySelector('.role-tab.on');setRole('employee',t);document.getElementById('l-email').value='';document.getElementById('l-email').focus();}
 function togglePass(){var i=document.getElementById('l-pass');i.type=i.type==='password'?'text':'password';}
 function showCodeBox(label,ph,hint){
   document.getElementById('l-code-label').textContent=label;
@@ -2322,7 +2329,7 @@ async function lpost(path,body){
   return {status:r.status,j:j};
 }
 function loginBtnText(){
-  if(LOGIN_ROLE==='employee')return LOGIN_STAGE==='code'?'Verify & Sign In':'Email me a code';
+  if(LOGIN_ROLE==='employee')return LOGIN_STAGE==='code'?'Verify OTP':'Send OTP to my company email';
   return LOGIN_STAGE==='totp'?'Verify':'Sign In to ERP';
 }
 async function doLogin(){
@@ -2337,7 +2344,7 @@ async function doLogin(){
         btn.textContent='Sending...';
         var r1=await lpost('/api/auth/otp/request',{email:email});
         if(r1.status!==200){lerr(r1.j.message||'Could not send the code. Please try again.');}
-        else{LOGIN_STAGE='code';showCodeBox('Code from your email','6-digit code','If this email is registered, a code was sent. It is valid for 10 minutes.');}
+        else{LOGIN_STAGE='code';showCodeBox('Enter the OTP from your company email','6-digit OTP','If this email is registered, an OTP was sent. It is valid for 10 minutes.');document.getElementById('l-resend').style.display='block';document.getElementById('l-email').readOnly=true;}
       }else{
         var code=document.getElementById('l-code').value.trim();
         if(!/^\d{6}$/.test(code)){lerr('Enter the 6-digit code');}
@@ -2507,6 +2514,14 @@ function startApp(){
   }
   var h=new Date().getHours();
   document.getElementById('dash-sub').textContent=(h<12?'Good Morning':h<17?'Good Afternoon':'Good Evening')+', '+(USER.name||'').split(' ')[0]+'! FY 2026-27';
+  if(ROLE==='employee'){
+    /* emp-ui-1 */
+    document.querySelectorAll('.sb-nav .ni,.sb-nav .sb-section').forEach(function(el){el.style.display='none';});
+    ['ni-profile','ni-inventory','ni-procurement'].forEach(function(id){var e=document.getElementById(id);if(e)e.style.display='';});
+    document.querySelectorAll('.sb-nav .sb-section.mgr-only').forEach(function(el){el.style.display='';});
+    var np=document.getElementById('ni-profile');go('profile',np);
+    return;
+  }
   preloadData();loadDash();
 }
 
