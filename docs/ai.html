@@ -367,7 +367,7 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:#1A202C;font-size
           <div class="chat-header">
             <div class="chat-ai-avatar">🤖</div>
             <div>
-              <div class="chat-ai-name">PayPe AI Assistant</div>
+              <div class="chat-ai-name">PAYPE Saraswathi</div>
               <div class="chat-ai-status">Powered by Claude Sonnet · Always ready</div>
             </div>
             <div class="chat-context">
@@ -380,7 +380,7 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:#1A202C;font-size
             <div class="msg ai">
               <div class="msg-avatar">🤖</div>
               <div>
-                <div class="msg-bubble">👋 Hello! I'm PayPe AI, your intelligent business assistant.<br><br>I can help you with:<br>• Accounting queries & journal entries<br>• GST rate finder & filing help<br>• Business insights & analysis<br>• Email drafting & document creation<br>• Inventory & CRM questions<br><br>What would you like to know today?</div>
+                <div class="msg-bubble">👋 Hello! I'm PAYPE Saraswathi, your intelligent business assistant.<br><br>I can help you with:<br>• Accounting queries & journal entries<br>• GST rate finder & filing help<br>• Business insights & analysis<br>• Email drafting & document creation<br>• Inventory & CRM questions<br><br>What would you like to know today?</div>
                 <div class="msg-time">Just now</div>
               </div>
             </div>
@@ -867,7 +867,7 @@ async function callClaudeWithImage(prompt, imageBase64, mediaType) {
 }
 
 function buildSystemPrompt() {
-  return 'You are PayPe AI, an intelligent business assistant for ' + COMPANY_CONTEXT.name + ' based in ' + COMPANY_CONTEXT.city + ', ' + COMPANY_CONTEXT.state + ', India. ' +
+  return 'You are PAYPE Saraswathi, an intelligent business assistant for ' + COMPANY_CONTEXT.name + ' based in ' + COMPANY_CONTEXT.city + ', ' + COMPANY_CONTEXT.state + ', India. ' +
     'GSTIN: ' + COMPANY_CONTEXT.gstin + ' | Business Type: ' + COMPANY_CONTEXT.business + ' | FY: ' + COMPANY_CONTEXT.fy + '. ' +
     'You help with Indian accounting (double-entry), GST (CGST/SGST/IGST), TDS, income tax, inventory management, CRM, and business operations. ' +
     'Always use Indian Rupees (Rs/₹). Use Indian date format DD-MM-YYYY. Reference Indian tax laws (CGST Act, Income Tax Act 1961). ' +

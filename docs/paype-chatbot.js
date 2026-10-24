@@ -25,7 +25,10 @@
       transition: all .3s ease; position: relative;
     }
     #pcw-fab:hover { transform: scale(1.08); box-shadow: 0 6px 30px rgba(13,27,62,.5); }
-    #pcw-fab-icon { font-size: 24px; transition: all .3s; }
+    #pcw-fab-icon { font-size: 24px; transition: all .3s; width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; }
+    #pcw-fab { overflow: visible; padding: 0; }
+    #pcw-fab-icon svg, #pcw-avatar svg, .pcw-msg-av svg { width: 100%; height: 100%; display: block; border-radius: 50%; }
+    .pcw-msg.ai .pcw-msg-av { overflow: hidden; background: none; }
     #pcw-fab-dot {
       position: absolute; top: 2px; right: 2px;
       width: 14px; height: 14px; border-radius: 50%;
@@ -159,17 +162,19 @@
   `;
   document.head.appendChild(style);
 
+  var PCW_FACE = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><defs><linearGradient id="pbg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#14b8a6"/><stop offset="1" stop-color="#7c3aed"/></linearGradient><linearGradient id="psr" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff7e6"/><stop offset="1" stop-color="#f3dcae"/></linearGradient></defs><circle cx="32" cy="32" r="32" fill="url(#pbg)"/><path d="M17.5 28C16 13 25 8 32 8s16 5 14.5 20c1 8 2 14 1 22H16.5c-1-8 0-14 1-22z" fill="#1d1630"/><path d="M6 64c1-12 10-17 26-17s25 5 26 17z" fill="url(#psr)"/><path d="M22 64c0-10 3-15 6-17l6 0c6 3 10 8 12 17z" fill="#0f766e"/><path d="M22 64c0-10 3-15 6-17" stroke="#f5b800" stroke-width="1.6" fill="none"/><rect x="28" y="38" width="8" height="10" rx="3" fill="#d89a6a"/><ellipse cx="32" cy="27.5" rx="12" ry="13.5" fill="#ebb98d"/><path d="M32 11.5C23.5 11.5 19 18 19.6 28.5C21 21 25 17.2 32 16.2z" fill="#1d1630"/><path d="M32 11.5C40.5 11.5 45 18 44.4 28.5C43 21 39 17.2 32 16.2z" fill="#1d1630"/><path d="M32 11.8v4.4" stroke="#7a6a64" stroke-width=".7"/><path d="M25 24q3-2.2 6 0M33 24q3-2.2 6 0" stroke="#1d1630" stroke-width="1.1" fill="none" stroke-linecap="round"/><path d="M25.5 27.4q2.5 1.6 5 0q-2.5-1.8-5 0zM34.5 27.4q2.5 1.6 5 0q-2.5-1.8-5 0z" fill="#2b1a12"/><circle cx="32" cy="19.8" r="1.5" fill="#d6212a"/><circle cx="33.9" cy="31.4" r=".7" fill="#f5b800"/><path d="M29.5 34q2.5 2.2 5 0" stroke="#b3403a" stroke-width="1.3" fill="none" stroke-linecap="round"/><path d="M18.2 30.5a2.4 2.4 0 014.8 0z" fill="#f5b800"/><path d="M41.0 30.5a2.4 2.4 0 014.8 0z" fill="#f5b800"/><circle cx="20.6" cy="33.2" r="1.1" fill="#f5b800"/><circle cx="43.4" cy="33.2" r="1.1" fill="#f5b800"/><circle cx="44.8" cy="16.5" r="1.7" fill="#fff"/><circle cx="44.8" cy="16.5" r=".5" fill="#f5d36b"/><circle cx="43.4" cy="13.3" r="1.7" fill="#fff"/><circle cx="43.4" cy="13.3" r=".5" fill="#f5d36b"/><circle cx="41.3" cy="10.5" r="1.7" fill="#fff"/><circle cx="41.3" cy="10.5" r=".5" fill="#f5d36b"/><circle cx="38.6" cy="8.4" r="1.7" fill="#fff"/><circle cx="38.6" cy="8.4" r=".5" fill="#f5d36b"/><circle cx="35.4" cy="7.1" r="1.7" fill="#fff"/><circle cx="35.4" cy="7.1" r=".5" fill="#f5d36b"/><circle cx="32.0" cy="6.6" r="1.7" fill="#fff"/><circle cx="32.0" cy="6.6" r=".5" fill="#f5d36b"/><circle cx="28.6" cy="7.1" r="1.7" fill="#fff"/><circle cx="28.6" cy="7.1" r=".5" fill="#f5d36b"/><circle cx="25.4" cy="8.4" r="1.7" fill="#fff"/><circle cx="25.4" cy="8.4" r=".5" fill="#f5d36b"/><circle cx="22.7" cy="10.5" r="1.7" fill="#fff"/><circle cx="22.7" cy="10.5" r=".5" fill="#f5d36b"/><circle cx="20.6" cy="13.3" r="1.7" fill="#fff"/><circle cx="20.6" cy="13.3" r=".5" fill="#f5d36b"/><circle cx="19.2" cy="16.5" r="1.7" fill="#fff"/><circle cx="19.2" cy="16.5" r=".5" fill="#f5d36b"/></svg>';
+
   // ── HTML ───────────────────────────────────────
   var widget = document.createElement('div');
   widget.id = WIDGET_ID;
   widget.innerHTML = `
-    <div id="pcw-tooltip">💬 Ask PayPe AI</div>
+    <div id="pcw-tooltip">💬 Ask Saraswathi</div>
     <div id="pcw-window">
       <div id="pcw-header">
-        <div id="pcw-avatar">🤖</div>
+        <div id="pcw-avatar">${PCW_FACE}</div>
         <div>
-          <div id="pcw-name">PayPe AI Assistant</div>
-          <div id="pcw-status"><div id="pcw-status-dot"></div>Always online · Claude AI</div>
+          <div id="pcw-name">PAYPE Saraswathi</div>
+          <div id="pcw-status"><div id="pcw-status-dot"></div>Always online · Finance helper</div>
         </div>
         <div id="pcw-header-actions">
           <button class="pcw-hbtn" onclick="pcwClear()" title="Clear chat">🗑</button>
@@ -193,11 +198,11 @@
             <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
           </button>
         </div>
-        <div id="pcw-powered">Powered by <span>Claude AI</span> · PayPe Technologies</div>
+        <div id="pcw-powered">PAYPE Saraswathi · <span>PayPe Technologies</span></div>
       </div>
     </div>
     <button id="pcw-fab" onclick="pcwToggle()">
-      <span id="pcw-fab-icon">🤖</span>
+      <span id="pcw-fab-icon">${PCW_FACE}</span>
       <div id="pcw-fab-dot"></div>
     </button>
   `;
@@ -238,12 +243,12 @@
     var icon = document.getElementById('pcw-fab-icon');
     if (pcwOpen) {
       win.classList.add('open');
-      icon.textContent = '✕';
+      icon.textContent = '✕';icon.style.fontSize = '22px';icon.style.color = '#fff';
       if (!pcwGreeted) { pcwGreet(); pcwGreeted = true; }
       setTimeout(function(){ document.getElementById('pcw-input').focus(); }, 300);
     } else {
       win.classList.remove('open');
-      icon.textContent = '🤖';
+      icon.innerHTML = PCW_FACE;
     }
   };
 
@@ -272,10 +277,10 @@
       '<a class="pcw-navlink" href="https://erp.paype.co.in" target="_blank">📊 Accounting</a>' +
       '<a class="pcw-navlink" href="https://hr.paype.co.in" target="_blank">👥 HRMS</a>' +
       '<a class="pcw-navlink" href="https://doctorramesh5-ops.github.io/paype-erp/inventory.html" target="_blank">📦 Inventory</a>' +
-      '<a class="pcw-navlink" href="https://doctorramesh5-ops.github.io/paype-erp/ai.html" target="_blank">🤖 AI Assistant</a>' +
+      '<a class="pcw-navlink" href="https://doctorramesh5-ops.github.io/paype-erp/ai.html" target="_blank">🤖 PAYPE Saraswathi</a>' +
       '</div>';
 
-    pcwAddMsg('ai', greet + '! 👋 I\'m PayPe AI Assistant.\n' + (pageCtx[pcwCurrentPage] || pageCtx.general) + '\n\nHow can I help you today?' + navHtml);
+    pcwAddMsg('ai', greet + '! 👋 I\'m PAYPE Saraswathi.\n' + (pcwTok() ? (pageCtx[pcwCurrentPage] || pageCtx.general) : 'Ask me about PAYPE products, plans and how to buy.') + '\n\nHow can I help you today?' + navHtml);
   }
 
   window.pcwAsk = function(text) {
@@ -296,44 +301,36 @@
 
     pcwHistory.push({ role: 'user', content: text });
 
-    var sysPrompt = 'You are PayPe AI, a business assistant for ' + pcwCompany.name +
-      ' (' + pcwCompany.city + ', ' + pcwCompany.state + ', India). GSTIN: ' + pcwCompany.gstin +
-      '. Current page: ' + pcwCurrentPage + ' module.' +
-      ' Help with Indian accounting, GST (CGST/SGST/IGST), TDS, payroll, inventory, CRM, and business operations.' +
-      ' Use Indian Rupees (Rs/₹). Be concise (3-5 sentences max for chat widget). If they need more detail, suggest opening the full AI Assistant.' +
-      ' FY ' + pcwCompany.fy + '. Indian law (CGST Act, Income Tax Act 1961).';
-
-    fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-6',
-        max_tokens: 400,
-        system: sysPrompt,
-        messages: pcwHistory
-      })
-    })
-    .then(function(r){ return r.json(); })
-    .then(function(data) {
+    function pcwDone(reply) {
       pcwRemoveTyping(typing);
-      var reply = (data.content && data.content[0]) ? data.content[0].text : 'Sorry, I could not respond. Please try again.';
       pcwHistory.push({ role: 'assistant', content: reply });
       pcwAddMsg('ai', reply);
       document.getElementById('pcw-send').disabled = false;
+    }
+    function pcwAsk(path, withToken) {
+      var h = { 'Content-Type': 'application/json' };
+      if (withToken) h.Authorization = 'Bearer ' + pcwTok();
+      return fetch('https://erpapi.paype.co.in' + path, { method: 'POST', headers: h, body: JSON.stringify({ messages: pcwHistory.slice(-12), max_tokens: 500 }) })
+        .then(function(r){ return r.json().then(function(j){ return { status: r.status, j: j }; }); });
+    }
+    function pcwText(x) { return (x.j && x.j.success && x.j.data && x.j.data.content && x.j.data.content[0]) ? x.j.data.content[0].text : null; }
+    (pcwTok() ? pcwAsk('/api/ai/saraswathi', true) : pcwAsk('/api/ai/public', false))
+    .then(function(x) {
+      if (x.status === 401 && pcwTok()) return pcwAsk('/api/ai/public', false);
+      return x;
     })
-    .catch(function(e) {
-      pcwRemoveTyping(typing);
-      pcwAddMsg('ai', 'Connection error. Please check your internet and try again.');
-      document.getElementById('pcw-send').disabled = false;
-    });
+    .then(function(x) { pcwDone(pcwText(x) || (x.j && x.j.message) || 'Sorry, I could not respond. Please try again.'); })
+    .catch(function() { pcwDone('Connection error. Please check your internet and try again.'); });
   };
+
+  function pcwTok() { try { return localStorage.getItem('erp_token') || ''; } catch (e) { return ''; } }
 
   function pcwAddMsg(role, html) {
     var msgs = document.getElementById('pcw-messages');
     var div = document.createElement('div');
     div.className = 'pcw-msg ' + role;
     var time = new Date().toLocaleTimeString('en-IN', {hour:'2-digit',minute:'2-digit'});
-    var avText = role === 'ai' ? '🤖' : '👤';
+    var avText = role === 'ai' ? PCW_FACE : '👤';
     var formatted = html
       .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
       .replace(/`(.*?)`/g, '<code style="background:#F0F4F8;padding:1px 5px;border-radius:4px;font-size:11px;">$1</code>')
@@ -349,7 +346,7 @@
     var div = document.createElement('div');
     div.className = 'pcw-msg ai';
     div.id = 'pcw-typing';
-    div.innerHTML = '<div class="pcw-msg-av">🤖</div><div><div class="pcw-typing"><span></span><span></span><span></span></div></div>';
+    div.innerHTML = '<div class="pcw-msg-av">' + PCW_FACE + '</div><div><div class="pcw-typing"><span></span><span></span><span></span></div></div>';
     msgs.appendChild(div);
     msgs.scrollTop = msgs.scrollHeight;
     return div;
