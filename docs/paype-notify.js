@@ -9,13 +9,14 @@
   function build(){
     if(built)return;built=true;
     var st=el('style');st.textContent='.tb-bell,#notif-panel{display:none!important}';document.head.appendChild(st);
-    bell=el('button','position:fixed;top:9px;right:70px;z-index:1500;width:36px;height:36px;border-radius:50%;border:1px solid #d9e0e8;background:#fff;cursor:pointer;font-size:17px;line-height:1;box-shadow:0 2px 8px rgba(0,0,0,.12);','🔔');
+    bell=el('button','position:relative;flex-shrink:0;margin:0 10px;width:34px;height:34px;border-radius:50%;border:1px solid #d9e0e8;background:#fff;cursor:pointer;font-size:16px;line-height:1;display:flex;align-items:center;justify-content:center;','🔔');
     bell.title='Notifications';
     badge=el('span','position:absolute;top:-4px;right:-4px;min-width:17px;height:17px;border-radius:9px;background:#e53e3e;color:#fff;font-size:10px;font-weight:700;display:none;align-items:center;justify-content:center;padding:0 4px;','0');
     bell.appendChild(badge);
     panel=el('div','position:fixed;top:52px;right:14px;z-index:1500;width:340px;max-width:calc(100vw - 28px);max-height:75vh;overflow:auto;background:#fff;border:1px solid #d9e0e8;border-radius:12px;box-shadow:0 10px 36px rgba(0,0,0,.2);display:none;font-family:inherit;');
+    bell.style.display='none';
     bell.onclick=function(){var open=panel.style.display==='block';panel.style.display=open?'none':'block';if(!open)load(true);};
-    document.body.appendChild(bell);document.body.appendChild(panel);
+    var av=document.getElementById('tb-avatar');if(av&&av.parentNode)av.parentNode.insertBefore(bell,av);else{bell.style.position='fixed';bell.style.top='9px';bell.style.right='70px';bell.style.zIndex='1500';document.body.appendChild(bell);}document.body.appendChild(panel);
   }
   function setBadge(n){if(!badge)return;badge.textContent=n>99?'99+':String(n);badge.style.display=n>0?'flex':'none';}
   function composer(){
@@ -56,7 +57,11 @@
     if(!tok())return;
     api('GET','/api/notifications').then(function(d){if(!d||!d.success)return;build();setBadge(d.unread||0);if(draw&&panel.style.display==='block')render(d);}).catch(function(){});
   }
-  function tick(){if(tok())load(false);else if(built){bell.style.display='none';panel.style.display='none';}}
-  setTimeout(tick,1200);setInterval(tick,60000);
+  /* ui-fixes-1 */
+  var lastLoad=0;
+  function appShown(){var a=document.getElementById('erp-app');if(!a)return false;var s=getComputedStyle(a);return s.display!=='none'&&a.offsetParent!==null;}
+  function sync(){if(!built)return;var on=!!tok()&&appShown();bell.style.display=on?'flex':'none';if(!on)panel.style.display='none';}
+  function tick(){var on=!!tok()&&appShown();if(on&&(!built||Date.now()-lastLoad>60000)){lastLoad=Date.now();load(false);}sync();}
+  setInterval(tick,2000);setTimeout(tick,800);
   document.addEventListener('click',function(e){if(panel&&panel.style.display==='block'&&!panel.contains(e.target)&&e.target!==bell&&!bell.contains(e.target))panel.style.display='none';});
 })();

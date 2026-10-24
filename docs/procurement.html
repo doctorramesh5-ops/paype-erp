@@ -489,6 +489,7 @@ function startApp(){
   document.getElementById('sb-role').textContent={admin:'Admin',manager:'Manager',employee:'Employee'}[(USER&&USER.role)]||(USER&&USER.role)||'User';
   document.getElementById('dash-date').textContent=new Date().toLocaleDateString('en-IN',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
   document.getElementById('grn-date').value=document.getElementById('pay-date').value=new Date().toISOString().split('T')[0];
+  if(!USER||USER.role!=='admin'){document.querySelectorAll('a[href*="ai.html"]').forEach(function(a){a.style.display='none';});}
   if(USER&&USER.role==='employee'){
     /* emp-ui-1 */
     ['ni-dashboard','ni-approvals','ni-payments'].forEach(function(id){var e=document.getElementById(id);if(e)e.style.display='none';});
@@ -517,6 +518,7 @@ async function api(method,path,body){
   var opts={method,headers:{'Content-Type':'application/json','Authorization':'Bearer '+TOKEN}};
   if(body)opts.body=JSON.stringify(body);
   var r=await fetch(API+path,opts);
+  if(r.status===401){localStorage.removeItem('erp_token');localStorage.removeItem('erp_user');window.location='index.html';return {success:false};}
   return r.json();
 }
 
@@ -996,6 +998,7 @@ function procClearCache(){localStorage.removeItem("procTheme");localStorage.remo
 // Auto login
 if(TOKEN&&USER){startApp();}else{location.replace('index.html');}
 </script>
+<script>/* ui-fixes-1 */window.addEventListener('pageshow',function(e){if(e.persisted)location.reload();});</script>
 <script src="paype-notify.js"></script>
 <script src="paype-chatbot.js"></script>
 </body>

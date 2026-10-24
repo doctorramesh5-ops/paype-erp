@@ -2495,6 +2495,7 @@ document.addEventListener('keydown',function(e){if(e.key==='Enter'&&document.get
 // APP
 function startApp(){
   document.getElementById('login-page').style.display='none';
+  var lpEl=document.getElementById('lp');if(lpEl)lpEl.style.display='none';
   var app=document.getElementById('erp-app');
   app.style.display='flex';
   ROLE=USER.role||'employee';
@@ -3306,6 +3307,7 @@ function toast(msg,type){var t=document.createElement('div');t.className='tst'+(
 // AUTO LOGIN
 if(TOKEN&&USER){ROLE=USER.role||'employee';startApp();}
 </script>
+<script>/* ui-fixes-1 */window.addEventListener('pageshow',function(e){if(e.persisted)location.reload();});</script>
 <script src="paype-notify.js"></script>
 <script src="paype-chatbot.js"></script>
 

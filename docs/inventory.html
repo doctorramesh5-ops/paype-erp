@@ -1879,6 +1879,7 @@ async function loadERPUsers() {
 if(TOKEN&&USER){startApp();}else{location.replace('index.html');}
 </script>
 
+<script>/* ui-fixes-1 */window.addEventListener('pageshow',function(e){if(e.persisted)location.reload();});</script>
 <script src="paype-notify.js"></script>
 <script src="paype-chatbot.js"></script>
 </body>

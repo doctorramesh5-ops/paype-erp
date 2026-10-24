@@ -279,7 +279,7 @@
       '<a class="pcw-navlink" href="https://erp.paype.co.in" target="_blank">📊 Accounting</a>' +
       '<a class="pcw-navlink" href="https://hr.paype.co.in" target="_blank">👥 HRMS</a>' +
       '<a class="pcw-navlink" href="https://doctorramesh5-ops.github.io/paype-erp/inventory.html" target="_blank">📦 Inventory</a>' +
-      '<a class="pcw-navlink" href="https://doctorramesh5-ops.github.io/paype-erp/ai.html" target="_blank">🤖 PAYPE Saraswathi</a>' +
+      (pcwRole() === 'admin' ? '<a class="pcw-navlink" href="https://doctorramesh5-ops.github.io/paype-erp/ai.html" target="_blank">🤖 PAYPE Saraswathi</a>' : '') +
       '</div>';
 
     pcwAddMsg('ai', greet + '! 👋 I\'m PAYPE Saraswathi.\n' + (pcwTok() ? (pageCtx[pcwCurrentPage] || pageCtx.general) : 'Ask me about PAYPE products, plans and how to buy.') + '\n\nHow can I help you today?' + navHtml);
@@ -383,6 +383,7 @@
     }).catch(function() { pcwAddMsg('ai', 'Please allow the microphone in your browser to speak to me.'); });
   };
 
+  function pcwRole() { try { return (JSON.parse(localStorage.getItem('erp_user') || 'null') || {}).role || ''; } catch (e) { return ''; } }
   function pcwTok() { try { return localStorage.getItem('erp_token') || ''; } catch (e) { return ''; } }
 
   function pcwAddMsg(role, html) {
