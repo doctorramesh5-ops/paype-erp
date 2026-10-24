@@ -91,6 +91,7 @@ const EMP_RULES = [
   ['GET', /^\/api\/notifications\/?$/],
   ['POST', /^\/api\/notifications\/read\/?$/],
   ['POST', /^\/api\/ai\/(chat|saraswathi)\/?$/],
+  ['POST', /^\/api\/voice\/(stt|tts)\/?$/],
 ];
 const EMP_OWN = {
   '/api/inventory/sales-orders': 'created_by', '/api/inventory/purchase-orders': 'created_by',
@@ -2504,6 +2505,60 @@ app.post('/api/ai/public', rateLimit(15, 10 * 60 * 1000), async (req, res) => {
     res.status(out.status).json(out.body);
   } catch (e) { res.status(500).json({ success: false, message: 'Saraswathi could not answer right now.' }); }
 });
+
+/* voice-1 */
+// ---- PAYPE Saraswathi voice (Sarvam speech-to-text / text-to-speech) ----
+function voiceLang(text) {
+  const s = String(text || '');
+  const R = [['ta-IN', /[஀-௿]/g], ['hi-IN', /[ऀ-ॿ]/g], ['te-IN', /[ఀ-౿]/g], ['kn-IN', /[ಀ-೿]/g],
+    ['ml-IN', /[ഀ-ൿ]/g], ['bn-IN', /[ঀ-৿]/g], ['gu-IN', /[઀-૿]/g], ['pa-IN', /[਀-੿]/g], ['od-IN', /[଀-୿]/g]];
+  let best = 'en-IN', n = 3;
+  for (const [code, rx] of R) { const c = (s.match(rx) || []).length; if (c > n) { best = code; n = c; } }
+  return best;
+}
+function voiceCleanText(t) {
+  return String(t || '').replace(/<[^>]*>/g, ' ').replace(/[*_`#>~]/g, '').replace(/\[([^\]]*)\]\([^)]*\)/g, '$1')
+    .replace(/[\u{1F000}-\u{1FFFF}\u{2600}-\u{27BF}\u{FE0F}]/gu, '').replace(/\s+/g, ' ').trim().slice(0, 1200);
+}
+async function voiceStt(req, res) {
+  try {
+    const key = process.env.SARVAM_API_KEY;
+    if (!key) return res.status(503).json({ success: false, message: 'Voice is not switched on yet.' });
+    const a = String((req.body && req.body.audio) || '');
+    const mime = String((req.body && req.body.mime) || 'audio/webm').split(';')[0].toLowerCase();
+    if (!a || a.length > 2400000) return res.status(400).json({ success: false, message: 'Recording is empty or too long. Please speak for up to 25 seconds.' });
+    if (!/^audio\/(webm|ogg|mp4|mpeg|wav|x-m4a|aac|x-wav)$/.test(mime)) return res.status(400).json({ success: false, message: 'Unsupported audio type' });
+    const ext = { 'audio/webm': 'webm', 'audio/ogg': 'ogg', 'audio/mp4': 'mp4', 'audio/mpeg': 'mp3', 'audio/wav': 'wav', 'audio/x-wav': 'wav', 'audio/x-m4a': 'm4a', 'audio/aac': 'aac' }[mime];
+    const fd = new FormData();
+    fd.append('file', new Blob([Buffer.from(a, 'base64')], { type: mime }), 'voice.' + ext);
+    fd.append('language_code', 'unknown');
+    const r = await fetch('https://api.sarvam.ai/speech-to-text', { method: 'POST', headers: { 'api-subscription-key': key }, body: fd });
+    const d = await r.json().catch(() => ({}));
+    if (!r.ok) { console.error('Sarvam STT error:', r.status, JSON.stringify(d).slice(0, 200)); return res.status(502).json({ success: false, message: 'Could not understand the recording. Please try again or type.' }); }
+    const t = String(d.transcript || '').trim().slice(0, 1000);
+    if (!t) return res.json({ success: false, message: 'I could not hear anything. Please speak closer to the microphone.' });
+    res.json({ success: true, transcript: t, language: d.language_code || null });
+  } catch (e) { console.error('voiceStt failed:', e.message); res.status(500).json({ success: false, message: 'Voice is not available right now.' }); }
+}
+async function voiceTts(req, res) {
+  try {
+    const key = process.env.SARVAM_API_KEY;
+    if (!key) return res.status(503).json({ success: false, message: 'Voice is not switched on yet.' });
+    const text = voiceCleanText(req.body && req.body.text);
+    if (!text) return res.status(400).json({ success: false, message: 'Nothing to speak' });
+    const r = await fetch('https://api.sarvam.ai/text-to-speech', {
+      method: 'POST', headers: { 'api-subscription-key': key, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text, language_code: voiceLang(text), model: 'bulbul:v3', speaker: process.env.SARVAM_SPEAKER || 'priya', output_audio_codec: 'mp3', speech_sample_rate: 22050 }),
+    });
+    const d = await r.json().catch(() => ({}));
+    if (!r.ok || !d.audios || !d.audios[0]) { console.error('Sarvam TTS error:', r.status, JSON.stringify(d).slice(0, 200)); return res.status(502).json({ success: false, message: 'Voice is not available right now.' }); }
+    res.json({ success: true, audio: d.audios[0], mime: 'audio/mpeg' });
+  } catch (e) { console.error('voiceTts failed:', e.message); res.status(500).json({ success: false, message: 'Voice is not available right now.' }); }
+}
+app.post('/api/voice/stt', rateLimit(40, 10 * 60 * 1000), auth, voiceStt);
+app.post('/api/voice/tts', rateLimit(60, 10 * 60 * 1000), auth, voiceTts);
+app.post('/api/voice/public-stt', rateLimit(10, 10 * 60 * 1000), voiceStt);
+app.post('/api/voice/public-tts', rateLimit(15, 10 * 60 * 1000), voiceTts);
 
 app.use(function(req, res) { res.status(404).json({ success: false, message: 'Endpoint not found' }); });
 app.use(function(err, req, res, next) { res.status(500).json({ success: false, message: err.message }); });

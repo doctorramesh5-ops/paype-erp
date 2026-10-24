@@ -193,7 +193,9 @@
       <div id="pcw-messages"></div>
       <div id="pcw-input-area">
         <div id="pcw-input-row">
-          <textarea id="pcw-input" rows="1" placeholder="Ask anything about business, GST, accounting..."></textarea>
+          <textarea id="pcw-input" rows="1" placeholder="Type or press the mic and speak (Tamil, Hindi, English...)"></textarea>
+          <button id="pcw-spk" title="Hear her answers" onclick="pcwToggleSpeak()" style="width:34px;height:36px;border:none;background:none;cursor:pointer;font-size:17px;flex-shrink:0;">🔇</button>
+          <button id="pcw-mic" title="Speak to Saraswathi" onclick="pcwMic()" style="width:36px;height:36px;border-radius:10px;border:1.5px solid #E2E8F0;background:#fff;cursor:pointer;font-size:17px;flex-shrink:0;">🎤</button>
           <button id="pcw-send" onclick="pcwSend()">
             <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
           </button>
@@ -306,6 +308,7 @@
       pcwHistory.push({ role: 'assistant', content: reply });
       pcwAddMsg('ai', reply);
       document.getElementById('pcw-send').disabled = false;
+      if (pcwVoiceOn) pcwSpeak(reply);
     }
     function pcwAsk(path, withToken) {
       var h = { 'Content-Type': 'application/json' };
@@ -321,6 +324,63 @@
     })
     .then(function(x) { pcwDone(pcwText(x) || (x.j && x.j.message) || 'Sorry, I could not respond. Please try again.'); })
     .catch(function() { pcwDone('Connection error. Please check your internet and try again.'); });
+  };
+
+/* voice-1 */
+  var pcwVoiceOn = false, pcwRec = null, pcwChunks = [], pcwAudio = null;
+  function pcwVoicePath(k) { return (pcwTok() ? '/api/voice/' : '/api/voice/public-') + k; }
+  function pcwVoicePost(k, body) {
+    var h = { 'Content-Type': 'application/json' };
+    if (pcwTok()) h.Authorization = 'Bearer ' + pcwTok();
+    return fetch('https://erpapi.paype.co.in' + pcwVoicePath(k), { method: 'POST', headers: h, body: JSON.stringify(body) }).then(function(r){ return r.json(); });
+  }
+  window.pcwToggleSpeak = function() {
+    pcwVoiceOn = !pcwVoiceOn;
+    document.getElementById('pcw-spk').textContent = pcwVoiceOn ? '🔊' : '🔇';
+    if (!pcwVoiceOn && pcwAudio) { try { pcwAudio.pause(); } catch (e) {} }
+  };
+  function pcwSpeak(text) {
+    pcwVoicePost('tts', { text: text }).then(function(d) {
+      if (!d || !d.success) return;
+      if (pcwAudio) { try { pcwAudio.pause(); } catch (e) {} }
+      pcwAudio = new Audio('data:' + (d.mime || 'audio/mpeg') + ';base64,' + d.audio);
+      pcwAudio.play().catch(function(){});
+    }).catch(function(){});
+  }
+  window.pcwMic = function() {
+    var mic = document.getElementById('pcw-mic');
+    if (pcwRec) { pcwRec.stop(); return; }
+    if (!navigator.mediaDevices || !window.MediaRecorder) { pcwAddMsg('ai', 'This browser does not support voice. Please type your question.'); return; }
+    navigator.mediaDevices.getUserMedia({ audio: true }).then(function(stream) {
+      var mime = MediaRecorder.isTypeSupported('audio/webm;codecs=opus') ? 'audio/webm;codecs=opus' : (MediaRecorder.isTypeSupported('audio/mp4') ? 'audio/mp4' : '');
+      var rec = mime ? new MediaRecorder(stream, { mimeType: mime }) : new MediaRecorder(stream);
+      pcwRec = rec; pcwChunks = [];
+      mic.textContent = '⏹'; mic.style.background = '#fee2e2'; mic.style.borderColor = '#e53e3e';
+      var stopTimer = setTimeout(function(){ if (pcwRec === rec) rec.stop(); }, 25000);
+      rec.ondataavailable = function(e) { if (e.data && e.data.size) pcwChunks.push(e.data); };
+      rec.onstop = function() {
+        clearTimeout(stopTimer);
+        stream.getTracks().forEach(function(t){ t.stop(); });
+        pcwRec = null; mic.textContent = '🎤'; mic.style.background = '#fff'; mic.style.borderColor = '#E2E8F0';
+        var type = (rec.mimeType || 'audio/webm').split(';')[0];
+        var blob = new Blob(pcwChunks, { type: type });
+        if (blob.size < 1500) return;
+        var typing = pcwAddTyping();
+        var fr = new FileReader();
+        fr.onload = function() {
+          var b64 = String(fr.result).split(',')[1] || '';
+          pcwVoicePost('stt', { audio: b64, mime: type }).then(function(d) {
+            pcwRemoveTyping(typing);
+            if (!d || !d.success) { pcwAddMsg('ai', (d && d.message) || 'I could not understand. Please try again or type.'); return; }
+            document.getElementById('pcw-input').value = d.transcript;
+            if (!pcwVoiceOn) window.pcwToggleSpeak();
+            pcwSend();
+          }).catch(function(){ pcwRemoveTyping(typing); pcwAddMsg('ai', 'Connection error. Please try again.'); });
+        };
+        fr.readAsDataURL(blob);
+      };
+      rec.start();
+    }).catch(function() { pcwAddMsg('ai', 'Please allow the microphone in your browser to speak to me.'); });
   };
 
   function pcwTok() { try { return localStorage.getItem('erp_token') || ''; } catch (e) { return ''; } }
