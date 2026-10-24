@@ -492,7 +492,7 @@ function startApp(){
   if(!USER||USER.role!=='admin'){document.querySelectorAll('a[href*="ai.html"]').forEach(function(a){a.style.display='none';});}
   if(USER&&USER.role==='employee'){
     /* emp-ui-1 */
-    ['ni-dashboard','ni-approvals','ni-payments'].forEach(function(id){var e=document.getElementById(id);if(e)e.style.display='none';});
+    /* proc-emp-2 */['ni-dashboard','ni-vendors','ni-approvals','ni-payments'].forEach(function(id){var e=document.getElementById(id);if(e)e.style.display='none';});
     loadVendorsData();
     go('rfq',document.getElementById('ni-rfq'));
     return;
