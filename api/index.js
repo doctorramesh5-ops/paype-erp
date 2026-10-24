@@ -1014,12 +1014,13 @@ app.put('/api/users/:id/work-areas', auth, async (req, res) => {
 app.post('/api/users/invite', auth, async (req, res) => {
   try {
     await ensureAuthSchema();
-    if (req.user.role !== 'admin') return res.status(403).json({ success: false, message: 'Admin only' });
+    if (req.user.role !== 'admin' && req.user.role !== 'manager') return res.status(403).json({ success: false, message: 'Admin or manager only' }); /* hr-access-1 */
     const name = String((req.body || {}).name || '').trim();
     const email = String((req.body || {}).email || '').trim().toLowerCase();
     const role = (req.body || {}).role || 'employee';
     if (!name || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return res.status(400).json({ success: false, message: 'Valid name and company email required' });
     if (!['employee', 'manager'].includes(role)) return res.status(400).json({ success: false, message: 'Role must be employee or manager' });
+    if (req.user.role === 'manager' && role !== 'employee') return res.status(403).json({ success: false, message: 'Only an admin can add a manager' });
     const allowed = (process.env.ALLOWED_EMAIL_DOMAINS || 'paype.co.in').split(',').map(s => s.trim().toLowerCase()).filter(Boolean);
     if (allowed.length && !allowed.includes(email.split('@')[1])) return res.status(400).json({ success: false, message: 'Use a company email address (' + allowed.join(', ') + ')' });
     const temp = role === 'manager' ? _cr.randomBytes(9).toString('base64').replace(/[^A-Za-z0-9]/g, 'x') + 'a1' : null;
@@ -1043,10 +1044,11 @@ app.post('/api/users/invite', auth, async (req, res) => {
 app.post('/api/users/:id/deactivate', auth, async (req, res) => {
   try {
     await ensureAuthSchema();
-    if (req.user.role !== 'admin') return res.status(403).json({ success: false, message: 'Admin only' });
+    if (req.user.role !== 'admin' && req.user.role !== 'manager') return res.status(403).json({ success: false, message: 'Admin or manager only' }); /* hr-access-1 */
     if (String(req.params.id) === String(req.user.id)) return res.status(400).json({ success: false, message: 'You cannot deactivate yourself' });
     const t = await db('SELECT id, role, is_active FROM erp_users WHERE id=$1 AND company_id=$2', [req.params.id, req.user.company_id]);
     if (!t.rows.length) return res.status(404).json({ success: false, message: 'User not found' });
+    if (req.user.role === 'manager' && t.rows[0].role !== 'employee') return res.status(403).json({ success: false, message: 'HR can manage employee accounts only' });
     if (t.rows[0].role === 'admin') {
       const n = await db("SELECT COUNT(*)::int AS n FROM erp_users WHERE company_id=$1 AND role='admin' AND is_active=true", [req.user.company_id]);
       if (n.rows[0].n <= 1) return res.status(400).json({ success: false, message: 'Cannot deactivate the last admin' });
@@ -1073,8 +1075,8 @@ app.post('/api/users/:id/reset-password', auth, async (req, res) => {
 app.post('/api/users/:id/reactivate', auth, async (req, res) => {
   try {
     await ensureAuthSchema();
-    if (req.user.role !== 'admin') return res.status(403).json({ success: false, message: 'Admin only' });
-    const r = await db("UPDATE erp_users SET is_active=true, deactivated_at=NULL, onboarding_status='invited' WHERE id=$1 AND company_id=$2 AND is_active=false RETURNING id,name,email,role", [req.params.id, req.user.company_id]);
+    if (req.user.role !== 'admin' && req.user.role !== 'manager') return res.status(403).json({ success: false, message: 'Admin or manager only' }); /* hr-access-1 */
+    const r = await db("UPDATE erp_users SET is_active=true, deactivated_at=NULL, onboarding_status='invited' WHERE id=$1 AND company_id=$2 AND is_active=false AND ($3='admin' OR role='employee') RETURNING id,name,email,role", [req.params.id, req.user.company_id, req.user.role]);
     if (!r.rows.length) return res.status(404).json({ success: false, message: 'Deactivated user not found' });
     const u = r.rows[0];
     const m = await sendMail(u.email, u.name, process.env.MSG91_WELCOME_TEMPLATE, { name: u.name, link: process.env.APP_URL || 'https://erp.paype.co.in' });
@@ -1510,8 +1512,8 @@ app.post('/api/auth/register', auth, async (req, res) => {
 app.get('/api/users', auth, async (req, res) => {
   try {
     await ensureAuthSchema();
-    if (req.user.role !== 'admin') return res.status(403).json({ success: false, message: 'Admin only' });
-    const r = await db('SELECT id,name,email,role,is_active,created_at,onboarding_status,totp_enabled,last_login_at,work_areas FROM erp_users WHERE company_id=$1 ORDER BY created_at', [req.user.company_id]);
+    if (req.user.role !== 'admin' && req.user.role !== 'manager') return res.status(403).json({ success: false, message: 'Admin or manager only' }); /* hr-access-1 */
+    const r = await db('SELECT id,name,email,role,is_active,created_at,onboarding_status,totp_enabled,last_login_at,work_areas FROM erp_users WHERE company_id=$1' + (req.user.role === 'admin' ? '' : " AND role='employee'") + ' ORDER BY created_at', [req.user.company_id]);
     res.json({ success: true, data: r.rows });
   } catch(e) { res.status(500).json({ success: false, message: e.message }); }
 });
