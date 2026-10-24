@@ -2284,6 +2284,43 @@ app.get('/api/procurement/dashboard', auth, async (req, res) => {
 
 // ── CUSTOMER PAYMENT MANAGEMENT ────────────────────────
 
+/* public-signup-1 : website signup records (no login needed, strictly validated) */
+const SIGNUP_PLANS = ['Starter', 'Growth', 'Business', 'Enterprise'];
+app.post('/api/public/signup', rateLimit(10, 60 * 60 * 1000), async (req, res) => {
+  try {
+    const b = req.body || {};
+    const s = function (v, n) { return String(v == null ? '' : v).replace(/[\u0000-\u001f]/g, ' ').trim().slice(0, n); };
+    const kind = b.kind === 'pg' ? 'pg' : 'plan';
+    let name = s(b.name, 120); const email = s(b.email, 160).toLowerCase(), mobile = s(b.mobile, 15).replace(/[^0-9+]/g, ''), company = s(b.company, 160);
+    const txn = s(b.transactionId, 60), products = s(b.products, 200);
+    let plan = s(b.plan, 40); const amount = Number(b.amount) || 0;
+    if (kind === 'pg') { if (name.length < 2) name = 'PG merchant (see payment reference)'; }
+    if (name.length < 2) return res.status(400).json({ success: false, message: 'Please enter your name.' });
+    if (!(kind === 'pg' && !email) && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return res.status(400).json({ success: false, message: 'Please enter a valid email.' });
+    if (mobile && mobile.replace(/\D/g, '').length < 10) return res.status(400).json({ success: false, message: 'Please enter a valid mobile number.' });
+    if (amount < 0 || amount > 1000000) return res.status(400).json({ success: false, message: 'Invalid amount.' });
+    if (kind === 'plan' && SIGNUP_PLANS.indexOf(plan) < 0) return res.status(400).json({ success: false, message: 'Unknown plan.' });
+    if (kind === 'pg') plan = 'PG ' + plan.slice(0, 30);
+    if (amount > 0 && !/^pay_[A-Za-z0-9]{6,40}$/.test(txn)) return res.status(400).json({ success: false, message: 'Payment reference missing.' });
+    await db(`CREATE TABLE IF NOT EXISTS saas_subscriptions (
+      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      company_id UUID REFERENCES erp_companies(id),
+      customer_name VARCHAR(200) NOT NULL, customer_email VARCHAR(200), customer_mobile VARCHAR(20), customer_company VARCHAR(200),
+      plan VARCHAR(50) DEFAULT 'Starter', payment_type VARCHAR(50) DEFAULT 'Monthly', amount DECIMAL(12,2) DEFAULT 0,
+      status VARCHAR(50) DEFAULT 'Unpaid', due_date DATE, paid_date DATE, next_due_date DATE, payment_method VARCHAR(50),
+      transaction_id VARCHAR(200), notes TEXT, created_at TIMESTAMP DEFAULT NOW(), updated_at TIMESTAMP DEFAULT NOW())`);
+    let cid = process.env.PUBLIC_SIGNUP_COMPANY_ID || null;
+    if (!cid) { const c = await db("SELECT company_id FROM erp_users WHERE role='admin' AND company_id IS NOT NULL ORDER BY created_at LIMIT 1"); cid = c.rows[0] ? c.rows[0].company_id : null; }
+    if (!cid) return res.status(503).json({ success: false, message: 'Signup is temporarily unavailable. Please email admin@paype.co.in.' });
+    const status = amount > 0 ? 'Paid - verify' : 'Trial';
+    const ptype = amount > 0 ? (kind === 'pg' ? 'One-time Activation' : 'Online') : 'Free Trial';
+    await db(`INSERT INTO saas_subscriptions (company_id, customer_name, customer_email, customer_mobile, customer_company, plan, payment_type, amount, status, paid_date, transaction_id, notes)
+      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)`,
+      [cid, name, email, mobile || null, company || null, plan, ptype, amount, status, amount > 0 ? new Date().toISOString().slice(0, 10) : null, txn || null, ('Products: ' + products + ' | Source: website signup').slice(0, 400)]);
+    res.status(201).json({ success: true, message: 'Thank you. Our team will contact you within one working day.' });
+  } catch (e) { console.error('public signup:', e.message); res.status(500).json({ success: false, message: 'Could not save right now. Please email admin@paype.co.in.' }); }
+});
+
 // Get all subscription customers (SaaS)
 app.get('/api/payments/subscriptions', auth, async (req, res) => {
   try {
